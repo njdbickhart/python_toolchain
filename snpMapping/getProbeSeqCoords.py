@@ -10,15 +10,16 @@ Output is the tab delimited list of coordinate positions
 import sys, getopt
 import re
 
-usage = "python3 getProbeSeqCoords.py -s <sam file> -o <output tab file>"
+usage = "python3 getProbeSeqCoords.py -s <sam file> -o <output tab file> -c <1 bp correction flag>"
 oddSubstitutions = {"[T/A]", "[A/T]", "[G/C]", "[C/G]"}
 baseSub = re.compile("(\[.\/.\])")
 cigarRe = re.compile("(\d+)([MIDNSHP=X])")
 
 def main(argv):
     samFile = outTab = ''
+    correction = False
     try:
-        opts, leftover = getopt.getopt(argv, "hs:o:")
+        opts, leftover = getopt.getopt(argv, "hcs:o:")
     except getopt.GetoptError:
         print("Error processing command line arguments!\n{}".format(usage))
         sys.exit(2)
@@ -31,6 +32,8 @@ def main(argv):
             samFile = arg
         elif(opt == "-o"):
             outTab = arg
+        elif(opt == "-c"):
+            correction = True
         
     if(not samFile or not outTab):
         print(usage)
@@ -42,14 +45,15 @@ def main(argv):
             if(re.match("^\@", line)):
                 continue
             else:
-                coord = coordinate_converter(line)
+                coord = coordinate_converter(line, correction)
                 if(coord.isValid()):
-                    e = int(coord.getVals[1]) + 1
-                    o.write("{}\t{}\t{}\t{}", coord.getVals[0], \
-                            coord.getVals[1], e, coord.getVals[2])
+                    vals = coord.getVals()
+                    e = int(vals[1]) + 1
+                    o.write("{}\t{}\t{}\t{}\n".format(vals[0], \
+                            vals[1], e, vals[2]))
         
     
-def coordinate_converter(line):
+def coordinate_converter(line, correction):
     """
     Input is a sam file line
     Output is coord class object
@@ -60,24 +64,31 @@ def coordinate_converter(line):
     # Get substitution base
     variant = baseSub.search(segs[0]).group(1)
     addition = 0 if variant in oddSubstitutions else 1
+    if(not correction):
+        addition = 0
     
+    # Get raw SNP name without variant base
+    name = re.sub("_\[.\/.\]", "", segs[0])
     if(int(segs[1]) & 2048 == 2048):
         # secondary alignment -- skip
         return coord()
     elif(int(segs[1]) & 16 == 16):
         # reverse alignment, keep the 5' alignment position
-        return coord(segs[2], int(segs[3]) - addition, segs[0])
+        return coord(segs[2], int(segs[3]) - addition, name)
+    elif(int(segs[1]) & 4 == 4):
+        # Unaligned segment
+        return coord(segs[2], 0, name)
     else:
         # forward alignment, count the alignment length
-        return coord(segs[2], int(segs[3]) + cigar_conversion(segs[5]) + addition, segs[0])
+        return coord(segs[2], int(segs[3]) + int(cigar_conversion(segs[5])) + addition - 1, name)
     
 def cigar_conversion(cigar):
     end = 0
     for m in cigarRe.finditer(cigar):
         count, base = m.groups()
         if(base == 'M' or base == 'I' or base == 'S' or base == '=' or base == 'X'):
-            end += count
-    return count
+            end += int(count)
+    return end
     
 class coord:    
     def __init__(self, chrom = None, pos = None, name = None):
@@ -97,5 +108,5 @@ class coord:
         return (self.chrom, self.pos, self.name)
         
     
-if __name__ == "main":
+if __name__ == "__main__":
     main(sys.argv[1:])

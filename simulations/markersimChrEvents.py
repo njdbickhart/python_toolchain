@@ -34,8 +34,10 @@ if __name__ == '__main__':
     # Read in fasta index and set chromosome lengths
     chrlens = {}
     with open(args.faidx, "r") as f:
-        for c, s, b, l, n in f.readlines():
-            chrlens[c] = s
+        for l in f:
+            l.rstrip('\n')
+            segs = l.split("\t")
+            chrlens[segs[0]] = segs[1]
             
     # Process chromosome.data file
     defChrLen = 100000000
@@ -44,13 +46,16 @@ if __name__ == '__main__':
         o.write(header)
         for line in c:
             line.rstrip('\n')
-            segs = line.split("\s+")
+            segs = line.split()
             
             if segs[1] in chrlens:
-                newpos = int(chrlens[segs[1]] * (int(segs[4]) / defChrLen))
-                o.write(segs[0])
-                for i, val in zip([5,9,9,12,5,9,9,9], \
-                                  [segs[1], segs[2], segs[3], segs[4], newpos, \
-                                   segs[5], segs[6], segs[7], segs[8]]):
-                    o.write('{:>base}'.format(val, base=i))
+                newpos = int(int(chrlens[segs[1]]) * (int(segs[4]) / defChrLen))
+                #o.write(segs[0])
+                #for i, val in zip([5,9,9,12,5,9,9,9], \
+                #                  [segs[1], segs[2], segs[3], segs[4], newpos, \
+                #                   segs[5], segs[6], segs[7], segs[8]]):
+                #    o.write('{0:{width}}'.format(val, width=i))
+                o.write('{}{:>5}{:>9}{:>9}{:>12}{:>5}{:>9}{:>9}{:>9}'.format( \
+                    segs[0], segs[1], segs[2], segs[3], newpos, segs[5], \
+                    segs[6], segs[7], segs[8]))
                 o.write("\n")
