@@ -30,9 +30,10 @@ def subtract_segs(qlen, qlist):
     # List of aligned reference segs
     ralign = []
     
-    qunalign[0] = [1, qlen]
+    #qunalign[0] = [1, qlen]
+    qunalign.append([1, qlen])
     for a in qlist:
-        ralign.append('-'.join(a.rchr, str(a.rstart), str(a.rend)))
+        ralign.append('-'.join([a.rchr, str(a.rstart), str(a.rend)]))
         if a.qstart > qunalign[-1][0]:
             # We need to resection the qualign
             prevend = qunalign[-1][1]
@@ -46,8 +47,15 @@ def subtract_segs(qlen, qlist):
             qunalign[-1][0] = a.qend
             
     qunalign = [[0,0]] if not qunalign else qunalign
-    unalnlen = reduce(lambda x,y: x + y, map(lambda x,y: y - x, qunalign))
-    return processedSeg(qlist[0].qchr, qlen, qunalign, unalnlen, ralign)
+    unalnlen = 0
+    for row in qunalign:
+        unalnlen += row[1] - row[0]
+
+    #unalnlen = reduce(lambda x,y: x + y, map(lambda x,y: y - x, qunalign)) if len(qunalign) > 1 else map(lambda x,y: y - x, qualign)
+    lastlist = []
+    for start, end in qunalign:
+        lastlist.append('-'.join([str(start), str(end)]))
+    return processedSeg(qlist[0].qchr, qlen, lastlist, unalnlen, ralign)
         
 def main(args):
     # Table of chr lengths and arrays of alignments
@@ -57,19 +65,19 @@ def main(args):
     with open(args.input, "r") as f:
         for l in f:
             l.rstrip("\n")
-            segs = l.split("\s+")
+            segs = l.split()
             queryLens[segs[0]] = int(segs[1])
             aligns[segs[0]].append(align(segs[0], int(segs[2]), int(segs[3]), segs[4],
                                 segs[5], int(segs[7]), int(segs[8])))
     
     segsfile = args.output + '.segs.tab'
     with open(segsfile, "w") as o:
-        for query, alist in aligns:
+        for query, alist in aligns.items():
             # Process each query chromosome in turn
             alist.sort()
             processed = subtract_segs(queryLens[query], alist)
             
-            o.write("{}\n".format(processed.printOut))
+            o.write("{}\n".format(processed.printOut()))
             
     print("Finished with file processing")
 
@@ -99,9 +107,9 @@ class processedSeg:
         return self.qchr < other.qchr
     
     def printOut(self):
-        return '\t'.join(self.qchr, str(self.origlen), str(self.unalgLen), 
-                         ';'.join('-'.join(str(x) for x in self.unalgSegs)),
-                         ';'.join(str(x) for x in self.algnSegs))
+        return '\t'.join([self.qchr, str(self.origlen), str(self.unalgLen), 
+                         ';'.join(self.unalgSegs),
+                         ';'.join(str(x) for x in self.algnSegs)])
         
 if __name__ == "__main__":
     args = parse_user_input()
