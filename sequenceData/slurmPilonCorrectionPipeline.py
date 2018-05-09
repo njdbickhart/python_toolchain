@@ -8,7 +8,7 @@ Created on Wed May  9 10:41:48 2018
 import argparse
 import os
 import subprocess
-from slurAlignScriptBWA import slurmTools
+from slurmAlignScriptBWA import slurmTools
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
