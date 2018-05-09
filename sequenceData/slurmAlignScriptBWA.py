@@ -31,7 +31,7 @@ def parse_user_input():
                         )
     parser.add_argument('-m', '--merge',
                         help="[Optional] queue alignments and merge scripts",
-                        required=False, type=bool
+                        action='store_true'
                         )
     parser.add_argument('-p', '--partition',
                         help="[Optional] name of the slurm partition for jobs",
@@ -78,7 +78,7 @@ def main(args):
             
             uname = bsegs[0] + "." + urlHash()
             
-            cmd = "bwa mem -t 8 -M -R '\@RG\\tID:{LB}\\tSM:{ID}\\tLB:{LB}' {FA} {seg1} {seg2} | samtools sort -m 2G -o {uname}.sorted.bam -T {uname} -".format(ID=segs[-1], LB=segs[-2], FA=args.fasta, seg1=segs[0], seg2=segs[1], uname=uname)
+            cmd = "bwa mem -t 8 -M -R '@RG\\tID:{LB}\\tSM:{ID}\\tLB:{LB}' {WD}/{FA} {seg1} {seg2} | samtools sort -m 2G -o {uname}.sorted.bam -T {uname} -".format(ID=segs[-1], LB=segs[-2], WD=curDir, FA=args.fasta, seg1=segs[0], seg2=segs[1], uname=uname)
             slurmBams[segs[-1]].append(uname + ".sorted.bam")
             
             slurmWorkers[segs[-1]].createGenericCmd(cmd, "bwaAlign")
@@ -86,7 +86,7 @@ def main(args):
     
     # TODO: generate queuing mechanism
     if args.merge:
-        for k, worker in slurmWorkers:
+        for k, worker in slurmWorkers.items():
             jobIds = worker.queueJobs()
             
             print("Sample: {} queued with {} jobs: {}".format(k, len(jobIds),
@@ -115,11 +115,11 @@ def main(args):
             print("Queued jobs with dependencies")
 
 def urlHash():
-    alphabet = list(string.ascii_lowercase, string.digits)
+    #alphabet = list([string.ascii_lowercase, string.digits])
     collections = {}
     for x in range(1, 30):
         length = random.randrange(0, 11) + 10
-        key = ''.join(random.choice(alphabet) for x in range(length))
+        key = ''.join(random.choice(list(string.ascii_lowercase)) for x in range(length))
         collections[key] = 1
     return list(collections.keys())[0]
     
@@ -143,6 +143,10 @@ class slurmTools:
         self.scripts = []
         self.dependencies = []
         self.jobIds = []
+
+    def addJobIDs(self, jarray: List[int]) -> None:
+        for x in jarray:
+            self.dependencies.append(x)
 
     def queueJobs(self):
         for x in self.scripts:
