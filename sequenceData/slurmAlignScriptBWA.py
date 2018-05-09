@@ -11,6 +11,7 @@ import random
 import subprocess
 import string
 from typing import List
+from collections import defaultdict
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
@@ -42,8 +43,9 @@ def parse_user_input():
 def main(args):
     modules = ['bwa/0.7.12', 'samtools/1.4.1']
     
+    scriptCount = 0
     slurmWorkers = {} # Each sample gets its own worker
-    slurmBams = {} # Each sample gets a list of sorted bams
+    slurmBams = defaultdict(list) # Each sample gets a list of sorted bams
     
     if not os.path.exists(args.base):
         os.makedirs(args.base)
@@ -77,11 +79,40 @@ def main(args):
             uname = bsegs[0] + "." + urlHash()
             
             cmd = "bwa mem -t 8 -M -R '\@RG\\tID:{LB}\\tSM:{ID}\\tLB:{LB}' {FA} {seg1} {seg2} | samtools sort -m 2G -o {uname}.sorted.bam -T {uname} -".format(ID=segs[-1], LB=segs[-2], FA=args.fasta, seg1=segs[0], seg2=segs[1], uname=uname)
-            slurmBams[segs[-1]] = uname + ".sorted.bam"
+            slurmBams[segs[-1]].append(uname + ".sorted.bam")
             
             slurmWorkers[segs[-1]].createGenericCmd(cmd, "bwaAlign")
+            scriptCount += 1
     
     # TODO: generate queuing mechanism
+    if args.merge:
+        for k, worker in slurmWorkers:
+            jobIds = worker.queueJobs()
+            
+            print("Sample: {} queued with {} jobs: {}".format(k, len(jobIds),
+                  ' '.join(jobIds)))
+            wkdir = curDir + "/" + args.base + "/" + k
+            merger = slurmTools(
+                    wkdir,
+                    wkdir + "/scripts",
+                    wkdir + "/outLog",
+                    wkdir + "/errLog",
+                    False,
+                    modules,
+                    1, 7, 9000, -1, args.partition)
+            
+            bams = slurmBams[k]
+            cmds = []
+            
+            for b in bams:
+                cmds.append('samtools index {}'.format(b))
+                
+            cmds.append("samtools merge -c -p -@ 6 {}.sorted.merged.bam {}".format(k, ' '.join(bams)))
+            cmds.append("samtools index {}.sorted.merged.bam".format(k))
+            
+            merger.createArrayCmd(cmds, "samMerger")
+            merger.queueJobs()
+            print("Queued jobs with dependencies")
 
 def urlHash():
     alphabet = list(string.ascii_lowercase, string.digits)
@@ -113,11 +144,12 @@ class slurmTools:
         self.dependencies = []
         self.jobIds = []
 
-    def queueJobs(self)-> None:
+    def queueJobs(self):
         for x in self.scripts:
             stdout = subprocess.getoutput('sbatch {}'.format(x))
             self.jobIds.append(stdout.split()[-1])
 
+        return self.jobIds
         
     def createArrayCmd(self, carray: List[str], sname: str = "script") -> None:
         self._generateFolders()
