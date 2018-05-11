@@ -26,7 +26,10 @@ def parse_user_input():
     parser.add_argument('-p', '--partition',
                         help="[Optional] Slurm partition for job run",
                         required=False, type=str, default="general")
-    
+   
+    parser.add_argument('-m', '--meta',
+                        help="[Optional] Add multiple targets for metagenome assembly",
+                        action='store_true') 
     return parser.parse_args()
 
 def main(args):
@@ -60,14 +63,41 @@ def main(args):
                         1, 3, 8000, -1, args.partition)
     
     # Main loop. Separate chr and values and queue up Pilon jobs
-    for k, l in chrLens.items():
-        mem = int((l / 1000) * 1.15)
-        mem = 8000 if mem < 8000 else mem
-        worker.mem(mem)
+    if args.meta :
+	# Queue up smaller contig jobs and queue them in duplicate sets according to a job submission limit
+        temp = {}
+        array = []
+        count = 0
+        ilimit = len(chrLens.items()) / 1000 / 10
+        worker.mem = 10000
+        for k, l in chrLens.items():
+            temp[k] = l
+            if len(temp.keys()) >= 10:
+                targets = ','.join(temp.keys())
+                temp = {}
+                cmd = 'java -Xmx10G -jar $PILON_HOME/pilon-1.22.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix bases --targets {} --verbose --nostrays'.format(args.genome, args.frag, "meta." + str(count), args.output, targets)
+                #worker.createGenericCmd(cmd, "pilon_" + str(count))
+                array.append(cmd)
+                count += 1
+            if count % ilimit == 0:
+                worker.createArrayCmd(array, "pilon_" + str(count))
+                array = []
+        if array or temp:
+            if temp:
+                targets = ','.join(temp.keys())
+                cmd = 'java -Xmx10G -jar $PILON_HOME/pilon-1.22.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix bases --targets {} --verbose --nostrays'.format(args.genome, args.frag, "meta." + str(count), args.output, targets)
+            array.append(cmd)
+            worker.createArrayCmd(array, "pilon_" + str(count))
+    else:
+        for k, l in chrLens.items():
+            mem = int((int(l) / 1000) * 1.15)
+            mem = 8000 if mem < 8000 else mem
+            worker.mem = mem
         
-        cmd = 'java -Xmx{}M -jar $PILON_HOME/pilon-1.22.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix bases --targets {} --verbose --nostrays'.format(mem, args.genome, args.frag, k, args.output, k)
-        worker.createGenericCmd(cmd, "pilon" + k)
-        
+            cmd = 'java -Xmx{}M -jar $PILON_HOME/pilon-1.22.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix bases --targets {} --verbose --nostrays'.format(mem, args.genome, args.frag, k, args.output, k)
+            worker.createGenericCmd(cmd, "pilon" + k)
+    
+    print('Queuing jobs...')    
     ids = worker.queueJobs()
     print('Queued a total of {} jobs'.format(len(ids)))
 
