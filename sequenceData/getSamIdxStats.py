@@ -9,6 +9,7 @@ import argparse
 import os.path
 import sys
 import pysam
+import contextlib
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
@@ -38,15 +39,18 @@ def main(args):
             data[b] = bamStats()
             for line in pysam.idxstats(b).split('\n'):
                 segs = line.split('\t')
+                if len(segs) < 4:
+                    continue
                 data[b].addChr(segs[0], int(segs[1]), int(segs[2]), int(segs[3]))
             
         out.write("BamName\tTotalReads\tMappedReads\tUnmappedReads\tMapProportion\tRawXcov\tMapXcov\tavgRawChrCov\tavgMapChrCov\n")
-        for b, v in data:
+        for b in data:
+            v = data[b]
             v.calculateStats()
-            out.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n"\
+            out.write("{}\t{}\t{}\t{}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\n"\
                       .format(b, v.totalReads, v.mappedReads, v.unmappedReads, v.mapProportion, v.rawXcov, v.mapXcov, v.avgRawChrCov, v.avgMapChrCov))
             
-            
+@contextlib.contextmanager            
 def smartOut(filename : str = None):
     if filename and filename != '-':
         fh = open(filename, 'w')
@@ -80,23 +84,29 @@ class bamStats:
         
     def calculateStats(self):
         genomeLength = 0
-        for k, v in self.chrLen:
+        for k, v in self.chrLen.items():
             genomeLength += v
             
         mapChrXcov = []
         rawChrXcov = []
         numchrs = 0
-        for k, v in self.chrMapped:
+        for k in self.chrMapped:
+            v = self.chrMapped[k]
             self.totalReads += v
             numchrs += 1
             self.mappedReads += v
+            if self.chrLen[k] <= 0:
+                continue
             mapChrXcov.append(v / self.chrLen[k])
             
         numchrs -= 1
-        for k, v in self.chrUnmapped:
+        for k in self.chrUnmapped:
+            v = self.chrUnmapped[k]
             self.totalReads += v
             self.unmappedReads += v
-            rawChrXcov.append((v + self.mappedReads[k]) / self.chrLen[k])
+            if self.chrLen[k] <= 0:
+                continue
+            rawChrXcov.append((v + self.chrMapped[k]) / self.chrLen[k])
             
         self.rawXcov = self.totalReads / genomeLength
         self.mapXcov = self.mappedReads / genomeLength
