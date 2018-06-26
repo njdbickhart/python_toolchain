@@ -110,6 +110,7 @@ def main(args):
             cmds.append("samtools merge -c -p -@ 6 {}.sorted.merged.bam {}".format(k, ' '.join(bams)))
             cmds.append("samtools index {}.sorted.merged.bam".format(k))
             
+            merger.addJobIDs(jobIds)
             merger.createArrayCmd(cmds, "samMerger")
             merger.queueJobs()
             print("Queued jobs with dependencies")

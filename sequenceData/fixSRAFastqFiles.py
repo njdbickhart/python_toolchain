@@ -42,10 +42,10 @@ def parse_two_fastq(file1, file2, output, log):
 	
     reads = oneRead = bothRead = 0
 	
-    with open(file1, "r") as f, open(file2, "r") as r, \
-        gzip.open(output + ".1.fq.gz", "wb") as o1, \
+    with gzip.open(file1, "rt") as f, gzip.open(file2, "rt") as r, \
+        gzip.open(output + ".1.fq.gz", "w") as o1, \
         open(log, "w") as log, \
-        gzip.open(output + ".2.fq.gz", "wb") as o2:
+        gzip.open(output + ".2.fq.gz", "w") as o2:
         log.write("Beginning the parsing of files for: " + output)
         while True:
             try:
@@ -53,8 +53,8 @@ def parse_two_fastq(file1, file2, output, log):
                 revread = get_four_lines(r)
 				
                 # Remove last two characters of first segment string
-                forward[0] = forward[0].split()[:-2]
-                revread[0] = revread[0].split()[:-2]
+                forward[0] = forward[0].split()[0][:-2]
+                revread[0] = revread[0].split()[0][:-2]
                 reads += 1
 				
                 # Replacing "+" with blank placeholder
@@ -62,10 +62,11 @@ def parse_two_fastq(file1, file2, output, log):
                 revread[2] = "+"
                 if(not forward[0] or not revread[0]):
                     raise EofException("not forward or not revread", "Unexpected termination of one fastq file!")
-				
-                				
-                o1.write("".join(map(str, forward)) + "\n")
-                o2.write("".join(map(str, revread)) + "\n")
+								
+                flines = '\n'.join(map(str, forward)) + '\n'
+                rlines = '\n'.join(map(str, revread)) + '\n'
+                o1.write(str.encode(flines))
+                o2.write(str.encode(rlines))
             except EofException as e:
                 log.write("Completed {} reads and exited with code: {}".format(reads, str(e)))
                 break
@@ -80,7 +81,7 @@ def get_four_lines(filehandle):
 	lines = []
 	for i in range(4):
 		l = filehandle.readline()
-		l.rstrip("\n")
+		l = l.rstrip()
 		if not l:
 			raise EofException("l.rstrip", "Reached end of file!")
 		lines.append(l)
