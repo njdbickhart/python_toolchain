@@ -9,7 +9,7 @@ Created on Tue Jul 31 10:47:21 2018
 import argparse
 import json as js
 import sys
-import typing
+from typing import Dict, List
 import os.path
 
 
@@ -41,9 +41,9 @@ def main(args):
     fileDict = jsonParser(args.json)
     
     keyOrder = fileDict.keys()
-    
+    tab = '\t'
     # Load the table file and add the additional columns in the order determined by the dictionary
-    with fh as open(args.table, 'r'), out as open(args.output, 'w'):
+    with open(args.table, 'r') as fh, open(args.output, 'w') as out:
         # Deal with the header
         head = fh.readline()
         head = head.rstrip('\n')
@@ -52,7 +52,7 @@ def main(args):
         for k in keyOrder:
             tempCols.extend(fileDict[k].colLabels)
         
-        head = f'{head}\t{"\t".join(tempCols)}\n'        
+        head = f'{head}\t{tab.join(tempCols)}\n'        
         out.write(head)
         
         # Now deal with the rest of the table
@@ -60,7 +60,7 @@ def main(args):
             l = l.rstrip('\n')
             segs = l.split("\t")
             newCols = generateNewColumns(fileDict, segs[0], keyOrder)
-            out.write(f'{l}\t{"\t".join(newCols)}\n')
+            out.write(f'{l}\t{tab.join(newCols)}\n')
     
     print("Done with file")
             
@@ -72,9 +72,11 @@ def generateNewColumns(fileDict : Dict, contig : str, keyOrder : List) -> List:
     return tempCols
     
 def jsonParser(json : str) -> Dict:
-    data = js.loads(json)
+    with open(json, 'r') as fh:
+        data = js.load(fh)
     
     # Check the number of files
+    fileDict = {}
     print("Identified {} JSON objects. Processing...".format(len(data)))
     for key, value in data.items():
         print(f'Loading data from {key}...')
@@ -94,7 +96,7 @@ class jsonData:
         self.data = {}
         
     def processFile(self) -> None:
-        with fh as open(self.file, "r"):
+        with open(self.file, "r") as fh:
             for l in fh:
                 l = l.rstrip('\n')
                 segs = l.split()
@@ -103,7 +105,7 @@ class jsonData:
     def getValues(self, contig : str) -> List:
         if contig not in self.data:
             # Return empty values for the number of columns needed
-            return [self.default for x in xrange(self.numColumns)]
+            return [self.default for x in range(self.numColumns)]
         else:
             return self.data[contig]
                 
