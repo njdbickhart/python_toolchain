@@ -10,6 +10,7 @@ import argparse
 import os.path
 import sys
 import contextlib
+import re
 from collections import defaultdict
 
 def parse_user_input():
@@ -31,6 +32,10 @@ def parse_user_input():
     parser.add_argument('-i', '--ignore',
                         help="[Optional] Ignore lines that begin with this comment",
                         type=str, default = "None"
+                        )
+    parser.add_argument('-d', '--delim',
+                        help="[Optional] Column delimiter",
+                        type=str, default = " {1}"
                         )
     parser.add_argument('-m', '--markdown',
                         help="Markdown flag. Formats output into table format",
@@ -78,7 +83,7 @@ class columnCounter:
         self.counter = defaultdict(int)
         
     def readFile(self, file : str):
-        if not os.path.isfile(file):
+        if not os.path.isfile(file) and file != "stdin":
             print(f'Error! Could not open {file} file for counting!')
             sys.exit(-1)
         with smartFile(file, 'r') as fh:
@@ -87,13 +92,13 @@ class columnCounter:
                 
                 if self.ignore != "None":
                     if l.startswith(self.ignore):
-                        next
-                segs = l.split(sep=self.delim)
+                        continue
+                segs = re.split(self.delim, l)
                 
                 if len(segs) < self.colnum + 1:
-                    next # Ignore lines where the column length is less than one
+                    continue # Ignore lines where the column length is less than one
                     
-                self.count[segs[self.colnum]] += 1
+                self.counter[segs[self.colnum]] += 1
                 
     def writeOut(self):
         with smartFile(self.out, 'w') as o:
@@ -101,8 +106,8 @@ class columnCounter:
                 collen = 5
                 conlen = 5
                 for k, v in self.counter.items():
-                    collen = len(k) if len(k) > collen else collen
-                    conlen = len(v) if len(v) > conlen else conlen
+                    collen = len(str(k)) if len(str(k)) > collen else collen
+                    conlen = len(str(v)) if len(str(v)) > conlen else conlen
                     
                 collen += 1
                 conlen += 1
@@ -110,15 +115,15 @@ class columnCounter:
                 sepstr = '-' * (collen - 1)
                 sepcon = '-' * (conlen - 1)
                 
-                o.write('|{0: <{collen}}|{1: >{conlen}}|'.format("Entry", "Value", collen=collen, conlen=conlen))
-                o.write('|:{}|{}:|'.format(sepstr, sepcon))
+                o.write('|{0: <{collen}}|{1: >{conlen}}|\n'.format("Entry", "Value", collen=collen, conlen=conlen))
+                o.write('|:{}|{}:|\n'.format(sepstr, sepcon))
                 
                 for w in sorted(self.counter, key=self.counter.get, reverse = True):
-                    o.write('|{0: <{collen}}|{1: >{conlen}}|'.format(w, self.counter[w], collen=collen, conlen=conlen))
+                    o.write('|{0: <{collen}}|{1: >{conlen}}|\n'.format(w, self.counter[w], collen=collen, conlen=conlen))
             else:
-                o.write(f'Entry\tValue')
+                o.write(f'Entry\tValue\n')
                 for w in sorted(self.counter, key=self.counter.get, reverse = True):
-                    o.write('{}\t{}'.format(w, self.counter[w]))
+                    o.write('{}\t{}\n'.format(w, self.counter[w]))
 
 if __name__ == '__main__':
     # I hate how Python does this!

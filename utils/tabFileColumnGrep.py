@@ -10,6 +10,7 @@ Created on Fri Jul 20 12:37:06 2018
 import argparse
 import os.path
 import sys
+import re
 import contextlib
 
 def parse_user_input():
@@ -36,8 +37,15 @@ def parse_user_input():
                         help="Either a flat file or a comma delimited list of entries to screen",
                         required=True, type=str
                         )
+    parser.add_argument('-d', '--delim',
+                        help="[Optional] Alternative file delimiter",
+                        type=str, default="\s{1}"
+                        )
     parser.add_argument('-s', '--short',
                         help="[Optional, flag] Return just the name of the item, not the whole line",
+                        action='store_true')
+    parser.add_argument('-v', '--reverse',
+                        help="[Optional, flag] Reverse grep (like grep -v)",
                         action='store_true')
     
     return parser.parse_args()
@@ -56,9 +64,15 @@ def main(args):
                 if args.ignore is not None:
                     if l.startswith(args.ignore):
                         continue
-                segs = l.split()
+                segs = re.split(args.delim, l)
                 if len(segs) - 1 < args.column:
                     raise parserException("len(segs) - 1 < args.column", "Fewer columns than expected!", "l")
+                elif args.reverse:
+                     if not segs[args.column] in search:
+                        if not args.short:
+                            o.write(f"{l}\n")
+                        else:
+                            o.write(f"{segs[args.column]}\n")
                 elif segs[args.column] in search:
                     if not args.short:
                         o.write(f"{l}\n")
