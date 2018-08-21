@@ -66,7 +66,7 @@ def findEliteGenes(desman : str, contigs : str, assembly : str) -> Tuple[str, st
     cmd = ["python", desman + "/scripts/extract_species_contigs.py", 
            assembly, contigs]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, stdout="species_contigs.fa")
+    sp.run(cmd, stdout=open("species_contigs.fa", "w"))
     
     cmd = [desman + "/external/phylosift_v1.0.1/phylosift", "search", "--besthit",
            "--isolate", "species_contigs.fa"]
@@ -82,7 +82,7 @@ def findEliteGenes(desman : str, contigs : str, assembly : str) -> Tuple[str, st
            "PS_temp/species_contigs.fa/blastDir/lookup_ID.1.tbl", 
            "PS_temp/species_contigs.fa/alignDir/DNGNGWU*.codon.updated.1.fasta"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, stdout="elites.bed")
+    sp.run(cmd, stdout=open("elites.bed", "w"))
     
     return ["elites.bed", "species_contigs.fa"]
 
@@ -90,7 +90,7 @@ def elitePileups(bam : str, elites : str, assembly : str) -> str:
     cmd = ["samtools", "mpileup", "-l",
            elites, "-f", assembly, bam ]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, stdout="elite.pileup")
+    sp.run(cmd, stdout=open("elite.pileup", "w"))
     
     return "elite.pileup"
 
@@ -115,9 +115,9 @@ def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> st
                    f'cluster_{g}_{repid}', "-r", "1000", "-i", "100", "-g", str(g), "-s",
                    str(repid)]
             print(f'Running strain count round {g} and replicate {repid}')
-            sp.run(cmd, stdout=f'cluster_{g}_{repid}.out')
+            sp.run(cmd, stdout=open(f'cluster_{g}_{repid}.out', "w"))
             
-            sp.run(["cp", "*/fit.txt", f'fit_{g}_{repid}.txt'])
+            sp.run(["cp", "*/fit.txt", f'fit_{g}_{repid}.txt'], shell=True)
             fits.append(f'fit_{g}_{repid}.txt')
             
     with open("desman_dic.fits", 'w') as out:
