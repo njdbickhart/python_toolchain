@@ -64,34 +64,33 @@ def main(args):
         
 def findEliteGenes(desman : str, contigs : str, assembly : str) -> Tuple[str, str]:
     cmd = ["python", desman + "/scripts/extract_species_contigs.py", 
-           assembly, contigs, '>', "species_contigs.fa"]
+           assembly, contigs]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd)
+    sp.run(cmd, stdout="species_contigs.fa")
     
     cmd = [desman + "/external/phylosift_v1.0.1/phylosift", "search", "--besthit",
            "--isolate", "species_contigs.fa"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd)
+    sp.run(cmd, shell=True)
     
     cmd = [desman + "/external/phylosift_v1.0.1/phylosift", "align", "--besthit",
            "--isolate", "species_contigs.fa"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd)
+    sp.run(cmd, shell=True)
     
     cmd = ["python", desman + "/scripts/get_elite_range.py", 
            "PS_temp/species_contigs.fa/blastDir/lookup_ID.1.tbl", 
-           "PS_temp/species_contigs.fa/alignDir/DNGNGWU*.codon.updated.1.fasta", 
-           '>', "elites.bed"]
+           "PS_temp/species_contigs.fa/alignDir/DNGNGWU*.codon.updated.1.fasta"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd)
+    sp.run(cmd, stdout="elites.bed")
     
     return ["elites.bed", "species_contigs.fa"]
 
 def elitePileups(bam : str, elites : str, assembly : str) -> str:
     cmd = ["samtools", "mpileup", "-l",
-           elites, "-f", assembly, bam, ">", "elite.pileup"]
+           elites, "-f", assembly, bam ]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd)
+    sp.run(cmd, stdout="elite.pileup")
     
     return "elite.pileup"
 
@@ -99,12 +98,12 @@ def callEliteVariants(desman : str, pileup : str, assembly : str) -> Tuple[str, 
     cmd = ["python", desman + "/scripts/pileups_to_freq_table.py", 
            assembly, pileup, "desmanfreqs.csv"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd)
+    sp.run(cmd, shell=True)
     
     cmd = ["python", desman + "/desman/Variant_Filter.py", 
            "desmanfreqs.csv", "-o", "dfreqs", "-p"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd)
+    sp.run(cmd, shell=True)
     
     return ["dfreqssel_var.csv", "dfreqstran_df.csv"]
 
@@ -114,9 +113,9 @@ def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> st
         for repid in range(1,5):
             cmd = [desman + "/bin/desman", freq_var, "-e", freq_df, "-o",
                    f'cluster_{g}_{repid}', "-r", "1000", "-i", "100", "-g", str(g), "-s",
-                   str(repid), ">", f'cluster_{g}_{repid}.out']
+                   str(repid)]
             print(f'Running strain count round {g} and replicate {repid}')
-            sp.run(cmd)
+            sp.run(cmd, stdout=f'cluster_{g}_{repid}.out')
             
             sp.run(["cp", "*/fit.txt", f'fit_{g}_{repid}.txt'])
             fits.append(f'fit_{g}_{repid}.txt')
@@ -135,7 +134,7 @@ def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> st
 def plotDev(desman : str, alldics : str) -> None:
     cmd = [desman + "/scripts/PlotDev.R", "-l", alldics, "-o", "Dev.pdf"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd)
+    sp.run(cmd, shell=True)
     
     print(f'Completed strain testing! Plots are in Dev.pdf')
 
