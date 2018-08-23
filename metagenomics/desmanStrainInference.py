@@ -141,17 +141,18 @@ def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> st
             print(f'Running strain count round {g} and replicate {repid}')
             sp.run(cmd, stdout=open(f'cluster_{g}_{repid}.out', "w"))
             
-            sp.run(["cp", "*/fit.txt", f'fit_{g}_{repid}.txt'], shell=True)
+            sp.run(f'cp cluster_{g}_{repid}/fit.txt fit_{g}_{repid}.txt', shell=True)
             fits.append(f'fit_{g}_{repid}.txt')
             
     with open("desman_dic.fits", 'w') as out:
         out.write("H,G,LP,Dev\n")
         for x in fits:
             with open(x, 'r') as fh:
-                next(fh) # skipping header
                 for lines in fh:
                     lines = lines.rstrip()
-                    out.write(lines + "\n")
+                    segs = re.split(',', lines)
+                    segs.pop(0)
+                    out.write(','.join(segs) + "\n")
                     
     return "desman_dic.fits"
 
