@@ -133,8 +133,8 @@ def callEliteVariants(desman : str, pileup : str, assembly : str) -> Tuple[str, 
 
 def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> str:
     fits = []
-    for g in range(1,10):
-        for repid in range(1,5):
+    for g in range(1,11):
+        for repid in range(1,6):
             cmd = [desman + "/bin/desman", freq_var, "-e", freq_df, "-o",
                    f'cluster_{g}_{repid}', "-r", "1000", "-i", "100", "-g", str(g), "-s",
                    str(repid)]
