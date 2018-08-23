@@ -45,7 +45,7 @@ def main(args):
     # Load files into classes
     workers = []
     for f in args.file:
-        workers.append(colFile(f, args.head, args.cols, args.merge))
+        workers.append(colFile(f, args.header, args.column, args.merge))
         
     for w in workers:
         w.loadFile()

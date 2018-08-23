@@ -51,7 +51,7 @@ def main(args):
     elites, species = findEliteGenes(args.desman, args.contigs, args.assembly)
     
     print("Running ElitePileups")
-    pileup = elitePileups(args.bam, elites, args.assembly)
+    pileup = elitePileups(args.bamfile, elites, args.assembly)
     
     print("Running CallEliteVariants")
     freq_var, freq_df = callEliteVariants(args.desman, pileup, args.assembly)
@@ -71,12 +71,12 @@ def findEliteGenes(desman : str, contigs : str, assembly : str) -> Tuple[str, st
     cmd = [desman + "/external/phylosift_v1.0.1/phylosift", "search", "--besthit",
            "--isolate", "species_contigs.fa"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, shell=True)
+    sp.run(cmd, shell=False)
     
     cmd = [desman + "/external/phylosift_v1.0.1/phylosift", "align", "--besthit",
            "--isolate", "species_contigs.fa"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, shell=True)
+    sp.run(cmd, shell=False)
     
     cmd = ["python", desman + "/scripts/get_elite_range.py", 
            "PS_temp/species_contigs.fa/blastDir/lookup_ID.1.tbl", 
@@ -98,12 +98,12 @@ def callEliteVariants(desman : str, pileup : str, assembly : str) -> Tuple[str, 
     cmd = ["python", desman + "/scripts/pileups_to_freq_table.py", 
            assembly, pileup, "desmanfreqs.csv"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, shell=True)
+    sp.run(cmd, shell=False)
     
     cmd = ["python", desman + "/desman/Variant_Filter.py", 
            "desmanfreqs.csv", "-o", "dfreqs", "-p"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, shell=True)
+    sp.run(cmd, shell=False)
     
     return ["dfreqssel_var.csv", "dfreqstran_df.csv"]
 
@@ -134,7 +134,7 @@ def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> st
 def plotDev(desman : str, alldics : str) -> None:
     cmd = [desman + "/scripts/PlotDev.R", "-l", alldics, "-o", "Dev.pdf"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, shell=True)
+    sp.run(cmd, shell=False)
     
     print(f'Completed strain testing! Plots are in Dev.pdf')
 
