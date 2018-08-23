@@ -61,7 +61,7 @@ def main(args):
     fits = estimateStrainCountDesman(args.desman, freq_var, freq_df)
     
     print("Plotting strain replicate data")
-    plotDev(args.desman, fits)
+    plotDev(args.desman, fits, args.output)
         
 def findEliteGenes(desman : str, contigs : str, assembly : str) -> Tuple[str, str]:
     cmd = ["python", desman + "/scripts/extract_species_contigs.py", 
@@ -156,8 +156,8 @@ def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> st
                     
     return "desman_dic.fits"
 
-def plotDev(desman : str, alldics : str) -> None:
-    cmd = [desman + "/scripts/PlotDev.R", "-l", alldics, "-o", "Dev.pdf"]
+def plotDev(desman : str, alldics : str, output : str) -> None:
+    cmd = [desman + "/scripts/PlotDev.R", "-l", alldics, "-o", output + ".pdf"]
     print(f'Cmd: {" ".join(cmd)}')
     sp.run(cmd, shell=False)
     
