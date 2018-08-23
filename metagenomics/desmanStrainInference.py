@@ -8,8 +8,9 @@ Created on Tue Aug 21 15:19:58 2018
 
 import argparse
 import os
-from typing import Tuple
+from typing import Tuple, TextIO
 import subprocess as sp
+import re
 
 
 def parse_user_input():
@@ -68,30 +69,53 @@ def findEliteGenes(desman : str, contigs : str, assembly : str) -> Tuple[str, st
     print(f'Cmd: {" ".join(cmd)}')
     sp.run(cmd, stdout=open("species_contigs.fa", "w"))
     
+    # Clear PS_temp directory if present so that files can be overwritten
+    if os.path.isdir('PS_temp'):
+        sp.run('rm -r PS_temp', shell=True)
+    
     cmd = [desman + "/external/phylosift_v1.0.1/phylosift", "search", "--besthit",
            "--isolate", "species_contigs.fa"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, shell=False)
+    sp.run(' '.join(cmd), shell=True)
     
     cmd = [desman + "/external/phylosift_v1.0.1/phylosift", "align", "--besthit",
            "--isolate", "species_contigs.fa"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, shell=False)
+    sp.run(' '.join(cmd), shell=True)
     
     cmd = ["python", desman + "/scripts/get_elite_range.py", 
            "PS_temp/species_contigs.fa/blastDir/lookup_ID.1.tbl", 
            "PS_temp/species_contigs.fa/alignDir/DNGNGWU*.codon.updated.1.fasta"]
     print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, stdout=open("elites.bed", "w"))
+    sp.run(' '.join(cmd), shell=True, check = True, stdout=open("elites.bed", "w"))
     
     return ["elites.bed", "species_contigs.fa"]
 
+def getFormatBedLine(bedfh : TextIO) -> str:
+    for l in bedfh:
+        segs = l.split()
+        yield segs[0] + ":" + segs[1] + "-" + segs[2]
+
 def elitePileups(bam : str, elites : str, assembly : str) -> str:
-    cmd = ["samtools", "mpileup", "-l",
-           elites, "-f", assembly, bam ]
-    print(f'Cmd: {" ".join(cmd)}')
-    sp.run(cmd, stdout=open("elite.pileup", "w"))
+    # I need to split the bed lines and recombine the data later
+    # It's the only way (to make this run faster)!
+    change = re.compile('[:-]')
+    files = []
+    with open(elites, 'r') as bedfh:
+        for region in getFormatBedLine(bedfh):
+            safe = re.sub(change, '_', region)
+            cmd = ["samtools", "mpileup", "-r", 
+                   region, "-f", assembly, bam ]
+            print(f'Cmd: {" ".join(cmd)}')
+            sp.run(cmd, check = True, stdout=open(safe + ".pileup", "w"))
+            files.append(safe + ".pileup")
     
+    with open("elite.pileup", 'w') as out:
+        for f in files:
+            with open(f, 'r') as fh:
+                for l in fh:
+                    l = l.rstrip()
+                    out.write(l + '\n')
     return "elite.pileup"
 
 def callEliteVariants(desman : str, pileup : str, assembly : str) -> Tuple[str, str]:
