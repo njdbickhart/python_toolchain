@@ -11,6 +11,7 @@ import os
 from typing import Tuple, TextIO
 import subprocess as sp
 import re
+import concurrent.futures
 
 
 def parse_user_input():
@@ -131,18 +132,35 @@ def callEliteVariants(desman : str, pileup : str, assembly : str) -> Tuple[str, 
     
     return ["dfreqssel_var.csv", "dfreqstran_df.csv"]
 
+def executeDesman(desman : str, freq_var : str, freq_df : str, out : str, g : str, s : str) -> str:
+    cmd = [desman + "/bin/desman", freq_var, "-e", freq_df, "-o", 
+           f'cluster_{g}_{repid}', "-r", "1000", "-i", "100", "-g", g, "-s", 
+           s]
+    print(f'Running strain count round {g} and replicate {s}')
+    sp.run(cmd, stdout=open(out + ".out", "w"))
+    
+    sp.run(f'cp {out}/fit.txt fit_{g}_{s}.txt', shell=True)
+    return f'fit_{g}_{s}.txt'
+
 def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> str:
     fits = []
-    for g in range(1,11):
-        for repid in range(1,6):
-            cmd = [desman + "/bin/desman", freq_var, "-e", freq_df, "-o",
-                   f'cluster_{g}_{repid}', "-r", "1000", "-i", "100", "-g", str(g), "-s",
-                   str(repid)]
-            print(f'Running strain count round {g} and replicate {repid}')
-            sp.run(cmd, stdout=open(f'cluster_{g}_{repid}.out', "w"))
+    with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
+        for g in range(1,11):
+            for repid in range(1,6):
+                temp = executor.submit(executeDesman, desman, freq_var, freq_df, 
+                                       f'cluster_{g}_{repid}', str(g), str(repid))
+                fits.append(temp)
+                """
+                # Saving this in case my method doesn't work
+                cmd = [desman + "/bin/desman", freq_var, "-e", freq_df, "-o",
+                       f'cluster_{g}_{repid}', "-r", "1000", "-i", "100", "-g", str(g), "-s", 
+                       str(repid)]
+                print(f'Running strain count round {g} and replicate {repid}')
+                sp.run(cmd, stdout=open(f'cluster_{g}_{repid}.out', "w"))
             
-            sp.run(f'cp cluster_{g}_{repid}/fit.txt fit_{g}_{repid}.txt', shell=True)
-            fits.append(f'fit_{g}_{repid}.txt')
+                sp.run(f'cp cluster_{g}_{repid}/fit.txt fit_{g}_{repid}.txt', shell=True)
+                fits.append(f'fit_{g}_{repid}.txt')
+                """
             
     with open("desman_dic.fits", 'w') as out:
         out.write("H,G,LP,Dev\n")
