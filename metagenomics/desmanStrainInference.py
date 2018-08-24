@@ -165,7 +165,12 @@ def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> st
     with open("desman_dic.fits", 'w') as out:
         out.write("H,G,LP,Dev\n")
         for x in fits:
-            with open(x, 'r') as fh:
+            temp = ""
+            try:
+                temp = x.result()
+            except Exception as ex:
+                print(f'{x} process created an exception!')
+            with open(temp, 'r') as fh:
                 for lines in fh:
                     lines = lines.rstrip()
                     segs = re.split(',', lines)
