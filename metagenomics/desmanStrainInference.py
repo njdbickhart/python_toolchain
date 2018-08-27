@@ -1,4 +1,7 @@
-# -*- coding: utf-8 -*-
+#!/software/apps/python_3/gcc/64/3.6.2/bin/python3
+#SBATCH --nodes=1
+#SBATCH --mem=35000
+#SBATCH --ntasks-per-node=8
 """
 DESMAN pipeline
 Created on Tue Aug 21 15:19:58 2018
@@ -8,7 +11,7 @@ Created on Tue Aug 21 15:19:58 2018
 
 import argparse
 import os
-from typing import Tuple, TextIO
+from typing import Tuple, TextIO, List
 import subprocess as sp
 import re
 import concurrent.futures
@@ -27,12 +30,16 @@ def parse_user_input():
                         required=True, type=str
                         )
     parser.add_argument('-b', '--bamfile',
-                        help="Aligned reads in bam file format [full path needed!]",
-                        required=True, type=str
+                        help="Aligned reads in bam file format [full path needed!; Can be specified more than once!]",
+                        action="append", default=[]
                         )
     parser.add_argument('-o', '--output',
                         help="output directory",
                         required=True, type=str
+                        )
+    parser.add_argument('-g', '--genes',
+                        help='SCG gene bed file',
+                        required =True, type=str
                         )
     parser.add_argument('-d', '--desman',
                         help="Desman home directory",
@@ -49,14 +56,18 @@ def main(args):
         
     os.chdir(args.output)
     
-    print("Running FindEliteGenes")
-    elites, species = findEliteGenes(args.desman, args.contigs, args.assembly)
+    #print("Running FindEliteGenes")
+    #elites, species = findEliteGenes(args.desman, args.contigs, args.assembly)
     
+    sampnames = []
     print("Running ElitePileups")
-    pileup = elitePileups(args.bamfile, elites, args.assembly)
+    for x in args.bamfile:
+        samp = elitePileups(x, args.genes, args.assembly)
+        sampnames.append(samp)
+        print(f'Finished pileup of {samp}')
     
     print("Running CallEliteVariants")
-    freq_var, freq_df = callEliteVariants(args.desman, pileup, args.assembly)
+    freq_var, freq_df = callEliteVariants(args.desman, sampnames, args.assembly)
     
     print("Running estimateStrainCountDesman")
     fits = estimateStrainCountDesman(args.desman, freq_var, freq_df)
@@ -98,8 +109,9 @@ def getFormatBedLine(bedfh : TextIO) -> str:
         yield segs[0] + ":" + segs[1] + "-" + segs[2]
 
 def elitePileups(bam : str, elites : str, assembly : str) -> str:
-    # I need to split the bed lines and recombine the data later
-    # It's the only way (to make this run faster)!
+    # Get the sample name from the basename of the bed file
+    bfile = os.path.basename(bam)
+    bsegs = re.split("\.", bfile)
     change = re.compile('[:-]')
     files = []
     with open(elites, 'r') as bedfh:
@@ -108,25 +120,29 @@ def elitePileups(bam : str, elites : str, assembly : str) -> str:
             cmd = ["samtools", "mpileup", "-r", 
                    region, "-f", assembly, bam ]
             print(f'Cmd: {" ".join(cmd)}')
-            sp.run(cmd, check = True, stdout=open(safe + ".pileup", "w"))
-            files.append(safe + ".pileup")
+            sp.run(cmd, check = True, stdout=open(bsegs[0] + "." + safe + ".pileup", "w"))
+            files.append(bsegs[0] + "." + safe + ".pileup")
     
-    with open("elite.pileup", 'w') as out:
+    with open(bsegs[0] + ".pileup", 'w') as out:
         for f in files:
             with open(f, 'r') as fh:
                 for l in fh:
                     l = l.rstrip()
                     out.write(l + '\n')
-    return "elite.pileup"
+    return bsegs[0] + ".pileup"
 
-def callEliteVariants(desman : str, pileup : str, assembly : str) -> Tuple[str, str]:
+def callEliteVariants(desman : str, pileup : List[str], assembly : str) -> Tuple[str, str]:
     cmd = ["python", desman + "/scripts/pileups_to_freq_table.py", 
-           assembly, pileup, "desmanfreqs.csv"]
+           assembly]#, pileup, "desmanfreqs.csv"]
+    cmd.extend(pileup)
+    cmd.append("desmanfreqs.csv")
+                
     print(f'Cmd: {" ".join(cmd)}')
     sp.run(cmd, shell=False)
     
     cmd = ["python", desman + "/desman/Variant_Filter.py", 
-           "desmanfreqs.csv", "-o", "dfreqs", "-p"]
+           "desmanfreqs.csv", "-o", "dfreqs", "-p", "-m", "1.0", "-f", "25.0", "-c",
+           "-sf", "0.50", "-t", "2.5"]
     print(f'Cmd: {" ".join(cmd)}')
     sp.run(cmd, shell=False)
     
@@ -144,9 +160,9 @@ def executeDesman(desman : str, freq_var : str, freq_df : str, out : str, g : st
 
 def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> str:
     fits = []
-    with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
-        for g in range(1,11):
-            for repid in range(1,6):
+    with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+        for g in range(1,8):
+            for repid in range(0,10):
                 temp = executor.submit(executeDesman, desman, freq_var, freq_df, 
                                        f'cluster_{g}_{repid}', str(g), str(repid))
                 fits.append(temp)
