@@ -1,6 +1,6 @@
 #!/software/apps/python_3/gcc/64/3.6.2/bin/python3
 #SBATCH --nodes=1
-#SBATCH --mem=35000
+#SBATCH --mem=25000
 #SBATCH --ntasks-per-node=8
 """
 DESMAN pipeline
@@ -76,7 +76,7 @@ def main(args):
     plotDev(args.desman, fits, args.output)
         
 def findEliteGenes(desman : str, contigs : str, assembly : str) -> Tuple[str, str]:
-    cmd = ["python", desman + "/scripts/extract_species_contigs.py", 
+    cmd = ["python3", desman + "/scripts/extract_species_contigs.py", 
            assembly, contigs]
     print(f'Cmd: {" ".join(cmd)}')
     sp.run(cmd, stdout=open("species_contigs.fa", "w"))
@@ -95,7 +95,7 @@ def findEliteGenes(desman : str, contigs : str, assembly : str) -> Tuple[str, st
     print(f'Cmd: {" ".join(cmd)}')
     sp.run(' '.join(cmd), shell=True)
     
-    cmd = ["python", desman + "/scripts/get_elite_range.py", 
+    cmd = ["python3", desman + "/scripts/get_elite_range.py", 
            "PS_temp/species_contigs.fa/blastDir/lookup_ID.1.tbl", 
            "PS_temp/species_contigs.fa/alignDir/DNGNGWU*.codon.updated.1.fasta"]
     print(f'Cmd: {" ".join(cmd)}')
@@ -129,10 +129,11 @@ def elitePileups(bam : str, elites : str, assembly : str) -> str:
                 for l in fh:
                     l = l.rstrip()
                     out.write(l + '\n')
+            os.remove(f)
     return bsegs[0] + ".pileup"
 
 def callEliteVariants(desman : str, pileup : List[str], assembly : str) -> Tuple[str, str]:
-    cmd = ["python", desman + "/scripts/pileups_to_freq_table.py", 
+    cmd = ["python3", desman + "/scripts/pileups_to_freq_table.py", 
            assembly]#, pileup, "desmanfreqs.csv"]
     cmd.extend(pileup)
     cmd.append("desmanfreqs.csv")
@@ -140,7 +141,7 @@ def callEliteVariants(desman : str, pileup : List[str], assembly : str) -> Tuple
     print(f'Cmd: {" ".join(cmd)}')
     sp.run(cmd, shell=False)
     
-    cmd = ["python", desman + "/desman/Variant_Filter.py", 
+    cmd = ["python3", desman + "/desman/Variant_Filter.py", 
            "desmanfreqs.csv", "-o", "dfreqs", "-p", "-m", "1.0", "-f", "25.0", "-c",
            "-sf", "0.50", "-t", "2.5"]
     print(f'Cmd: {" ".join(cmd)}')
@@ -149,8 +150,8 @@ def callEliteVariants(desman : str, pileup : List[str], assembly : str) -> Tuple
     return ["dfreqssel_var.csv", "dfreqstran_df.csv"]
 
 def executeDesman(desman : str, freq_var : str, freq_df : str, out : str, g : str, s : str) -> str:
-    cmd = [desman + "/bin/desman", freq_var, "-e", freq_df, "-o", 
-           f'cluster_{g}_{repid}', "-r", "1000", "-i", "100", "-g", g, "-s", 
+    cmd = ["python3", desman + "/bin/desman", freq_var, "-e", freq_df, "-o", 
+           f'cluster_{g}_{s}', "-r", "1000", "-i", "100", "-g", g, "-s", 
            s]
     print(f'Running strain count round {g} and replicate {s}')
     sp.run(cmd, stdout=open(out + ".out", "w"))
@@ -163,8 +164,12 @@ def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> st
     with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
         for g in range(1,8):
             for repid in range(0,10):
-                temp = executor.submit(executeDesman, desman, freq_var, freq_df, 
+                print(f'Queueing: exDesman {desman} {freq_var} {freq_df} cluster_{g}_{repid}') 
+                try:
+                    temp = executor.submit(executeDesman, desman, freq_var, freq_df, 
                                        f'cluster_{g}_{repid}', str(g), str(repid))
+                except NameError as nm:
+                    print(nm.args)
                 fits.append(temp)
                 """
                 # Saving this in case my method doesn't work
@@ -186,6 +191,7 @@ def estimateStrainCountDesman(desman : str, freq_var : str, freq_df : str) -> st
                 temp = x.result()
             except Exception as ex:
                 print(f'{x} process created an exception!')
+                print(x.args)
             with open(temp, 'r') as fh:
                 for lines in fh:
                     lines = lines.rstrip()
