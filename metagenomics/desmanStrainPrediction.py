@@ -28,10 +28,10 @@ def parse_user_input():
                         help="Species contig list [full path needed!]",
                         required=True, type=str
                         )
-    parser.add_argument('-b', '--bamfile',
-                        help="Aligned reads in bam file format [full path needed!; Can be specified more than once!]",
-                        action="append", default=[]
-                        )
+    #parser.add_argument('-b', '--bamfile',
+    #                    help="Aligned reads in bam file format [full path needed!; Can be specified more than once!]",
+    #                    action="append", default=[]
+    #                    )
     parser.add_argument('-o', '--output',
                         help="output directory",
                         required=True, type=str
