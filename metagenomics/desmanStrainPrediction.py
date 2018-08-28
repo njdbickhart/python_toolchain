@@ -1,4 +1,7 @@
-# -*- coding: utf-8 -*-
+#!/software/apps/python_3/gcc/64/3.6.2/bin/python3
+#SBATCH --nodes=1
+#SBATCH --mem=25000
+#SBATCH --ntasks-per-node=2
 """
 Created on Thu Aug 23 16:56:15 2018
 
@@ -11,7 +14,7 @@ import re
 import statsmodels.api as sm
 import kneed
 import subprocess as sp
-from typing import Tuple
+from typing import Tuple, List
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
@@ -26,8 +29,8 @@ def parse_user_input():
                         required=True, type=str
                         )
     parser.add_argument('-b', '--bamfile',
-                        help="Aligned reads in bam file format [full path needed!]",
-                        required=True, type=str
+                        help="Aligned reads in bam file format [full path needed!; Can be specified more than once!]",
+                        action="append", default=[]
                         )
     parser.add_argument('-o', '--output',
                         help="output directory",
@@ -37,10 +40,22 @@ def parse_user_input():
                         help="Desman home directory",
                         required=True, type=str
                         )
+    parser.add_argument('-g', '--genes',
+                        help='SCG gene bed file',
+                        required =True, type=str
+                        )
     parser.add_argument('-s', '--strains',
                         help="Desman deviation fit points for strain count determination (usually desman_dic.fits)",
                         required=False, default="desman_dic.fits"
                         )
+    parser.add_argument('-t', '--scg',
+                        help='SCG gene label file (gene,contig,start,end,strand)',
+                        required=True, type=str
+                        )
+    #parser.add_argument('-e', '--access',
+    #                    help='Accessory gene label file (gene,contig,start,end,strand)',
+    #                    required=True, type=str
+    #                    )
     
     return parser.parse_args()
 
@@ -49,10 +64,6 @@ def main(args):
     os.chdir(args.output)
     if not os.path.isfile('dfreqstran_df.csv') and not os.path.isfile('dfreqssel_var.csv'):
         print("Missing essential files dfreqstran_df.csv and dfreqssel_var.csv!")
-        os.sys.exit(-1)
-        
-    if not os.path.isfile('species_contigs.fa') and not os.path.isfile('elites.bed'):
-        print("Missing essential files elites.bed and species_contigs.fa!")
         os.sys.exit(-1)
         
     # Use LOWESS to smooth data points 
@@ -78,11 +89,14 @@ def main(args):
         out.write(f'{args.output}\t{strains}\n')
     
     # Run desman on the data
-    gamma, eta = desmanRun(args.desman, 'dfreqssel_var.csv', 'dfreqstran_df.csv', int(strains))
+    gamma, eta, tau = desmanRun(args.desman, 'dfreqssel_var.csv', 'dfreqstran_df.csv', int(strains))
+    
+    # Grep out the SCG haplotypes
+    scgHaplotypes(args.desman, args.contigs, args.scg, args.assembly, tau)
     
     # Run the strain differentiation 
-    strainTigs(args.desman, 'species_contigs.fa', args.assembly, gamma, eta, 
-               args.bamfile, 'elites.bed', int(strains))
+    #strainTigs(args.desman, 'original_contigs.fa', args.assembly, gamma, eta, 
+    #           args.bamfile, 'elites.bed', int(strains))
 
 def desmanRun(desman: str, dfreq_var: str, dfreq_df: str, strains : int) -> Tuple[str, str]:
     cmd = [desman + "/bin/desman", dfreq_var, "-e", dfreq_df, "-o", "cluster_f",
@@ -91,11 +105,46 @@ def desmanRun(desman: str, dfreq_var: str, dfreq_df: str, strains : int) -> Tupl
     sp.run(cmd, shell=False, check=True)
     
     # Moving cluster file
-    sp.run("mv cluster/Gamma_star.csv cluster/Eta_star.csv .", shell=True)
-    return ["Gamma_star.csv", "Eta_star.csv"]
+    sp.run("mv cluster/Gamma_star.csv cluster/Eta_star.csv cluster/Filtered_Tau_star.csv .", shell=True)
+    return ["Gamma_star.csv", "Eta_star.csv", "Filtered_Tau_star.csv"]
+
+def scgHaplotypes(desman: str, contigs: str, cogs: str, assembly: str, tau: str) -> None:
+    # First, generate a file containing only the original contigs
+    ctgs = []
+    with open(contigs, 'r') as fh:
+        for l in fh:
+            l = l.rstrip()
+            ctgs.append(l)
+            
+    print(f'Creating original_contigs.fa:\nsamtools faidx {assembly} {" ".join(ctgs)} > original_contigs.fa')
+    sp.run(f'samtools faidx {assembly} {" ".join(ctgs)} > original_contigs.fa', shell=True)
+    
+    # Now generate the haplotypes for the genes
+    if not os.path.isdir("scg_haps"):
+        print("Creating haplotype dir")
+        os.makedirs("scg_haps")
+        
+    os.chdir("scg_haps")
+    
+    # Create simple gene list
+    with open(cogs, 'r') as fh, open("coregenes.txt", 'o') as out:
+        genes = {}
+        for l in fh:
+            l = l.rstrip()
+            segs = l.split(",")
+            genes[segs[0]] = 1
+        
+        for g in genes.keys():
+            out.write(f'{g}\n')
+    
+    cmd = [desman + "/scripts/GetVariantsCore.py", "../original_contigs.fa", cogs, 
+           tau, "coregenes.txt", "-o", "SCG"]
+    sp.run(cmd, check=True)
+    
+    os.chdir("..")
 
 def strainTigs(desman: str, contigs : str, assembly : str, gamma : str, eta : str,
-               bam : str, elite : str, strains : int) -> None:
+               bam : List[str], elite : str, strains : int) -> None:
     print(f'Getting lengths of {contigs}')
     sp.run(f'samtools faidx {contigs}', shell=True)
     
