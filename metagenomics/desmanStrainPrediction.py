@@ -72,7 +72,7 @@ def main(args):
     with open(args.strains, 'r') as fh:
         next(fh)
         for l in fh:
-            segs = re.split(",")
+            segs = re.split(",", l)
             x.append(int(segs[1]))
             y.append(float(segs[3]))
     
@@ -81,7 +81,7 @@ def main(args):
     l_y = list(zip(*lowess))[1]
     
     # Select x value from elbow plot and use that in desman
-    k = kneed.KneeLocator(l_x, l_y, invert=True, direction='decreasing')
+    k = kneed.KneeLocator(l_x, l_y, invert=False, direction='decreasing')
     strains = k.knee
     
     print(f'Identified {strains} as the optimal strain count from the values')
@@ -100,12 +100,12 @@ def main(args):
 
 def desmanRun(desman: str, dfreq_var: str, dfreq_df: str, strains : int) -> Tuple[str, str]:
     cmd = [desman + "/bin/desman", dfreq_var, "-e", dfreq_df, "-o", "cluster_f",
-           "-r", "1000", "-i", "100", "-g", strains]
+           "-r", "1000", "-i", "100", "-g", str(strains)]
     print(f'CMD: {" ".join(cmd)}')
     sp.run(cmd, shell=False, check=True)
     
     # Moving cluster file
-    sp.run("mv cluster/Gamma_star.csv cluster/Eta_star.csv cluster/Filtered_Tau_star.csv .", shell=True)
+    sp.run("mv cluster_f/Gamma_star.csv cluster_f/Eta_star.csv cluster_f/Filtered_Tau_star.csv .", shell=True)
     return ["Gamma_star.csv", "Eta_star.csv", "Filtered_Tau_star.csv"]
 
 def scgHaplotypes(desman: str, contigs: str, cogs: str, assembly: str, tau: str) -> None:
@@ -127,7 +127,7 @@ def scgHaplotypes(desman: str, contigs: str, cogs: str, assembly: str, tau: str)
     os.chdir("scg_haps")
     
     # Create simple gene list
-    with open(cogs, 'r') as fh, open("coregenes.txt", 'o') as out:
+    with open(cogs, 'r') as fh, open("coregenes.txt", 'w') as out:
         genes = {}
         for l in fh:
             l = l.rstrip()
