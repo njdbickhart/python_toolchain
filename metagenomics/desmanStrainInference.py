@@ -1,7 +1,7 @@
 #!/software/apps/python_3/gcc/64/3.6.2/bin/python3
 #SBATCH --nodes=1
-#SBATCH --mem=25000
-#SBATCH --ntasks-per-node=8
+#SBATCH --mem=12000
+#SBATCH --ntasks-per-node=6
 """
 DESMAN pipeline
 Created on Tue Aug 21 15:19:58 2018

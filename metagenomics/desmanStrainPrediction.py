@@ -1,6 +1,6 @@
 #!/software/apps/python_3/gcc/64/3.6.2/bin/python3
 #SBATCH --nodes=1
-#SBATCH --mem=25000
+#SBATCH --mem=18000
 #SBATCH --ntasks-per-node=2
 """
 Created on Thu Aug 23 16:56:15 2018
@@ -132,13 +132,13 @@ def scgHaplotypes(desman: str, contigs: str, cogs: str, assembly: str, tau: str)
         for l in fh:
             l = l.rstrip()
             segs = l.split(",")
-            genes[segs[0]] = 1
+            genes[segs[4]] = 1
         
         for g in genes.keys():
             out.write(f'{g}\n')
     
-    cmd = [desman + "/scripts/GetVariantsCore.py", "../original_contigs.fa", cogs, 
-           tau, "coregenes.txt", "-o", "SCG"]
+    cmd = ["python3", desman + "/scripts/GetVariantsCore.py", "../original_contigs.fa", cogs, 
+           "../" + tau, "-o", "SCG"]
     sp.run(cmd, check=True)
     
     os.chdir("..")
@@ -158,15 +158,15 @@ def strainTigs(desman: str, contigs : str, assembly : str, gamma : str, eta : st
             print(f'CMD: samtools mpileup -r {region} -f {assembly} {bam} > s_{safe}.pileup')
             sp.run(f'samtools mpileup -r {region} -f {assembly} {bam} > s_{safe}.pileup', shell=True)
             
-    cmd = [desman + "/scripts/pileups_to_freq_table.py", assembly, 's_*.pileup', "contigfreqs.csv"]
+    cmd = ["python3 " + desman + "/scripts/pileups_to_freq_table.py", assembly, 's_*.pileup', "contigfreqs.csv"]
     print(f'CMD: {" ".join(cmd)}')
     sp.run(" ".join(cmd), shell=True)
             
-    cmd = [desman + "/desman/Variant_Filter.py", "contigfreqs.csv", "-m", "0.0", "-v", "0.03"]
+    cmd = ["python3", desman + "/desman/Variant_Filter.py", "contigfreqs.csv", "-m", "0.0", "-v", "0.03"]
     print(f'CMD: {" ".join(cmd)}')
     sp.run(cmd, check=True)
     
-    cmd = [desman + "/scripts/CalcGeneCov.py", "contigfreqs.csv"]
+    cmd = ["python3", desman + "/scripts/CalcGeneCov.py", "contigfreqs.csv"]
     print(f'CMD: {" ".join(cmd)}')
     sp.run(cmd, stdout=open("contig_cov.csv",'w'))
     
