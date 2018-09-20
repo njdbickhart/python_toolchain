@@ -28,6 +28,10 @@ def parse_user_input():
                         help="The test sample column (zero-based) that will compared against the 'columns' samples",
                         type=int, required=True
                         )
+    parser.add_argument('-m', '--meta',
+                        help="[Optional] Metadata columns (zero-based) for the sample groups, separated by commas",
+                        type=str, default="None"
+                        )
     parser.add_argument('-o', '--output',
                         help="Text output file name",
                         type=str, required=True
@@ -42,9 +46,14 @@ def parse_user_input():
 def main(args):
     # Start with separating column information
     cols = [int(x) for x in args.column.split(",")]
+    hasmeta = False
+    if args.meta != "None":
+        meta = [int(x) for x in args.meta.split(",")]
+        hasmeta = True
     
     # open files and group entries
     data = defaultdict(list)
+    mstr = dict()
     with open(args.file, 'r') as fh:
         head = fh.readline()
         for l in fh:
@@ -52,19 +61,67 @@ def main(args):
             segs = re.split("\t", l)
             data[segs[args.group]].append(container(float(segs[args.sample]), 
                  [float(segs[x]) for x in cols], segs[args.group]))
+            if hasmeta:
+                mstr[segs[args.group]] = [segs[x] for x in meta]
+
+    # Normalize data by proportion of aligned reads
+    valtot = 0
+    othertot = [0 for x in cols]
+    for g, clist in data.items():
+        for c in clist:
+            valtot += c.val
+            for i in range(0, len(cols)):
+                othertot[i] += c.data[i]
+
+    # Now to recalculate rankings based on proportion of dataset aligned reads
+    for g, clist in data.items():
+        for c in clist:
+            c.calc_prop(valtot, othertot)
     
     # calculate per group stats
+    pvalues = defaultdict()
+    ranks = defaultdict(dict)
     with open(args.output, 'w') as out:
-        out.write("Group\tTotCount\tNumSampisMax\tNumSampisMin\tpMax\tpMin\n")
+        if hasmeta:
+            for x in meta:
+                out.write(f'metacol{x}\t')
+        out.write("Group\tTotCount\tNumSampisMax\tNumSampisMin\tpMax\tpMin\tMaxSig\tMinSig\n")
         for g, clist in data.items():
             M = len(clist)
-            n_lower = len(filter(lambda x: x.lesser, clist))
-            n_greater = len(filter(lambda x: x.greater, clist))
+            n_lower = len(list(filter(lambda x: x.lesser, clist)))
+            n_greater = len(list(filter(lambda x: x.greater, clist)))
             
-            p_lower = hypergeom.sf(n_lower - 1, M, n_lower, M)
-            p_greater = hypergeom.sf(n_greater - 1, M, n_greater, M)
+            p_lower = hypergeom.sf(n_lower - 1, (M * (len(cols) + 1)), M, M)
+            p_greater = hypergeom.sf(n_greater - 1, (M * (len(cols) + 1)), M, M)
             
-            out.write(f'{g}\t{M}\t{n_greater}\t{n_lower}\t{p_greater}\t{p_lower}\n')
+            pvalues[g] = [n_lower, n_greater, p_lower, p_greater]
+            ranks["lower"][p_lower] = 1
+            ranks["upper"][p_greater] = 1
+
+        # Calculate Benjamini-Hockberg correction
+        cutoff = {}
+        totentries = len(list(data.keys()))
+        for i in ["lower", "upper"]:
+            keylist = list(ranks[i].keys())
+            keylist.sort()
+            # This needs to be the value at the index of 0.05 of the total count
+            index = int(totentries * 0.05)
+            if index + 1 > len(keylist):
+                cutoff[i] = 0.0
+            else:
+                cutoff[i] = keylist[int(totentries * 0.05)]
+            print(f'{i} value cutoff is > {cutoff[i]}')
+
+        # Now we can print
+        for g, clist in data.items():
+            M = len(clist)
+            msig = pvalues[g][3] <= cutoff["upper"]
+            lsig = pvalues[g][2] <= cutoff["lower"]
+            
+            if hasmeta:
+                out.write("\t".join(mstr[g]))
+                out.write("\t")
+            out.write(f'{g}\t{M}\t{pvalues[g][1]}\t{pvalues[g][0]}\t{pvalues[g][3]}\t{pvalues[g][2]}\t{msig}\t{lsig}\n')
             
     exit
             
@@ -76,9 +133,14 @@ class container:
         self.data = others
         self.group = group
         
-        first, last = sorted(others)[0],sorted(others)[-1]
-        self.greater = True if val >= last else False
-        self.lesser = True if val <= first else False
+    def calc_prop(self, val : int, others : List) -> None:
+        self.val /= val
+        for i in range(0,len(others)):
+            self.data[i] /= others[i]
+
+        first, last = sorted(self.data)[0],sorted(self.data)[-1]
+        self.greater = True if self.val >= last else False
+        self.lesser = True if self.val <= first else False
         
         
         
