@@ -6,6 +6,7 @@ Created on Thu Feb 14 10:37:38 2019
 """
 
 import argparse
+from Bio import SeqIO, SeqRecord, RestrictionBatch
 from Bio import Restriction as res
 
 def parse_user_input():
@@ -35,3 +36,18 @@ def parse_user_input():
     
     return parser.parse_args()
 
+def main(arg):
+    print("hey")
+    
+def fragmentSeq(seq : SeqRecord, rb : RestrictionBatch, ren : str ) -> str:
+    sid = seq.id
+    slen = len(seq.seq)
+    
+    print(f'Running insilico digest on {sid} of length {slen}')
+    # Running an analysis on this sequence
+    analysis = res.Analysis(rb, seq.seq)
+    
+    # locations of cut sites for this particular restriction enzyme
+    resites = analysis.full()[ren]
+    
+    
