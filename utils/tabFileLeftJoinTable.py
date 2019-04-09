@@ -55,11 +55,11 @@ def main(args):
     with open(args.output, 'w') as out:
         # Take care of any headers
         if args.header:
-            select = [workers[0].header[i] for i in list(map(int, args.cols))]
-            remain = [i for i in range(len(workers[0].header) -1) if i not in set(args.cols)]
+            select = [workers[0].header[i] for i in list(map(int, args.column))]
+            remain = [i for i in range(len(workers[0].header) -1) if i not in set(args.column)]
             for w in workers:
                 select.extend([str(w.file + w.header[i]) for i in remain])
-            out.write('\t'.select + "\n")
+            out.write('\t'.join(select) + "\n")
             
         # Get sorted list of keys
         keysort = sorted(workers[0].data.keys())

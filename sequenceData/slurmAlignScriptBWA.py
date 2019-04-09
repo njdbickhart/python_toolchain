@@ -75,10 +75,11 @@ def main(args):
                 
             bname = os.path.basename(segs[0])
             bsegs = bname.split('.')
+            fasta = curDir + args.fasta if os.path.isfile(curDir + args.fasta) else args.fasta
             
             uname = bsegs[0] + "." + urlHash()
             
-            cmd = "bwa mem -t 8 -M -R '@RG\\tID:{LB}\\tSM:{ID}\\tLB:{LB}' {WD}/{FA} {seg1} {seg2} | samtools sort -m 2G -o {uname}.sorted.bam -T {uname} -".format(ID=segs[-1], LB=segs[-2], WD=curDir, FA=args.fasta, seg1=segs[0], seg2=segs[1], uname=uname)
+            cmd = "bwa mem -t 8 -M -R '@RG\\tID:{LB}\\tSM:{ID}\\tLB:{LB}' {FA} {seg1} {seg2} | samtools sort -m 2G -o {uname}.sorted.bam -T {uname} -".format(ID=segs[-1], LB=segs[-2], FA=fasta, seg1=segs[0], seg2=segs[1], uname=uname)
             slurmBams[segs[-1]].append(uname + ".sorted.bam")
             
             slurmWorkers[segs[-1]].createGenericCmd(cmd, "bwaAlign")

@@ -34,6 +34,10 @@ def parse_user_input():
                         help="The logfile for the edits",
                         type=str, default="subsample.log"
                         )
+    parser.add_argument('-b', '--bypass',
+                        help="Bypass initial file line counts by inputing total expected lines",
+                        type=int, default=-1
+                        )
     
     return parser.parse_args()
 
@@ -46,34 +50,40 @@ def main(args):
     
     # The number of reads should be the same between pairs. We'll assume to save time
     lcount = 0
-    for f in first:
-        temp = lineCounter(f)
-        log.write(f'{temp}\tlines in file\t{f}\n')
-        lcount = lcount + temp
+    if args.bypass != -1:
+        lcount = args.bypass
+    else:
+        for f in first:
+            temp = lineCounter(f)
+            log.write(f'{temp}\tlines in file\t{f}\n')
+            lcount = lcount + temp
         
     # We set the count to a divisor of four to account for the reads
-    selection_indicies = random.sample(range(lcount / 4), args.lines)
+    selection_indicies = random.sample(range(int(lcount / 4)), args.lines)
     selectionSet = set(selection_indicies)
+    log.write(f'!{len(selectionSet)} selection indicies\n')
     
     # OK, this is where things get complex. I'm going to keep looping through files
     current_read=0
     with open(args.output + "_R1.fq", 'w') as out1, open(args.output + "_R2.fq", 'w') as out2:
         for f1, f2 in zip(first, second):
             with gzipFile(f1, 'r') as fh1, gzipFile(f2, 'r') as fh2:
-                try:
-                    f1lines = get_four_lines(fh1)
-                    f2lines = get_four_lines(fh2)
+                while True:
+                    try:
+                        f1lines = get_four_lines(fh1)
+                        f2lines = get_four_lines(fh2)
                 
-                    if current_read in selectionSet:
-                        out1.write('\n'.join(f1lines) + '\n')
-                        out2.write('\n'.join(f2lines) + '\n')
+                        if current_read in selectionSet:
+                            out1.write('\n'.join(f1lines) + '\n')
+                            out2.write('\n'.join(f2lines) + '\n')
                     
-                    current_read += 1
+                        current_read += 1
                 
-                    if current_read % (args.lines / 10):
-                        log.write(f'!Currently {current_read / args.lines} through sampling on files: {f1} {f2}\n')
-                except EofException as e:
-                    log.write(f'!Reached EOF of files {f1} and {f2}\n')
+                        if current_read % (args.lines / 10) == 0:
+                            log.write(f'!Currently {current_read / args.lines} through sampling on files: {f1} {f2}\n')
+                    except EofException as e:
+                        log.write(f'!Reached EOF of files {f1} and {f2}\n')
+                        break
                 
     log.write(f'!Finished sampling\n')
     

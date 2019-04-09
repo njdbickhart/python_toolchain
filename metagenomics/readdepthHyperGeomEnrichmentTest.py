@@ -6,7 +6,7 @@ Created on Fri Sep 14 09:25:14 2018
 """
 
 import argparse
-from scipy.stats import hypergeom
+from scipy.stats import hypergeom, fisher_exact
 import re
 from collections import defaultdict
 from typing import List
@@ -40,6 +40,10 @@ def parse_user_input():
                         help="The grouping column (zero-based) that will be used to segregate the samples",
                         type=int, required=True
                         )
+    parser.add_argument('-e', '--exact',
+                        help="Use a Fisher's exact test instead of the hypergeometric test",
+                        action='store_true'
+                        )
     
     return parser.parse_args()
 
@@ -52,6 +56,7 @@ def main(args):
         hasmeta = True
     
     # open files and group entries
+    totcontigs = 0
     data = defaultdict(list)
     mstr = dict()
     with open(args.file, 'r') as fh:
@@ -59,6 +64,7 @@ def main(args):
         for l in fh:
             l = l.rstrip()
             segs = re.split("\t", l)
+            totcontigs += 1
             data[segs[args.group]].append(container(float(segs[args.sample]), 
                  [float(segs[x]) for x in cols], segs[args.group]))
             if hasmeta:
@@ -67,7 +73,9 @@ def main(args):
     # Normalize data by proportion of aligned reads
     valtot = 0
     othertot = [0 for x in cols]
+    groupcount = 0
     for g, clist in data.items():
+        groupcount += 1
         for c in clist:
             valtot += c.val
             for i in range(0, len(cols)):
@@ -86,15 +94,29 @@ def main(args):
             for x in meta:
                 out.write(f'metacol{x}\t')
         out.write("Group\tTotCount\tNumSampisMax\tNumSampisMin\tpMax\tpMin\tMaxSig\tMinSig\n")
+        totgreat = 0
+        totlower = 0
         for g, clist in data.items():
             M = len(clist)
             n_lower = len(list(filter(lambda x: x.lesser, clist)))
             n_greater = len(list(filter(lambda x: x.greater, clist)))
-            
-            p_lower = hypergeom.sf(n_lower - 1, (M * (len(cols) + 1)), M, M)
-            p_greater = hypergeom.sf(n_greater - 1, (M * (len(cols) + 1)), M, M)
+
+            p_lower = 1.0
+            p_greater = 1.0
             
             pvalues[g] = [n_lower, n_greater, p_lower, p_greater]
+            totgreat += n_greater
+            totlower += n_lower
+
+        for g, clist in data.items():
+            N = len(clist)
+            n_lower = pvalues[g][0]
+            n_greater = pvalues[g][1]
+
+            p_lower = hypergeom.sf(n_lower - 1, totcontigs, totlower, N)
+            p_greater = hypergeom.sf(n_greater - 1, totcontigs, totgreat, N)
+            pvalues[g][2] = p_lower
+            pvalues[g][3] = p_greater
             ranks["lower"][p_lower] = 1
             ranks["upper"][p_greater] = 1
 
