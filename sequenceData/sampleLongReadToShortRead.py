@@ -40,20 +40,31 @@ def parse_user_input():
     return parser.parse_args()
 
 def main(args):
+    # Turning this into a single thread process before I debug
     
-    qstr = 'I' * args.length
-    fq1 = SafeWriter(args.forstrand, 'w')
-    fq2 = SafeWriter(args.revstrand, 'w')
+    qstr = 'I' * args.len
+    fq1 = open(args.forstrand, 'w')
+    fq2 = open(args.revstrand, 'w')
+    #fq1 = SafeWriter(args.forstrand, 'w')
+    #fq2 = SafeWriter(args.revstrand, 'w')
     
     rcount = list()
     fp = open(args.file, "r")
+    """
+    #Uncomment for parallel processing
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.threads - 2) as executor:
         for name, seq in read_fasta(fp):
             if seq < (args.len * 3):
                 continue # Skip reads too short to leapfrog
             count = executor.submit(convert_to_fastq, name, seq, args.len, fq1, fq2, qstr)
             rcount.append(count.result())
-    
+    """
+    for name, seq in read_fasta(fp):
+        if seq < (args.len *3):
+            continue
+        count = convert_to_fastq(name, seq, args.len, fq1, fq2, qstr)
+        rcount.append(count)
+        
     fp.close()
     
     print(f'Processed {len(rcount)} reads with an average of {avg(rcount)} leapfrog pairs')
