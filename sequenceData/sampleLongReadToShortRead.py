@@ -54,13 +54,13 @@ def main(args):
     #Uncomment for parallel processing
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.threads - 2) as executor:
         for name, seq in read_fasta(fp):
-            if seq < (args.len * 3):
+            if len(seq) < (args.len * 3):
                 continue # Skip reads too short to leapfrog
             count = executor.submit(convert_to_fastq, name, seq, args.len, fq1, fq2, qstr)
             rcount.append(count.result())
     """
     for name, seq in read_fasta(fp):
-        if seq < (args.len *3):
+        if len(seq) < (args.len *3):
             continue
         count = convert_to_fastq(name, seq, args.len, fq1, fq2, qstr)
         rcount.append(count)
@@ -95,7 +95,7 @@ def revcomp(seq : str) -> str:
     
 def convert_to_fastq(name, seq, length, fq1, fq2, qualitystr) -> int:
     scount = 0 # Count of subdivisions
-    for i in range(0, len(seq) - (length * 3), length):
+    for i in range(0, len(seq) - (length * 4), length * 3):
         fr1 = seq[i:i+length]
         fr2 = revcomp(seq[i + (length*2):i + (length*3)])
         
