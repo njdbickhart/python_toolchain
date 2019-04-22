@@ -1,0 +1,7 @@
+{
+  "masurca_base" : "masurca_config",
+  "repeatmasker" : "/path",
+  "samples" : {
+    "A" : "/here/",
+  }
+}

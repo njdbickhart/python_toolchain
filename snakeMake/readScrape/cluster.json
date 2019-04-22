@@ -1,0 +1,15 @@
+{
+  "__default__" :
+  {
+    "mem" : "5000",
+    "ntasks-per-node" : "1",
+    "nodes" : "1",
+    "partition" : "short"
+  },
+
+  "run_masurca":
+  {
+    "mem" : "100000",
+    "ntasks-per-node" : "12"
+  }
+}

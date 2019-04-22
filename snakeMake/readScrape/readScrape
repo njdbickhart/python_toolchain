@@ -1,0 +1,57 @@
+shell.executable("/usr/bin/bash")
+
+configfile : "default.json"
+
+rule all:
+    input: "rawreads/{sample}/{sample}_mateUnmapped_R1.fq", "rawreads/{sample}/{sample}_mateUnmapped_R2.fq", "rawreads/{sample}/{sample}_R1_mateMapped.fq", "rawreads/{sample}/{sample}_R2_mateMapped.fq", "rawreads/{sample}/{sample}_links.bam", "assembly/{sample}/masurca_config.txt", "assembly/{sample}/{sample}_assemble.sh"
+
+rule extract_reads:
+    input:
+        lambda wildcards: config["samples"][wildcards.sample]
+    output:
+        mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
+        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R2.fq",
+        mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
+        mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq",
+        links = "rawreads/{sample}/{sample}_links.bam"
+    shell:
+        """
+        samtools fastq -f 12 {input} -1 {output.mUnmap1} -2 {output.mUnmap2}
+        samtools fastq -f 68 -F 8 {input} > {output.mMap1}
+        samtools fastq -f 132 -F 8 {input} > {output.mMap2}
+        samtools view -f 8 -F 4 {input} > {output.links}
+        """
+
+rule gen_masurca_config:
+    input:
+        mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
+        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
+        mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
+        mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
+    output:
+        "assembly/{sample}/masurca_config.txt"
+    shell:
+        """
+        echo "DATA" > {output}
+        echo "PE= pe 300 50 {input.mUnmap1} {input.mUnmap2}" >> {output}
+        echo "PE= s1 300 50 {input.mMap1}" >> {output}
+        echo "PE= s2 300 50 {input.mMap2}" >> {output}
+        echo "END" >> {output}
+        echo "PARAMETERS" >> {output}
+        echo "GRAPH_KMER_SIZE=auto" >> {output}
+        echo "USE_LINKING_MATES=1" >> {output}
+        echo "KMER_COUNT_THRESHOLD = 1" >> {output}
+        echo "NUM_THREADS=12" >> {output}
+        echo "JF_SIZE=200000000" >> {output}
+        echo "DO_HOMOPOLYMER_TRIM=0" >> {output}
+        echo "END" >> {output}
+        """
+
+rule run_masurca:
+    input:
+        mconfig = "assembly/{sample}/masurca_config.txt"
+    threads: 12
+    output:
+        mscript = "assembly/{sample}/{sample}_assemble.sh"
+    shell:
+        "masurca {input.mconfig} && ./{mscript}"
