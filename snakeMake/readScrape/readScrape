@@ -3,7 +3,7 @@ shell.executable("/usr/bin/bash")
 configfile : "default.json"
 
 rule all:
-    input: expand("assembly/{sample}/{sample}_assemble.sh", sample=config["samples"])
+    input: expand("classification/{sample}/{sample}.contigs.mash.tab", sample=config["samples"])
 
 rule extract_reads:
     input:
@@ -48,11 +48,39 @@ rule gen_masurca_config:
         echo "END" >> {output}
         """
 
-rule run_masurca:
+rule gen_masurca:
     input:
         mconfig = "assembly/{sample}/masurca_config.txt"
-    threads: 12
     output:
         mscript = "assembly/{sample}/{sample}_assemble.sh"
     shell:
-        "module load masurca/3.3.1 && masurca -o {output.mscript} {input.mconfig} && ./{output.mscript}"
+        "module load masurca/3.3.1 && masurca -o {output.mscript} {input.mconfig}"
+
+rule modify_masurca:
+    input:
+        "assembly/{sample}"
+        "assembly/{sample}/{sample}_assemble.sh"
+    output:
+        "assembly/{sample}/{sample}_assemble_mod.sh"
+    script:
+        "scripts/modifyMasurcaScript.py"
+
+rule run_masurca:
+    input:
+        nscript = "assembly/{sample}/{sample}_assemble_mod.sh"
+    threads = 12
+    output:
+        asm = "assembly/{sample}/CA/final.genome.scf.fasta"
+    shell:
+        "module load masurca/3.3.1 && ./{input.nscript}"
+
+rule mash_screen:
+    input:
+        asm = "assembly/{sample}/CA/final.genome.scf.fasta"
+    params:
+        mashexe = config["mashexe"]
+        mashsketch = config["mashsketch"]
+    output:
+        assign = "classification/{sample}/{sample}.contigs.mash.tab"
+    shell:
+        "{params.mashexe} screen {params.mashsketch} {input.asm} > {output.assign}"
