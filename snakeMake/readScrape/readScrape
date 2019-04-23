@@ -3,7 +3,7 @@ shell.executable("/usr/bin/bash")
 configfile : "default.json"
 
 rule all:
-    input: "rawreads/{sample}/{sample}_mateUnmapped_R1.fq", "rawreads/{sample}/{sample}_mateUnmapped_R2.fq", "rawreads/{sample}/{sample}_R1_mateMapped.fq", "rawreads/{sample}/{sample}_R2_mateMapped.fq", "rawreads/{sample}/{sample}_links.bam", "assembly/{sample}/masurca_config.txt", "assembly/{sample}/{sample}_assemble.sh"
+    input: expand("assembly/{sample}/{sample}_assemble.sh", sample=config["samples"])
 
 rule extract_reads:
     input:
@@ -16,6 +16,7 @@ rule extract_reads:
         links = "rawreads/{sample}/{sample}_links.bam"
     shell:
         """
+        module load samtools
         samtools fastq -f 12 {input} -1 {output.mUnmap1} -2 {output.mUnmap2}
         samtools fastq -f 68 -F 8 {input} > {output.mMap1}
         samtools fastq -f 132 -F 8 {input} > {output.mMap2}
@@ -54,4 +55,4 @@ rule run_masurca:
     output:
         mscript = "assembly/{sample}/{sample}_assemble.sh"
     shell:
-        "masurca {input.mconfig} && ./{mscript}"
+        "module load masurca/3.3.1 && masurca -o {output.mscript} {input.mconfig} && ./{output.mscript}"

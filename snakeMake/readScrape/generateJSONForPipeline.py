@@ -12,12 +12,12 @@ if len(sys.argv) == 1:
     print(usage)
     sys.exit()
 
-print(f'{{\n\t\"repeatmasker\": \"/path/to/\",\n\t\"samples\":{{')
+print(f'{{\n \"repeatmasker\": \"/path/to/\",\n \"samples\":{{')
 for i in range(1, len(sys.argv)):
     dir=sys.argv[i]
     for filename in glob.iglob(dir + "/**/*.bam", recursive=True):
         bname = basename(filename)
         bsegs = re.split(fsep, bname)
-        print(f'\t\t\"{bsegs[0]}\" : \"{filename}\",')
+        print(f'  \"{bsegs[0]}\" : \"{filename}\",')
 
-print(f'\t}}\n}}')
+print(f' }}\n}}')
