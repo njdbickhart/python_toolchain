@@ -7,9 +7,9 @@
     "partition" : "short"
   },
 
-  "run_masurca":
+  "run_spades":
   {
     "mem" : "100000",
-    "ntasks-per-node" : "12"
+    "ntasks-per-node" : "16"
   }
 }

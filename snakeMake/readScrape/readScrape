@@ -13,7 +13,7 @@ rule extract_reads:
         mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R2.fq",
         mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
         mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq",
-        links = "rawreads/{sample}/{sample}_links.bam"
+        links = "rawreads/{sample}/{sample}_links.sam"
     shell:
         """
         module load samtools
@@ -23,60 +23,24 @@ rule extract_reads:
         samtools view -f 8 -F 4 {input} > {output.links}
         """
 
-rule gen_masurca_config:
+rule run_spades:
     input:
         mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
         mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
         mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
         mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
+    threads: 16
+    params:
+        memlimit = 100,
+        outdir = "assembly/{sample}"
     output:
-        "assembly/{sample}/masurca_config.txt"
+        "assembly/{sample}/scaffolds.fasta"
     shell:
-        """
-        echo "DATA" > {output}
-        echo "PE= pe 300 50 {input.mUnmap1} {input.mUnmap2}" >> {output}
-        echo "PE= s1 300 50 {input.mMap1}" >> {output}
-        echo "PE= s2 300 50 {input.mMap2}" >> {output}
-        echo "END" >> {output}
-        echo "PARAMETERS" >> {output}
-        echo "GRAPH_KMER_SIZE=auto" >> {output}
-        echo "USE_LINKING_MATES=1" >> {output}
-        echo "KMER_COUNT_THRESHOLD = 1" >> {output}
-        echo "NUM_THREADS=12" >> {output}
-        echo "JF_SIZE=200000000" >> {output}
-        echo "DO_HOMOPOLYMER_TRIM=0" >> {output}
-        echo "END" >> {output}
-        """
-
-rule gen_masurca:
-    input:
-        mconfig = "assembly/{sample}/masurca_config.txt"
-    output:
-        mscript = "assembly/{sample}/{sample}_assemble.sh"
-    shell:
-        "module load masurca/3.3.1 && masurca -o {output.mscript} {input.mconfig}"
-
-rule modify_masurca:
-    input:
-        "assembly/{sample}"
-        "assembly/{sample}/{sample}_assemble.sh"
-    output:
-        "assembly/{sample}/{sample}_assemble_mod.sh"
-    script:
-        "scripts/modifyMasurcaScript.py"
-
-rule run_masurca:
-    input:
-        nscript = "assembly/{sample}/{sample}_assemble_mod.sh"
-    threads = 12
-    output:
-        asm = "assembly/{sample}/CA/final.genome.scf.fasta"
-    shell:
-        "module load masurca/3.3.1 && ./{input.nscript}"
+        "module load spades/3.12.0; spades.py --pe1-1 {input.mUnmap1} --pe1-2 {input.mUnmap2} --s1 {input.mMap1} --s2 {input.mMap2} -t {threads} -m {params.memlimit} -o {params.outdir}"
 
 rule mash_screen:
     input:
-        asm = "assembly/{sample}/CA/final.genome.scf.fasta"
+        asm = "assembly/{sample}/scaffolds.fasta"
     params:
         mashexe = config["mashexe"]
         mashsketch = config["mashsketch"]
