@@ -42,7 +42,7 @@ rule mash_screen:
     input:
         asm = "assembly/{sample}/scaffolds.fasta"
     params:
-        mashexe = config["mashexe"]
+        mashexe = config["mashexe"],
         mashsketch = config["mashsketch"]
     output:
         assign = "classification/{sample}/{sample}.contigs.mash.tab"
