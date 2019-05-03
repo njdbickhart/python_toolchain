@@ -26,7 +26,7 @@ rule extract_reads:
 rule run_spades:
     input:
         mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
-        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
+        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R2.fq",
         mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
         mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
     threads: 16

@@ -4,7 +4,7 @@
     "mem" : "5000",
     "ntasks-per-node" : "1",
     "nodes" : "1",
-    "partition" : "short"
+    "partition" : "msn"
   },
 
   "run_spades":
