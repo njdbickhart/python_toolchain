@@ -14,6 +14,7 @@ rule extract_reads:
         mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
         mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq",
         links = "rawreads/{sample}/{sample}_links.sam"
+    log: config['logdir'] + "/extract.log"
     shell:
         """
         module load samtools
@@ -30,6 +31,7 @@ rule run_spades:
         mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
         mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
     threads: 16
+    log: config['logdir'] + "/spades.log"
     params:
         memlimit = 100,
         outdir = "assembly/{sample}"
@@ -38,13 +40,38 @@ rule run_spades:
     shell:
         "module load spades/3.12.0; spades.py --pe1-1 {input.mUnmap1} --pe1-2 {input.mUnmap2} --s1 {input.mMap1} --s2 {input.mMap2} -t {threads} -m {params.memlimit} -o {params.outdir}"
 
-rule mash_screen:
+rule modify_and_index:
     input:
         asm = "assembly/{sample}/scaffolds.fasta"
+    log: config['logdir'] + "/modify.log"
     params:
-        mashexe = config["mashexe"],
-        mashsketch = config["mashsketch"]
+        samp = "{sample}"
     output:
-        assign = "classification/{sample}/{sample}.contigs.mash.tab"
+        rasm = "assembly/{sample}/{sample}.renamed.fasta",
+        rfai = "assembly/{sample}/{sample}.renamed.fasta.fai"
+    script:
+        "scripts/modifySeqName.py"
+
+rule tabulate_spades:
+    input:
+        expand("assembly/{sample}/{sample}.renamed.fasta.fai")
+    output:
+        "assembly/summaryStatsOfSamples.tab"
+    script:
+        "scripts/calcFastaSumStats.py"
+
+rule run_centrifuge:
+    input:
+        rasm = "assembly/{sample}/{sample}.renamed.fasta"
+    params:
+        centrifuge = config["centrifuge"],
+        centrifugedb = config["centrifugedb"]
+    output:
+        report = "classification/{sample}/{sample}.centrifuge.report",
+        output = "classification/{sample}/{sample}.centrifuge.out",
+        kraken = "classification/{sample}/{sample}.centrifuge.krakenOut"
     shell:
-        "{params.mashexe} screen {params.mashsketch} {input.asm} > {output.assign}"
+        """
+        {params.centrifuge} --report-file {output.report} -x {params.centrifugedb} -k 1 --host-taxids 9913 -f {input.rasm} > {output.output}
+        {params.centrifuge}-kreport -x {params.centrifugedb} {output.output} --min-score 0 --min-length 0 > {output.kraken}
+        """
