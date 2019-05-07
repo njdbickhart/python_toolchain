@@ -25,7 +25,7 @@ def parse_user_input():
                         help="Output file name",
                         type=str, required=True
                         )
-    parser.add_argument('-p', '--skip', 
+    parser.add_argument('-s', '--skip', 
                         help="Skip this sample (can be specified more than once)",
                         action="append", default=[]
                         )
@@ -47,15 +47,40 @@ def main(args):
             poplookup[s[0]] = s[1]
             popstruct[s[1]].append(s[0])
             
-    # Now load up data structures
+    # Now to process the data on a line-by-line basis
+    numericErrs = 0
+    with open(args.gene, 'r') as fh, open(args.output, 'w') as out:
+        # Process header to get the column indicies for the samples
+        head = fh.readline()
+        geno = genoLookup(poplookup, head, skip)
+        for l in fh:
+            l = l.rstrip()
+            s = l.split()
+            if not isNumber(s[6]): 
+                # Some of the entries are "null" because of the difference in chromosome names
+                numericErrs += 1
+                continue
+            marker = s[1] + ':' + s[2] + '-' + s[3]
+            worker = totalHolder(marker, s[6:], s[0])
+            
+            Vst = worker.Vst(geno, marker, skip)
+            out.write(f'{s[1]}\t{s[2]}\t{s[3]}\t{Vst}\t{s[0]}\n')
+            
+    print(f'Dealt with {numericErrs} null fields')
     
+def isNumber(value : str) -> bool:
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
 
 class totalHolder:
     
     def __init__(self, markername: str, values: list, gene: str):
         self.markername = markername
         self.values = []
-        self.values.append(values)
+        self.values.append(float(values))
         self.genes = gene
     
     # Routines for overlapping gene regions
@@ -65,7 +90,7 @@ class totalHolder:
     def addGene(self, gene: str):
         self.genes += ';' + gene
    
-    def Vst(self, genoLookup, markers, skip):
+    def Vst(self, genoLookup, markers, skip) -> float:
         # Total variance calculation
         total = []
         numerator = 0
@@ -80,11 +105,19 @@ class totalHolder:
                     continue
                 
                 total.append(self.values[i][j])
-                popnums{pop} += 1
+                popnums[pop] += 1
+                popvar[pop].append(self.values[i][j])
                 
-        
+        for pop, num in popnums.items():
+            pvar = np.var(popvar[pop])
+            numerator += pvar * num
+            denominator += num
+            
         Vt = np.var(total)
+        Vs = numerator / denominator
+        if Vt == 0: return 0.0
         
+        return ((Vt - Vs) / Vt)      
         
         
 class genoLookup:
@@ -101,8 +134,8 @@ class genoLookup:
                 self.samples[i - 6] = header[i]
                 self.pops[i - 6] = poplookup[header[i]]
             
-    def getPopSamp(self, idx):
-        return self.samples[i], self.pops[i]
+    def getPopSamp(self, idx: int):
+        return self.samples[idx], self.pops[idx]
 
     
 if __name__ == "__main__":
