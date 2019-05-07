@@ -34,6 +34,6 @@ with open(infile, 'r') as input, open(ofile, 'w') as output:
                 write = False
 
             l = f'>{sample}.scaf.{count}\n'
-        output.write(l) if write
+        if write: output.write(l)
 
 subprocess.run(f'module load samtools; samtools faidx {ofile}', shell=True)
