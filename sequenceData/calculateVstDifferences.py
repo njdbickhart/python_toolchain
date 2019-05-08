@@ -80,7 +80,7 @@ class totalHolder:
     def __init__(self, markername: str, values: list, gene: str):
         self.markername = markername
         self.values = []
-        self.values.append(float(values))
+        self.values.append([float(x) for x in values])
         self.genes = gene
     
     # Routines for overlapping gene regions
@@ -98,13 +98,15 @@ class totalHolder:
         # Data structures
         popnums = {}
         popvar = defaultdict(list)
-        for i in self.values:
+        for i in range(0, len(self.values)):
             for j in range(0, len(self.values[i])):                
-                sample, pop = genoLookup(j)
+                sample, pop = genoLookup.getPopSamp(j)
                 if sample == None:
                     continue
                 
                 total.append(self.values[i][j])
+                if not pop in popnums:
+                    popnums[pop] = 0
                 popnums[pop] += 1
                 popvar[pop].append(self.values[i][j])
                 
@@ -122,9 +124,11 @@ class totalHolder:
         
 class genoLookup:
     
-    def __init__(self, poplookup, header, skip):
+    def __init__(self, poplookup, head, skip):
         self.pops = {}
         self.samples = {}
+        head = head.rstrip()
+        header = head.split()
         
         for i in range(6, len(header)):
             if header[i] in skip:
