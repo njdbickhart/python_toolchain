@@ -8,6 +8,8 @@ Created on Mon May  6 15:12:20 2019
 import argparse
 from collections import defaultdict
 import numpy as np
+import contextlib
+import os
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
@@ -29,6 +31,10 @@ def parse_user_input():
                         help="Skip this sample (can be specified more than once)",
                         action="append", default=[]
                         )
+    parser.add_argument('-m', '--melt',
+                        help="Write CN data to melted table for plotting in R",
+                        type=str, default='none'
+                        )
     return parser.parse_args()
 
 def main(args):
@@ -49,10 +55,12 @@ def main(args):
             
     # Now to process the data on a line-by-line basis
     numericErrs = 0
-    with open(args.gene, 'r') as fh, open(args.output, 'w') as out:
+    with open(args.gene, 'r') as fh, open(args.output, 'w') as out, smartFile(args.melt) as melt:
         # Process header to get the column indicies for the samples
         head = fh.readline()
         geno = genoLookup(poplookup, head, skip)
+        if args.melt != 'none':
+            melt.write('\t'.join(['Gene', 'Pop', 'Sample', 'CN']) + '\n')
         for l in fh:
             l = l.rstrip()
             s = l.split()
@@ -66,7 +74,23 @@ def main(args):
             Vst = worker.Vst(geno, marker, skip)
             out.write(f'{s[1]}\t{s[2]}\t{s[3]}\t{Vst}\t{s[0]}\n')
             
+            if args.melt != 'none':
+                for l in worker.decorateCNData(geno, Vst, skip):
+                    melt.write(l + '\n')
+            
     print(f'Dealt with {numericErrs} null fields')
+
+@contextlib.contextmanager
+def smartFile(filename : str, mode : str = 'w'):
+    if filename == 'none':
+        fh = open(os.devnull, 'w')
+    else:
+        fh = open(filename, mode)
+    try:
+        yield fh
+    finally:
+        if filename != 'none':
+            fh.close()
     
 def isNumber(value : str) -> bool:
     try:
@@ -120,6 +144,21 @@ class totalHolder:
         if Vt == 0: return 0.0
         
         return ((Vt - Vs) / Vt)      
+    
+    def decorateCNData(self, genoLookup, Vst, skip):
+        # Print out the data in "melted form"
+        geneid = '{} ({:0.2f})'.format(self.genes, Vst)
+        content = []
+        for i in range(0, len(self.values)):
+            for j in range(0, len(self.values[i])):
+                sample, pop = genoLookup.getPopSamp(j)
+                if sample == None:
+                    continue
+                
+                subc = [geneid, pop, sample, str(self.values[i][j])]
+                content.append('\t'.join(subc))
+        
+        return content
         
         
 class genoLookup:
@@ -140,6 +179,12 @@ class genoLookup:
             
     def getPopSamp(self, idx: int):
         return self.samples[idx], self.pops[idx]
+    
+    def getOrderedSamp(self):
+        return self.samples
+    
+    def getOrderedPops(self):
+        return self.pops
 
     
 if __name__ == "__main__":

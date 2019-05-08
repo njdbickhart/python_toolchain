@@ -95,7 +95,7 @@ def smartFile(filename : str, mode : str = 'r'):
     try:
         yield fh
     finally:
-        if filename is not 'stdin' and filename is not 'stdout':
+        if filename != 'stdin' and filename != 'stdout':
             fh.close()
     
 def generateParseDict(data : str, isFile : bool):
