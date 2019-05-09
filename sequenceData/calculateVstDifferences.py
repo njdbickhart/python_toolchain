@@ -35,6 +35,14 @@ def parse_user_input():
                         help="Write CN data to melted table for plotting in R",
                         type=str, default='none'
                         )
+    parser.add_argument('-v', '--vfilt',
+                        help="VST filter for melt file",
+                        type=float, default=0.2
+                        )
+    parser.add_argument('-g', '--mag',
+                        help="Minimum of difference between mean of CN values to report",
+                        type=float, default=2.0
+                        )
     return parser.parse_args()
 
 def main(args):
@@ -74,7 +82,9 @@ def main(args):
             Vst = worker.Vst(geno, marker, skip)
             out.write(f'{s[1]}\t{s[2]}\t{s[3]}\t{Vst}\t{s[0]}\n')
             
-            if args.melt != 'none':
+            mtest = worker.magTest(args.mag)
+            if args.melt != 'none' and Vst >= args.vfilt and mtest:
+                print(f'Melt\t{worker.genes}\t{Vst}\t{worker.mag}')
                 for l in worker.decorateCNData(geno, Vst, skip):
                     melt.write(l + '\n')
             
@@ -106,6 +116,8 @@ class totalHolder:
         self.values = []
         self.values.append([float(x) for x in values])
         self.genes = gene
+        self.popavgs = defaultdict(float)
+        self.mag = 0.0
     
     # Routines for overlapping gene regions
     def addValues(self, values: list):
@@ -133,17 +145,28 @@ class totalHolder:
                     popnums[pop] = 0
                 popnums[pop] += 1
                 popvar[pop].append(self.values[i][j])
+                self.popavgs[pop] += self.values[i][j]
                 
         for pop, num in popnums.items():
             pvar = np.var(popvar[pop])
             numerator += pvar * num
             denominator += num
+            self.popavgs[pop] /= num
             
         Vt = np.var(total)
         Vs = numerator / denominator
         if Vt == 0: return 0.0
         
-        return ((Vt - Vs) / Vt)      
+        return ((Vt - Vs) / Vt)     
+
+    def magTest(self, mag):
+        # Test if the difference between pop averages is above the difference
+        diff = 0
+        for k, v in self.popavgs.items():
+            diff = abs(diff - v)
+
+        self.mag = diff
+        return diff > mag
     
     def decorateCNData(self, genoLookup, Vst, skip):
         # Print out the data in "melted form"
