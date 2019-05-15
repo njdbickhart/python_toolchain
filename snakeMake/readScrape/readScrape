@@ -3,7 +3,7 @@ shell.executable("/usr/bin/bash")
 configfile : "default.json"
 
 rule all:
-    input: expand("classification/{sample}/{sample}.contigs.mash.tab", sample=config["samples"])
+    input: expand("classification/{sample}/{sample}.centrifuge.krakenOut", sample=config["samples"])
 
 rule extract_reads:
     input:
