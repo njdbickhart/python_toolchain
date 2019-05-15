@@ -14,7 +14,7 @@ rule extract_reads:
         mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
         mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq",
         links = "rawreads/{sample}/{sample}_links.sam"
-    log: config['logdir'] + "/extract.log"
+    log: config['logdir'] + "/{sample}/extract.log"
     shell:
         """
         module load samtools
@@ -31,7 +31,7 @@ rule run_spades:
         mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
         mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
     threads: 16
-    log: config['logdir'] + "/spades.log"
+    log: config['logdir'] + "/{sample}/spades.log"
     params:
         memlimit = 100,
         outdir = "assembly/{sample}"
@@ -43,7 +43,7 @@ rule run_spades:
 rule modify_and_index:
     input:
         asm = "assembly/{sample}/scaffolds.fasta"
-    log: config['logdir'] + "/modify.log"
+    log: config['logdir'] + "/{sample}/modify.log"
     params:
         samp = "{sample}"
     output:
