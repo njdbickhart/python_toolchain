@@ -54,7 +54,7 @@ rule modify_and_index:
 
 rule tabulate_spades:
     input:
-        expand("assembly/{sample}/{sample}.renamed.fasta.fai")
+        expand("assembly/{sample}/{sample}.renamed.fasta.fai", sample=config["samples"])
     output:
         "assembly/summaryStatsOfSamples.tab"
     script:
