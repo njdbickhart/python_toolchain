@@ -1,6 +1,13 @@
+import os
 shell.executable("/usr/bin/bash")
 
 configfile : "default.json"
+
+# Make log directories if they don't exist.
+# Apparently SnakeMake slurm scripts silently terminate if this doesn't exist!
+os.makedirs(config['logdir'], exist_ok=True)
+for x in expand("{logdir}/{sample}", logdir=config['logdir'], sample=config["samples"]):
+    os.makedirs(x, exist_ok=True)
 
 rule all:
     input: expand("classification/{sample}/{sample}.centrifuge.krakenOut", sample=config["samples"])
@@ -63,6 +70,7 @@ rule tabulate_spades:
 rule run_centrifuge:
     input:
         rasm = "assembly/{sample}/{sample}.renamed.fasta"
+    log: config['logdir'] + "/{sample}/centrifuge.log"
     params:
         centrifuge = config["centrifuge"],
         centrifugedb = config["centrifugedb"]
