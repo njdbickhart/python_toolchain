@@ -11,7 +11,7 @@ sample = snakemake.params['samp']
 ofile = snakemake.output['rasm']
 
 # Check sizes of scaffolds and discard those under 1kb
-subprocess.run(f'module load samtools; samtools faidx {infile}', shell=True)
+sp.run(f'module load samtools; samtools faidx {infile}', shell=True)
 slens = dict()
 with open(infile + '.fai', 'r') as input:
     for l in input:
@@ -32,7 +32,7 @@ with open(infile, 'r') as input, open(ofile, 'w') as output:
     for l in input:
         if l.startswith(">"):
             lsegs = l.split()
-            lm = re.match(r">(.+)")
+            lm = re.match(r">(.+)", lsegs[0])
 
             # Determine if the contig is > 1000 bp
             sl = slens[lm.group(1)] if lm.group(1) in slens else 1000
@@ -45,7 +45,7 @@ with open(infile, 'r') as input, open(ofile, 'w') as output:
             l = f'>{sample}.scaf.{count}\n'
         if write: output.write(l)
 
-subprocess.run(f'module load samtools; samtools faidx {ofile}', shell=True)
+sp.run(f'module load samtools; samtools faidx {ofile}', shell=True)
 # Again, another log to confirm completion!
 if os.path.isfile(ofile + '.fai'):
     print("Successfully renamed and indexed fasta!")
