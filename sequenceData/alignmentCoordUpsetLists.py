@@ -36,7 +36,10 @@ def main(args):
     
     workHorse = flatIntersection(args.window)
     workHorse.generateWindows(args.fai)
-    
+   
+    for p in pafs:
+        workHorse.addFile(p, 'paf')
+ 
     workHorse.getOutput(outs)
  
 class flatIntersection:
@@ -66,7 +69,7 @@ class flatIntersection:
             chrom = chrorder[idx]
             chrlen = chrlens[chrom]
             
-            for i in range(int(chrlen / self.window)):
+            for i in range(int(chrlen / self.window) + 1):
                 self.data[chrom][i] = "1"
     
     def getOutput(self, outputs : list):
@@ -75,9 +78,11 @@ class flatIntersection:
         for chrom in self.chrOrder:
             for i in sorted(self.data[chrom].keys()):
                 matches = self.data[chrom][i].split(';')
+                # Convert to unique list
+                unique = set(matches)
                 
-                for f in matches:
-                    outhandles[int(f)].write(f'{chrom}:{i * self.windows}\n')
+                for f in unique:
+                    outhandles[int(f) - 1].write(f'{chrom}:{i * self.window}\n')
         
         for handle in outhandles.values():
             handle.close()
@@ -85,9 +90,10 @@ class flatIntersection:
     def addFile(self, file : str, ftype : str) -> None:
         self.fileItr += 1
         self.fileIdx[file] = self.fileItr
-        self.catIdx[self.filtItr] = file
+        self.catIdx[self.fileItr] = file
         
         if ftype == "paf":
+            print(f'Adding paf file {file}')
             self._processPaf(file)
         else:
             print("Shouldn't be here!")
