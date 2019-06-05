@@ -40,7 +40,7 @@ rule run_spades:
     threads: 16
     log: config['logdir'] + "/{sample}/spades.log"
     params:
-        memlimit = 100,
+        memlimit = 150,
         outdir = "assembly/{sample}"
     output:
         "assembly/{sample}/scaffolds.fasta"
