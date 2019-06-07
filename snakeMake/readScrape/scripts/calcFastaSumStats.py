@@ -5,7 +5,7 @@ import numpy as np
 #data = defaultdict(list)
 
 with open(snakemake.output[0], 'w') as out:
-    out.write("Sample\tCount\tSum\tMean\tMedian\tStdev\n")
+    out.write("Sample\tCount\tSum\tMean\tMedian\tStdev\tContigN50\n")
     for f in snakemake.input:
         # Get samplename
         segs = f.split("/")
@@ -27,4 +27,11 @@ with open(snakemake.output[0], 'w') as out:
         median = np.median(sizes) if count > 0 else 0
         stdev = np.std(sizes) if count > 0 else 0
 
-        out.write(f'{sample}\t{count}\t{sum}\t{mean}\t{median}\t{stdev}\n')
+        l50v = int(sum / 2)
+        csum = np.cumsum(sizes)
+        l50idx = min(csum[csum >= l50v])
+        c50idx = np.where(csum == l50idx)
+
+        n50 = sizes[int(c50idx[0])]
+
+        out.write(f'{sample}\t{count}\t{sum}\t{mean}\t{median}\t{stdev}\t{n50}\n')

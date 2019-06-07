@@ -13,5 +13,10 @@
   {
     "mem" : "150000",
     "ntasks-per-node" : "16"
+  },
+
+  "run_centrifuge":
+  {
+    "mem" : "15000"
   }
 }
