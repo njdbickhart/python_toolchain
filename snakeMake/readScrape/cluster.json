@@ -18,5 +18,11 @@
   "run_centrifuge":
   {
     "mem" : "15000"
+  },
+
+  "remap_unmapped":
+  {
+    "mem" : "10000",
+    "ntasks-per-node" : "3"
   }
 }

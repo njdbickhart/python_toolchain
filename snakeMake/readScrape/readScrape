@@ -73,13 +73,46 @@ rule run_centrifuge:
     log: config['logdir'] + "/{sample}/centrifuge.log"
     params:
         centrifuge = config["centrifuge"],
-        centrifugedb = config["centrifugedb"]
+        centrifugedb = config["centrifugedb"],
+        hosttax = "9913"
     output:
         report = "classification/{sample}/{sample}.centrifuge.report",
         output = "classification/{sample}/{sample}.centrifuge.out",
         kraken = "classification/{sample}/{sample}.centrifuge.krakenOut"
     shell:
         """
-        {params.centrifuge} --report-file {output.report} -x {params.centrifugedb} -k 1 --host-taxids 9913 -f {input.rasm} > {output.output}
+        {params.centrifuge} --report-file {output.report} -x {params.centrifugedb} -k 1 --host-taxids {params.hosttax} -f {input.rasm} > {output.output}
         {params.centrifuge}-kreport -x {params.centrifugedb} {output.output} --min-score 0 --min-length 0 > {output.kraken}
+        """
+
+rule filter_centrifuge:
+    input:
+        cent = "classification/{sample}/{sample}.centrifuge.out",
+        rasm = "assembly/{sample}/{sample}.renamed.fasta"
+    log: config['logdir'] + "/{sample}/filt_centrifuge.log"
+    params:
+        samp = "{sample}",
+        hosttax = "9913"
+    output:
+        fasm = "filtered/{sample}/{sample}.scaffolds.filtered.fasta"
+    script:
+        "scripts/filterCentrifugeScaffolds.py"
+
+rule remap_unmapped:
+    input:
+        fasm = "filtered/{sample}/{sample}.scaffolds.filtered.fasta",
+        mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
+        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R2.fq"
+    log: config['logdir'] + "/{sample}/remap_unmap.log"
+    output:
+        catunmap = "filtered/{sample}/{sample}.cat.unmapped.fq",
+        readalign = "filtered/{sample}/{sample}.readcontig.bam",
+        unmaplinks = "linkage/{sample}/{sample}.readlinks.bed"
+    shell:
+        """
+        module load bwa samtools bedtools/2.25.0
+        cat {input.mUnmap1} {input.mUnmap2} > {output.catunmap}
+        bwa index {input.fasm}
+        bwa mem {input.fasm} {output.catunmap} | samtools view -h -F 256 - | samtools sort -t {sample}.sam.temp -n -o {output.readalign} -
+        bedtools bamtobed -i {output.readalign} > {output.unmaplinks}
         """
