@@ -56,10 +56,11 @@ class regions:
     def loadCoords(self, line : str):
         segs = line.split()
 
-        loc = '-'.join(segs[1:3])
+        loc = '-'.join(segs[1:4])
         segs[0] = re.sub(self.clip, '', segs[0])
-        self.regions[loc].append(segs[0])
         if segs[0] != "Unmapped":
+            self.regions[loc].append(segs[0])
+            self.output[loc] = [segs[0], None, None, None]
             for i in [6,-1,7]:
                 if i > 0:
                     tcord = re.split(self.sre, segs[i])
@@ -68,8 +69,10 @@ class regions:
                     if segs[0] != "Trans":
                         fcord = re.split(self.sre, segs[6])
                         rcord = re.split(self.sre, segs[7])
-                        tlist = [int(x) for x in [fcord[1:2], rcord[1:2]]]
-                        tlist = tlist.sort()
+                        tlist = []
+                        for i in fcord[1:] + rcord[1:]:
+                            tlist.append(int(i))
+                        tlist.sort()
                         temp = coord(fcord[0], tlist[1], tlist[2])
                     else:
                         temp = None
@@ -79,13 +82,14 @@ class regions:
     def runComp(self, idx : int = 1):
         with open('temp.bed', 'w') as out:
             for k, v in self.regions.items():
+                if len(v) < idx + 1:
+                    print(k)
                 if v[0] != "Trans":
-                    out.write(v[idx].getStr)
+                    out.write(v[idx].getStr())
                     out.write(f'\t{k}\n')
                 elif v[0] == "Trans" and idx != 2:
-                    out.write(v[idx].getStr)
+                    out.write(v[idx].getStr())
                     out.write(f'\t{k}\n')
-                self.output[k] = [v[0], None, None, None]
 
         sp.run(f'module load bedtools; bedtools intersect -a {self.repeat} -b temp.bed -wa -wb > temp.out', shell=True)
 
@@ -93,13 +97,14 @@ class regions:
             for line in input:
                 line = line.rstrip()
                 segs = line.split()
-
-                self.output[segs[6]][idx] = segs[3]
+                if len(segs) < 7:
+                    continue
+                self.output[segs[-1]][idx] = segs[5]
 
     def printOut(self, outfile : str):
         with open(outfile, 'w') as out:
             for k, v in self.output.items():
-                out.write(k + "\t" + '\t'.join(v) + '\n')
+                out.write(k + "\t" + '\t'.join([str(x) for x in v]) + '\n')
 
 class coord:
 
