@@ -40,7 +40,10 @@ def main(args):
         workhorse.runComp(i)
 
     # print them out
-    workhorse.printOut(args.output)
+    workhorse.printOut(args.output + ".comp")
+    
+    # Calc statistics
+    workhorse.calcStats(args.output + ".stats")
 
 class regions:
 
@@ -105,6 +108,44 @@ class regions:
         with open(outfile, 'w') as out:
             for k, v in self.output.items():
                 out.write(k + "\t" + '\t'.join([str(x) for x in v]) + '\n')
+                
+    def calcStats(self, outfile : str):
+        cats = defaultdict(dict)
+        catkeys = ["RepeatConsistent", "RepeatComplex", "None"]
+        for k, v in self.output.items():
+            isNone = True if v[1] == v[2] == v[3] == None else False
+            isSame = True if v[1] == v[2] == v[3] else False
+            noMid = True if v[1] == v[3] else False
+            
+            # Use booleans to count categories
+            if isNone:
+                cats[v[0]]['None'] = cats[v[0]].get('None', 0) + 1
+            elif isSame:
+                cats[v[0]]['RepeatConsistent'] = cats[v[0]].get('RepeatConsistent', 0) + 1
+            elif noMid and v[0] == 'Trans':
+                cats[v[0]]['RepeatConsistent'] = cats[v[0]].get('RepeatConsistent', 0) + 1
+            else:
+                cats[v[0]]['RepeatComplex'] = cats[v[0]].get('RepeatComplex', 0) + 1
+        
+        # Generate a total tally and print out to file
+        with open(outfile, 'w') as out:
+            out.write("Class\t" + '\t'.join(catkeys) + '\n')
+            totals = dict()
+            for k, v in cats.items():
+                out.write(k)
+                for j in catkeys:
+                    totals[j] = totals.get(j, 0) + v[j]
+                    out.write("\t" + str(v[j]))
+                out.write("\n")
+            
+            # Now print out the totals
+            out.write("Total")
+            for k in catkeys:
+                out.write("\t" + str(totals[k]))
+                
+            out.write("\n")
+            
+                
 
 class coord:
 
