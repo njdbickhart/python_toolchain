@@ -77,6 +77,22 @@ class viralComparison:
                 # read: ------
                 # ctg:      --
                 ofh.write(f'{rname}\t0\t{rstart}\t{vctg}\n')
+                self.ovlpSizes.append(rstart)
+            else:
+                self.readErrors += 1
+        else:
+            # read: -----
+            # ctg:  --
+            if right_end and not read_unmapright:
+                ofh.write(f'{rname}\t0\t{rstart}\t{vctg}\n')
+                self.ovlpSizes.append(rstart)
+            elif not right_end and not read_unmapright:
+                # read: ------
+                # ctg:     ---
+                ofh.write(f'{rname}\t{rend}\t{rlen}\t{vctg}\n')
+                self.ovlpSizes.append(rlen - rend)
+            else:
+                self.readErrors += 1
     
 if __name__ == "__main__":
     args = parse_user_input()
