@@ -53,7 +53,8 @@ class regions:
         # list entries: 0 -> type {close, trans}, 1-> left side, 2-> center, 3-> right side
         self.output = defaultdict(list)
         # Same order as above
-        self.sre = re.compile('[:-]')
+        self.sre = re.compile('[:-]+')
+        self.bug = re.compile('[:-]-+')
         self.clip = re.compile('Clip_')
 
     def loadCoords(self, line : str):
@@ -61,12 +62,17 @@ class regions:
 
         loc = '-'.join(segs[1:4])
         segs[0] = re.sub(self.clip, '', segs[0])
-        if segs[0] != "Unmapped":
+        isBug = re.search(self.bug, segs[6]) or re.search(self.bug, segs[7])
+        if segs[0] != "Unmapped" and not isBug:
             self.regions[loc].append(segs[0])
             self.output[loc] = [segs[0], None, None, None]
             for i in [6,-1,7]:
                 if i > 0:
                     tcord = re.split(self.sre, segs[i])
+                    if len(tcord) < 3 or len(tcord[1]) < 1 or len(tcord[2]) < 1:
+                        print(f'Malformed record in column {i}:\t' + '\t'.join(tcord))
+                        continue
+
                     temp = coord(tcord[0], int(tcord[1]), int(tcord[2]))
                 else:
                     if segs[0] != "Trans":
@@ -74,8 +80,14 @@ class regions:
                         rcord = re.split(self.sre, segs[7])
                         tlist = []
                         for i in fcord[1:] + rcord[1:]:
+                            i = i.rstrip()
                             tlist.append(int(i))
                         tlist.sort()
+                        if len(fcord) != 3 or tlist[1] < 1 or tlist[2] < 1:
+                            print(f'Malformed record in intervening place:\t' + '\t'.join(tcord))
+                            continue
+                        if int(tlist[1]) > int(tlist[2]):
+                            continue
                         temp = coord(fcord[0], tlist[1], tlist[2])
                     else:
                         temp = None
@@ -134,8 +146,8 @@ class regions:
             for k, v in cats.items():
                 out.write(k)
                 for j in catkeys:
-                    totals[j] = totals.get(j, 0) + v[j]
-                    out.write("\t" + str(v[j]))
+                    totals[j] = totals.get(j, 0) + v.get(j,0)
+                    out.write("\t" + str(v.get(j,0)))
                 out.write("\n")
             
             # Now print out the totals
