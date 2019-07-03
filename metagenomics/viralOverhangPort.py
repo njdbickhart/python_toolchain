@@ -5,7 +5,8 @@ Created on Tue Apr 16 15:19:15 2019
 @author: dbickhart
 """
 
-import argparse;
+import argparse
+import asyncio
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
@@ -60,6 +61,9 @@ class viralComparison:
         
     def isVirus(self, ctg : str):
         return ctg in self.viruses
+    
+    def alignECReads(self, viralCtgFasta : str, ecReads : str, minimap : str, minimapOpts = ['-x', 'map-pb']):
+        
     
     def getOverhang(self, rname : str, vctg : str, othresh : int, vstart : int, 
                     vend : int, rstart : int, rend : int, rlen: int, rorient : str,
