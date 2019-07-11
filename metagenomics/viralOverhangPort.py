@@ -6,7 +6,7 @@ Created on Tue Apr 16 15:19:15 2019
 """
 
 import argparse
-import asyncio
+import subprocess
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
@@ -62,8 +62,22 @@ class viralComparison:
     def isVirus(self, ctg : str):
         return ctg in self.viruses
     
-    def alignECReads(self, viralCtgFasta : str, ecReads : str, minimap : str, minimapOpts = ['-x', 'map-pb']):
+    def alignECReads(self, viralCtgFasta : str, ecReads : str, minimap : str, 
+                     minimapOpts = ['-x', 'map-pb'], algLen = 500, oThresh = 200,
+                     outfile):
+        cmd = [minimap]
+        cmd.extend(minimapOpts)
+        cmd.extend([viralCtgFasta, ecReads])
         
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc, open(outfile, 'w') as out:
+            for l in proc:
+                l = l.rstrip()
+                segs = l.split()
+                
+                if int(segs[9]) > algLen and (int(segs[7]) < oThresh or int(segs[6]) - int(segs[8]) < oThresh):
+                    self.getOverhang(segs[0], segs[5], oThresh, int(segs[7]), 
+                                     int(segs[8]), int(segs[2]), int(segs[3]), 
+                                     int(segs[1]), segs[4], out)
     
     def getOverhang(self, rname : str, vctg : str, othresh : int, vstart : int, 
                     vend : int, rstart : int, rend : int, rlen: int, rorient : str,
