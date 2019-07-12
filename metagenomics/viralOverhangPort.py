@@ -28,9 +28,13 @@ def parse_user_input():
                         help="Filter for the number of stdevs of Hi-C links above the average count to be used in viral Hi-C association [2.5]",
                         type=float, default=2.5
                         )
-    parser.add_argument('-v', '--overhang',
+    parser.add_argument('-a', '--overhang',
                         help="Filter for long-read overhang off of viral contigs [150]",
                         type=int, default=150
+                        )
+    parser.add_argument('-n', '--noplot',
+                        help="[optional flag] Disables plotting of data",
+                        action='store_true'
                         )
     parser.add_argument('-o', '--output',
                         help="Output basename",
