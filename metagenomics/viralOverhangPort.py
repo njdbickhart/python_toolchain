@@ -22,7 +22,7 @@ def parse_user_input():
                         help="Input blob tools data table",
                         type=str, required=True
                         )
-    parser.add_argument('-h', '--hic_links',
+    parser.add_argument('-i', '--hic_links',
                         help="Input Hi-C bipartite link graph",
                         type=str, required=True
                         )
@@ -65,14 +65,48 @@ class viralComparison:
                 self.viruses[s[0]] = s[1]
         
         self.ovlpSizes = list()
-        self.ovlpEC = defaultdict(list()) # {readname} -> [start, end, vctg]
-        self.ovlpASM = dict()
+        self.ovlpEC = defaultdict(list) # {readname} -> [start, end, vctg]
+        self.ovlpASM = defaultdict(dict)
+        self.hicASM = defaultdict(dict)
+        
+        self.finalTable = list()
+        
         self.readErrors = 0
         
         print(f'Loaded {len(self.viruses)} viral contigs for analysis\n')
         
     def isVirus(self, ctg : str):
         return ctg in self.viruses
+    
+    
+    def generateHiCLinkTable(self, samtools : str, insam : str, outtab : str):
+        print("Generating a Hi-C link table from alignment file: {}".format(insam))
+        hicLinks = defaultdict(lambda : defaultdict(int))
+        selfLinks = defaultdict(float)
+        cmd = [samtools, 'view', insam]
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc:
+            for l in proc:
+                if not l.startswith('@'):
+                    segs = l.split()
+                    if segs[6] == segs[2]:
+                        selfLinks[segs[2]] += 0.5   # half a count to avoid double-counting pairs
+                    if segs[6] != segs[2] and self.isVirus(segs[2]):
+                        hicLinks[segs[2]][segs[6]] += 1
+        
+        # Calculate statistics for self link dataset and then use that to determine threshold
+        # TODO: make a metric to determine this automatically
+        
+        # Now generate intermediary output tab file and fill data structure
+        vassocNum = list() # list of number of host contigs associated with viruses
+        with open(outtab, 'w') as out:
+            for v, j in hicLinks.items():
+                vassocNum.append(len(j))
+                for h, n in j.items():
+                    out.write(f'{v}\t{h}\t{n}\n')
+                    self.hicASM[v][h] = VAssoc(h, v, "HiC", n)
+                    
+        meanHcontig = np.mean(vassocNum)
+        print(f'Found Hi-C link associations for {len(hicLinks)} viral contigs with an averag of {meanHcontig} host contig associations')
     
     def samfaidx(self, samtools : str, ctglst, outfasta):
         cmd = [samtools, 'faidx']
@@ -83,7 +117,7 @@ class viralComparison:
     
     def realignECOverhangs(self, asmCtgFasta : str, ecReads : str, minimap : str,
                            minimapOpts =['-x', 'map-pb'], outfasta: str, outfile : str,
-                           samtools : str):
+                           samtools : str, rcountThresh = 3):
         print("Generating overhangs in {} fasta file".format(outfasta));
         # Create the overhanging read fasta for alignment
         with open(outfasta, 'w') as fasta:
@@ -101,6 +135,7 @@ class viralComparison:
         # Now, map the reads and filter the results
         print("Aligning overhangs to full genome fasta file")
         redundancies = 0
+        overlaps = dict() # temp container for EC read associations
         with subprocess.Popen([minimap, minimapOpts, asmCtgFasta, outfasta], stdout=subprocess.PIPE) as proc, open(outfile, 'w') as out:
             for l in proc:
                 l = l.rstrip()
@@ -108,17 +143,30 @@ class viralComparison:
                 
                 # Get original alignments
                 vir = self.ovlpEC[segs[0]]
-                if segs[0] not in self.ovlpASM and not self.isVirus(segs[5]):
+                if segs[0] not in overlaps and not self.isVirus(segs[5]):
                     # Note: this preferentially prints out the first alignment encountered
-                    self.ovlpASM[segs[0]] = readViralAssoc(segs[5], vir[2])
+                    overlaps[segs[0]] = VAssoc(segs[5], vir[2])
                     out.write(f'{segs[0]}\t{segs[5]}\t{vir[2]}')
                 else:
-                    self.ovlpASM[segs[0]].setRedundant()
+                    overlaps[segs[0]].setRedundant()
                     # Ignore subsequent alignments
                     redundancies += 1
         
-        successes = len({s.vctg for k, s in self.ovlpASM})                    
-        print(f'Found successful associations for {successes} out of {len(self.viruses)} viral contigs and {redundancies} redundancies')
+        successes = len({s.vctg for k, s in overlaps.items()})                    
+        print(f'Found successful associations for {successes} out of {len(self.viruses)} viral contigs and {redundancies} ambiguously aligned reads')
+        
+        # Loading into the final container
+        readcounts = defaultdict(lambda : defaultdict(int))
+        for k, s in overlaps.items():
+            # Skip over any reads that may have been ambiguous alignments 
+            if not s.redund:
+                readcounts[s.vctg][s.hostctg] += 1
+                
+        for v, j in readcounts.items():
+            for h, c in j.items():
+                if c >= rcountThresh:
+                    # The above selects only associations that have at least X read alignments
+                    self.ovlpASM[v][h] = VAssoc(h, v, "Read", c)
     
     def alignECReads(self, viralCtgFasta : str, ecReads : str, minimap : str, 
                      minimapOpts = ['-x', 'map-pb'], algLen = 500, oThresh = 200,
@@ -178,15 +226,39 @@ class viralComparison:
             else:
                 self.readErrors += 1
 
-class readViralAssoc:
-    
-    def __init__(self, hostctg : str, vctg : str):
+class VAssoc:
+    def __init__(self, hostctg : str, vctg : str, cat = "Read", count = 0):
         self.hostctg = hostctg
         self.vctg = vctg
         self.redund = False
+        self.category = cat
+        self.count = 0
+        # Taxonomic placeholders
+        self.vGenus = "N/A"
+        self.hostKing = "N/A"
+        self.hostGenus = "N/A"
         
+        # used only if combined
+        self.complex = defaultdict(int)
+    
     def setRedundant(self):
-        self.redund = True
+        self.redund = True      
+        
+    def setTaxonomy(self, vTax : str, hKing : str, hGen : str):
+        self.vGenus = vTax
+        self.hostKing = hKing
+        self.hostGenus = hGen
+    
+    def combine(self, other : VAssoc):
+        self.complex[self.category] = self.count
+        self.complex[other.category] = other.count
+        self.category = "Both"
+        
+    def getEvidence(self) -> str:
+        if self.category == "Both":
+            return ';'.join([f'{k}:{v}' for k, v in self.complex.items()])
+        else:
+            return f'{self.category}:{self.count}'
   
 if __name__ == "__main__":
     args = parse_user_input()
