@@ -9,6 +9,7 @@ import argparse
 import subprocess
 from collections import defaultdict
 import numpy as np
+import scipy.cluster.vq as sp
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
@@ -22,8 +23,8 @@ def parse_user_input():
                         help="Input blob tools data table",
                         type=str, required=True
                         )
-    parser.add_argument('-i', '--hic_links',
-                        help="Input Hi-C bipartite link graph",
+    parser.add_argument('-s', '--hic_links',
+                        help="Input sam/bam file with alignments of Hi-C reads",
                         type=str, required=True
                         )
     parser.add_argument('-v', '--viruses',
@@ -67,9 +68,10 @@ class viralComparison:
         self.ovlpSizes = list()
         self.ovlpEC = defaultdict(list) # {readname} -> [start, end, vctg]
         self.ovlpASM = defaultdict(dict)
-        self.hicASM = defaultdict(dict)
+        self.hicASM = defaultdict(dict)        
         
-        self.finalTable = list()
+        self.totalCount = 0
+        self.finalTable = defaultdict(dict)
         
         self.readErrors = 0
         
@@ -78,6 +80,78 @@ class viralComparison:
     def isVirus(self, ctg : str):
         return ctg in self.viruses
     
+    def printOutFinalTable(self, outtab : str):
+        print("Final associations in table {}".format(outtab))
+        #TODO: finish the printout
+    
+    def loadTaxonomy(self, blobtable : str):
+        print(f'Loading taxonomic information from file {blobtable}')
+        # first, get the set of contig names that we need to process
+        contigs = set()
+        for v, j in self.finalTable.items():
+            contigs.add(v)
+            for h, c in self.finalTable.items():
+                contigs.add(h)
+              
+        taxonomy = defaultdict(list) #{contig} -> [kingdom, genus]
+        with open(blobtable, 'r') as input:
+            # read until first line and get index information
+            kingidx = 0
+            genusidx = 0
+            while(True):
+                line = input.readline()
+                if line.startswith("##"):
+                    continue
+                elif line.startswith("#"):
+                    line = line.rstrip()
+                    segs = line.split()
+                    for i in range(len(segs)):
+                        if segs[i].startswith("genus"):
+                            genusidx = i
+                        if segs[i].startswith("superkingdom"):
+                            kingidx = i
+                    break
+            if kingidx == 0 or genusidx == 0:
+                print("Could not ID taxonomic table entries! Did you remember to add genus and superkingdom table headers?")
+                return
+            
+            for l in input.readlines():
+                l = l.rstrip()
+                segs = l.split()
+                if segs[0] in contigs:
+                    taxonomy[segs[0]] = [segs[kingidx], segs[genusidx]]
+        
+        # Now assign tax affiliations to the contigs
+        taxassign = 0
+        for v, j in self.finalTable.items():
+            for h, c in self.finalTable.items():
+                if v in taxonomy and h in taxonomy:
+                    taxassign += 1
+                    c.setTaxonomy(taxonomy[v][1], taxonomy[h][0], taxonomy[h][1])
+        print(f'Filled in taxonomic entries for {taxassign} associations out of {self.totalCount} possible entries')
+                
+    def combineTables(self, reads : bool, hic : bool):
+        print("Generating final network table")
+        if reads:
+            for v, j in self.ovlpASM.items():
+                for h, c in j.items():
+                    self.totalCount += 1
+                    self.finalTable[v][h] = c
+           
+        overlaps = 0
+        if hic:
+            for v, j in self.hicASM.items():
+                for h, c in j.items():
+                    if v in self.finalTable:
+                        if h in self.finalTable[v]:
+                            overlaps += 1
+                            self.finalTable[v][h].combine(c)
+                            continue
+                    self.totalCount += 1
+                    self.finalTable[v][h] = c
+        
+        if reads and hic:
+            print("Identified {} overlapping viral-host associations.".format(overlaps))
     
     def generateHiCLinkTable(self, samtools : str, insam : str, outtab : str):
         print("Generating a Hi-C link table from alignment file: {}".format(insam))
@@ -93,8 +167,25 @@ class viralComparison:
                     if segs[6] != segs[2] and self.isVirus(segs[2]):
                         hicLinks[segs[2]][segs[6]] += 1
         
-        # Calculate statistics for self link dataset and then use that to determine threshold
-        # TODO: make a metric to determine this automatically
+        # Let's try k-means clustering to divide the samples
+        # assuming that viral intercontig link noise will be in cluster 1 and signal in cluster 2
+        vLCounts = list()
+        for v, j in hicLinks.items():
+            for h, n in j.items():
+                vLCounts.append(float(n))
+               
+        flattened = array(vLCounts)
+        centroids,_ = sp.kmeans(flattened, 2)
+        idx,_ = sp.vq(flattened, centroids)
+        
+        minV1 = min([int(x) for x in flattened[idx==0]])
+        minV2 = min([int(x) for x in flattened[idx==1]])
+        
+        kThresh = minV1 if minV1 > minV2 else minV2
+        SNR = np.where(flattened.std(axis=0, ddof=0) == 0, 0, 
+                       flattened.mean(0) / flattened.std(axis=0, ddof=0))
+        
+        print(f'K-means clustering identified a minimum intercontig link count of {kThresh} from {len(vLCounts)} observations with a signal-to-noise ratio of {SNR[0]}')
         
         # Now generate intermediary output tab file and fill data structure
         vassocNum = list() # list of number of host contigs associated with viruses
@@ -102,11 +193,13 @@ class viralComparison:
             for v, j in hicLinks.items():
                 vassocNum.append(len(j))
                 for h, n in j.items():
-                    out.write(f'{v}\t{h}\t{n}\n')
-                    self.hicASM[v][h] = VAssoc(h, v, "HiC", n)
+                    if n >= kThresh:
+                        out.write(f'{v}\t{h}\t{n}\n')
+                        self.hicASM[v][h] = VAssoc(h, v, "HiC", n)
                     
         meanHcontig = np.mean(vassocNum)
-        print(f'Found Hi-C link associations for {len(hicLinks)} viral contigs with an averag of {meanHcontig} host contig associations')
+        print(f'Found valid Hi-C link associations for {len(hicLinks)} viral contigs out of {len(flattened)} original candidates.')
+        print(f'There were an average of {meanHcontig} host contig associations in this dataset')
     
     def samfaidx(self, samtools : str, ctglst, outfasta):
         cmd = [samtools, 'faidx']
@@ -234,7 +327,7 @@ class VAssoc:
         self.category = cat
         self.count = 0
         # Taxonomic placeholders
-        self.vGenus = "N/A"
+        self.vTax = "N/A"
         self.hostKing = "N/A"
         self.hostGenus = "N/A"
         
@@ -245,7 +338,7 @@ class VAssoc:
         self.redund = True      
         
     def setTaxonomy(self, vTax : str, hKing : str, hGen : str):
-        self.vGenus = vTax
+        self.vTax = vTax
         self.hostKing = hKing
         self.hostGenus = hGen
     
@@ -259,6 +352,10 @@ class VAssoc:
             return ';'.join([f'{k}:{v}' for k, v in self.complex.items()])
         else:
             return f'{self.category}:{self.count}'
+        
+    def getListOutput(self) -> list:
+        return [self.vctg, self.hostctg, self.vTax, self.hostKing, 
+                self.hostGenus, self.getEvidence()]
   
 if __name__ == "__main__":
     args = parse_user_input()
