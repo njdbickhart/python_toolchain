@@ -7,25 +7,34 @@ Created on Tue Apr 16 15:19:15 2019
 
 import argparse
 import subprocess
+import sys
 from collections import defaultdict
 import numpy as np
-import scipy.cluster.vq as sp
+#import scipy.cluster.vq as sp
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
             description = "Process long-read alignments and Hi-C links to identify likely viral-host associations in metagenomic assembly data"
             )
     parser.add_argument('-l', '--long_read', 
-                        help="Input PAF file for long-read alignments to other contigs",
+                        help="Input long-read fastq file",
+                        type=str, default = "None"
+                        )
+    parser.add_argument('-a', '--assembly', 
+                        help="Fasta of the assembled contigs (in a single file) for analysis",
                         type=str, required=True
+                        )
+    parser.add_argument('-g', '--viral_contigs',
+                        help="Fasta file of the separated contigs of viral origin (a subset of the full assembly)",
+                        type=str, default = "None"
                         )
     parser.add_argument('-b', '--blob_tools',
-                        help="Input blob tools data table",
+                        help="Input blob tools or taxonomic data table",
                         type=str, required=True
                         )
-    parser.add_argument('-s', '--hic_links',
+    parser.add_argument('-i', '--hic_links',
                         help="Input sam/bam file with alignments of Hi-C reads",
-                        type=str, required=True
+                        type=str, default = "None"
                         )
     parser.add_argument('-v', '--viruses',
                         help="Tab delimited list of contigs containing viral sequence and their lengths",
@@ -35,7 +44,7 @@ def parse_user_input():
                         help="Filter for the number of stdevs of Hi-C links above the average count to be used in viral Hi-C association [2.5]",
                         type=float, default=2.5
                         )
-    parser.add_argument('-a', '--overhang',
+    parser.add_argument('-e', '--overhang',
                         help="Filter for long-read overhang off of viral contigs [150]",
                         type=int, default=150
                         )
@@ -47,11 +56,77 @@ def parse_user_input():
                         help="Output basename",
                         type=str, required=True
                         )
+    parser.add_argument('-m', '--minimap',
+                        help="Path to the minimap executable",
+                        type=str, default = "minimap"
+                        )
+    parser.add_argument('-s', '--samtools',
+                        help="Path to the samtools executable",
+                        type=str, default = "samtools"
+                        )
     
     return parser.parse_args()
 
+def generateViralSubset(samtools : str, assembly : str, vctgs : str, out = "temp_viral.fa"):
+    vlist = list()
+    with open(vctgs, 'r') as input:
+        for l in input:
+            l = l.rstrip()
+            s = l.split()
+            vlist.append(s[0])
+            
+    cmd = [samtools, 'faidx', assembly] + vlist
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc, open(out, 'w') as out:
+        for l in proc:
+            out.write(l)
+    print("Created viral subset fasta: " + out)
+
 def main(args):
     print("Do your stuff, hipster language!")
+    # Boolean counters to confirm that at least one data type is entered!
+    reads = True if args.long_read != "None" else False
+    hic = True if args.hic_links != "None" else False
+    
+    if not reads and not hic:
+        print("ERROR: You must enter at least one data type! Either long-reads or hi-C links!")
+        print(args.print_help())
+        sys.exit(-1)
+        
+    # Create workhorse class and begin processing the file
+    workhorse = viralComparison(args.viruses)
+    
+    # Now the script bifurcates. Process each data type in order
+    if reads:
+        vctgfile = args.viral_contigs
+        if vctgfile == "None":
+            print("Generating a subset list of viral contigs in file: temp_viral.fa")
+            generateViralSubset(args.samtools, args.assembly, args.viruses, out = "temp_viral.fa")
+            vctgfile = "temp_viral.fa"
+            
+        # Long read alignment to viruses
+        workhorse.alignECReads(vctgfile, args.long_read, args.minimap, 
+                               args.outfile + '.algn.viruses', oThresh = args.overhang)
+        
+        # Align overhangs back to assembly
+        workhorse.realignECOverhangs(args.assembly, args.long_read, args.minimap, 
+                                     args.outfile + '.ovlps.fa', args.outfile + '.lread.vir.graph', 
+                                     args.samtools)
+        
+        print("Finished long read overlap!")
+    if hic:
+        workhorse.generateHiCLinkTable(args.samtools, args.hic_links, 
+                                       args.outfile + '.hiclinks.tab', 
+                                       args.link_thresh)
+        print("Finished Hi-C link processing!")
+        
+    # Merge the results
+    workhorse.combineTables(reads, hic)
+    
+    # Apply taxonomic data to the merged table
+    workhorse.loadTaxonomy(args.blob_tools)
+    
+    # Print out the final table
+    workhorse.printOutFinalTable(args.outfile + '.final.tab')
     
 class viralComparison:
 
@@ -71,7 +146,7 @@ class viralComparison:
         self.hicASM = defaultdict(dict)        
         
         self.totalCount = 0
-        self.finalTable = defaultdict(dict)
+        self.finalTable = defaultdict(dict) #{virus} -> {host} = VAssoc
         
         self.readErrors = 0
         
@@ -82,7 +157,11 @@ class viralComparison:
     
     def printOutFinalTable(self, outtab : str):
         print("Final associations in table {}".format(outtab))
-        #TODO: finish the printout
+        with open(outtab, 'w') as out:
+            out.write("VirusCtg\tHostCtg\tCategory\tVirusGenus\tHostKingdom\tHostGenus\n")
+            for v in sorted(self.finalTable):
+                for h in sorted(self.finalTable[v]):
+                    out.write('\t'.join(self.finalTable[v][h].getListOutput()) + '\n')
     
     def loadTaxonomy(self, blobtable : str):
         print(f'Loading taxonomic information from file {blobtable}')
@@ -90,7 +169,7 @@ class viralComparison:
         contigs = set()
         for v, j in self.finalTable.items():
             contigs.add(v)
-            for h, c in self.finalTable.items():
+            for h, c in j.items():
                 contigs.add(h)
               
         taxonomy = defaultdict(list) #{contig} -> [kingdom, genus]
@@ -124,7 +203,7 @@ class viralComparison:
         # Now assign tax affiliations to the contigs
         taxassign = 0
         for v, j in self.finalTable.items():
-            for h, c in self.finalTable.items():
+            for h, c in j.items():
                 if v in taxonomy and h in taxonomy:
                     taxassign += 1
                     c.setTaxonomy(taxonomy[v][1], taxonomy[h][0], taxonomy[h][1])
@@ -153,7 +232,7 @@ class viralComparison:
         if reads and hic:
             print("Identified {} overlapping viral-host associations.".format(overlaps))
     
-    def generateHiCLinkTable(self, samtools : str, insam : str, outtab : str):
+    def generateHiCLinkTable(self, samtools : str, insam : str, outtab : str, hiThresh : float):
         print("Generating a Hi-C link table from alignment file: {}".format(insam))
         hicLinks = defaultdict(lambda : defaultdict(int))
         selfLinks = defaultdict(float)
@@ -172,20 +251,25 @@ class viralComparison:
         vLCounts = list()
         for v, j in hicLinks.items():
             for h, n in j.items():
-                vLCounts.append(float(n))
-               
-        flattened = array(vLCounts)
-        centroids,_ = sp.kmeans(flattened, 2)
-        idx,_ = sp.vq(flattened, centroids)
+                vLCounts.append(n)
+             
+        # What follows is an abandoned attempt to use k-means clustering to determine optimal hi-C threshold signals
+        #flattened = np.array(vLCounts)
+        #centroids,_ = sp.kmeans(flattened, 2)
+        #idx,_ = sp.vq(flattened, centroids)
         
-        minV1 = min([int(x) for x in flattened[idx==0]])
-        minV2 = min([int(x) for x in flattened[idx==1]])
+        #minV1 = min([int(x) for x in flattened[idx==0]])
+        #minV2 = min([int(x) for x in flattened[idx==1]])
         
-        kThresh = minV1 if minV1 > minV2 else minV2
-        SNR = np.where(flattened.std(axis=0, ddof=0) == 0, 0, 
-                       flattened.mean(0) / flattened.std(axis=0, ddof=0))
+        #kThresh = minV1 if minV1 > minV2 else minV2
+        #SNR = np.where(flattened.std(axis=0, ddof=0) == 0, 0, 
+        #               flattened.mean(0) / flattened.std(axis=0, ddof=0))
         
-        print(f'K-means clustering identified a minimum intercontig link count of {kThresh} from {len(vLCounts)} observations with a signal-to-noise ratio of {SNR[0]}')
+        #print(f'K-means clustering identified a minimum intercontig link count of {kThresh} from {len(vLCounts)} observations with a signal-to-noise ratio of {SNR[0]}')
+        # More simplistic, but hopefully representative: use number of reads above stdevs from the mean
+        vLAvg = np.mean(vLCounts)
+        vLStd = np.std(vLCounts)
+        kThresh = vLAvg + (vLStd * hiThresh)
         
         # Now generate intermediary output tab file and fill data structure
         vassocNum = list() # list of number of host contigs associated with viruses
@@ -198,7 +282,7 @@ class viralComparison:
                         self.hicASM[v][h] = VAssoc(h, v, "HiC", n)
                     
         meanHcontig = np.mean(vassocNum)
-        print(f'Found valid Hi-C link associations for {len(hicLinks)} viral contigs out of {len(flattened)} original candidates.')
+        print(f'Found valid Hi-C link associations for {len(hicLinks)} viral contigs out of {len(vLCounts)} original candidates.')
         print(f'There were an average of {meanHcontig} host contig associations in this dataset')
     
     def samfaidx(self, samtools : str, ctglst, outfasta):
@@ -209,8 +293,8 @@ class viralComparison:
                 outfasta.write(l)
     
     def realignECOverhangs(self, asmCtgFasta : str, ecReads : str, minimap : str,
-                           minimapOpts =['-x', 'map-pb'], outfasta: str, outfile : str,
-                           samtools : str, rcountThresh = 3):
+                           outfasta: str, outfile : str, samtools : str, 
+                           rcountThresh = 3, minimapOpts =['-x', 'map-pb']):
         print("Generating overhangs in {} fasta file".format(outfasta));
         # Create the overhanging read fasta for alignment
         with open(outfasta, 'w') as fasta:
@@ -261,9 +345,8 @@ class viralComparison:
                     # The above selects only associations that have at least X read alignments
                     self.ovlpASM[v][h] = VAssoc(h, v, "Read", c)
     
-    def alignECReads(self, viralCtgFasta : str, ecReads : str, minimap : str, 
-                     minimapOpts = ['-x', 'map-pb'], algLen = 500, oThresh = 200,
-                     outfile : str):
+    def alignECReads(self, viralCtgFasta : str, ecReads : str, minimap : str, outfile : str,
+                     minimapOpts = ['-x', 'map-pb'], algLen = 500, oThresh = 150):
         cmd = [minimap]
         cmd.extend(minimapOpts)
         cmd.extend([viralCtgFasta, ecReads])
@@ -342,7 +425,7 @@ class VAssoc:
         self.hostKing = hKing
         self.hostGenus = hGen
     
-    def combine(self, other : VAssoc):
+    def combine(self, other : "VAssoc"):
         self.complex[self.category] = self.count
         self.complex[other.category] = other.count
         self.category = "Both"
@@ -354,7 +437,7 @@ class VAssoc:
             return f'{self.category}:{self.count}'
         
     def getListOutput(self) -> list:
-        return [self.vctg, self.hostctg, self.vTax, self.hostKing, 
+        return [self.vctg, self.hostctg, self.category, self.vTax, self.hostKing, 
                 self.hostGenus, self.getEvidence()]
   
 if __name__ == "__main__":
