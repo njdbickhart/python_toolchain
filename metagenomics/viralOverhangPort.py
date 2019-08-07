@@ -67,7 +67,7 @@ def parse_user_input():
     
     return parser.parse_args()
 
-def generateViralSubset(samtools : str, assembly : str, vctgs : str, out = "temp_viral.fa"):
+def generateViralSubset(samtools : str, assembly : str, vctgs : str, outfile = "temp_viral.fa"):
     vlist = list()
     with open(vctgs, 'r') as input:
         for l in input:
@@ -77,13 +77,13 @@ def generateViralSubset(samtools : str, assembly : str, vctgs : str, out = "temp
             
     cmd = [samtools, 'faidx', assembly] + vlist
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8') 
-    with open(out, 'w') as out:
+    with open(outfile, 'w') as out:
         while True:
             l = proc.stdout.readline()
             if l == '' and proc.poll is not None:
                 break
             out.write(l)
-    print("Created viral subset fasta: " + out)
+    print("Created viral subset fasta: " + outfile)
 
 def main(args):
     print("Do your stuff, hipster language!")
