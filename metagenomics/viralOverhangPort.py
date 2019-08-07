@@ -109,17 +109,17 @@ def main(args):
             
         # Long read alignment to viruses
         workhorse.alignECReads(vctgfile, args.long_read, args.minimap, 
-                               args.outfile + '.algn.viruses', oThresh = args.overhang)
+                               args.output + '.algn.viruses', oThresh = args.overhang)
         
         # Align overhangs back to assembly
         workhorse.realignECOverhangs(args.assembly, args.long_read, args.minimap, 
-                                     args.outfile + '.ovlps.fa', args.outfile + '.lread.vir.graph', 
+                                     args.output + '.ovlps.fa', args.output + '.lread.vir.graph', 
                                      args.samtools)
         
         print("Finished long read overlap!")
     if hic:
         workhorse.generateHiCLinkTable(args.samtools, args.hic_links, 
-                                       args.outfile + '.hiclinks.tab', 
+                                       args.output + '.hiclinks.tab', 
                                        args.link_thresh)
         print("Finished Hi-C link processing!")
         
@@ -130,7 +130,7 @@ def main(args):
     workhorse.loadTaxonomy(args.blob_tools)
     
     # Print out the final table
-    workhorse.printOutFinalTable(args.outfile + '.final.tab')
+    workhorse.printOutFinalTable(args.output + '.final.tab')
     
 class viralComparison:
 
@@ -142,7 +142,7 @@ class viralComparison:
             for l in fh:
                 l = l.rstrip()
                 s = l.split()
-                self.viruses[s[0]] = s[1]
+                self.viruses[s[0]] = int(s[1])
         
         self.ovlpSizes = list()
         self.ovlpEC = defaultdict(list) # {readname} -> [start, end, vctg]
@@ -189,9 +189,9 @@ class viralComparison:
                     line = line.rstrip()
                     segs = line.split()
                     for i in range(len(segs)):
-                        if segs[i].startswith("genus"):
+                        if segs[i].startswith("genus.t"):
                             genusidx = i
-                        if segs[i].startswith("superkingdom"):
+                        if segs[i].startswith("superkingdom.t"):
                             kingidx = i
                     break
             if kingidx == 0 or genusidx == 0:
@@ -293,16 +293,15 @@ class viralComparison:
         print(f'Found valid Hi-C link associations for {len(hicLinks)} viral contigs out of {len(vLCounts)} original candidates.')
         print(f'There were an average of {meanHcontig} host contig associations in this dataset')
     
-    def samfaidx(self, samtools : str, ctglst, outfasta):
-        cmd = [samtools, 'faidx']
-        cmd.append(ctglst)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8')
+    def samfaidx(self, samtools : str, reffasta : str, ctglst, outfasta):
+        cmd = [samtools, 'faidx', reffasta]
+        
+        proc = subprocess.Popen(cmd + ctglst, stdout=subprocess.PIPE, encoding='utf8')
         while True:
             l = proc.stdout.readline()            
             if l == '' and proc.poll is not None:
                 break
-            for l in proc:
-                outfasta.write(l)
+            outfasta.write(l)
     
     def realignECOverhangs(self, asmCtgFasta : str, ecReads : str, minimap : str,
                            outfasta: str, outfile : str, samtools : str, 
@@ -314,11 +313,11 @@ class viralComparison:
             for k, f in self.ovlpEC.items():
                 container.append(f'{k}:{f[0]}-{f[1]}')
                 if len(container) >= 100:
-                    self.samfaidx(samtools, container, fasta)
+                    self.samfaidx(samtools, ecReads, container, fasta)
                     container = list()
             
             if len(container) > 0:
-                self.samfaidx(samtools, container, fasta)
+                self.samfaidx(samtools, ecReads, container, fasta)
                 container = list()
         
         # Now, map the reads and filter the results
@@ -326,7 +325,7 @@ class viralComparison:
         redundancies = 0
         overlaps = dict() # temp container for EC read associations
         
-        proc = subprocess.Popen([minimap, minimapOpts, asmCtgFasta, outfasta], stdout=subprocess.PIPE, encoding='utf8')
+        proc = subprocess.Popen([minimap] +  minimapOpts + [asmCtgFasta, outfasta], stdout=subprocess.PIPE, encoding='utf8')
         with open(outfile, 'w') as out:
             while True:
                 l = proc.stdout.readline()
@@ -337,13 +336,22 @@ class viralComparison:
                 segs = l.split()
                 
                 # Get original alignments
-                vir = self.ovlpEC[segs[0]]
-                if segs[0] not in overlaps and not self.isVirus(segs[5]):
+                read = segs[0].split(':')
+                if not read[0] in self.ovlpEC:
+                    print(f'Could not find read: {read[0]} in previous overlaps! Skipping...')
+                    continue
+
+                vir = self.ovlpEC[read[0]]
+                if read[0] not in overlaps and not self.isVirus(segs[5]):
                     # Note: this preferentially prints out the first alignment encountered
-                    overlaps[segs[0]] = VAssoc(segs[5], vir[2])
-                    out.write(f'{segs[0]}\t{segs[5]}\t{vir[2]}')
+                    if len(vir) < 3:
+                        print('\t'.join(vir + [' ; '] + segs))
+                    overlaps[read[0]] = VAssoc(segs[5], vir[2])
+                    out.write(f'{read[0]}\t{segs[5]}\t{vir[2]}\n')
+                elif self.isVirus(segs[5]):
+                    continue
                 else:
-                    overlaps[segs[0]].setRedundant()
+                    overlaps[read[0]].setRedundant()
                     # Ignore subsequent alignments
                     redundancies += 1
         
@@ -431,7 +439,7 @@ class VAssoc:
         self.vctg = vctg
         self.redund = False
         self.category = cat
-        self.count = 0
+        self.count = count
         # Taxonomic placeholders
         self.vTax = "N/A"
         self.hostKing = "N/A"
@@ -449,8 +457,8 @@ class VAssoc:
         self.hostGenus = hGen
     
     def combine(self, other : "VAssoc"):
-        self.complex[self.category] = self.count
-        self.complex[other.category] = other.count
+        self.complex[self.category] += self.count
+        self.complex[other.category] += other.count
         self.category = "Both"
         
     def getEvidence(self) -> str:
