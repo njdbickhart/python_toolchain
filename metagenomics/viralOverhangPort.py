@@ -76,8 +76,12 @@ def generateViralSubset(samtools : str, assembly : str, vctgs : str, out = "temp
             vlist.append(s[0])
             
     cmd = [samtools, 'faidx', assembly] + vlist
-    with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc, open(out, 'w') as out:
-        for l in proc:
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8') 
+    with open(out, 'w') as out:
+        while True:
+            l = proc.stdout.readline()
+            if l == '' and proc.poll is not None:
+                break
             out.write(l)
     print("Created viral subset fasta: " + out)
 
@@ -237,14 +241,18 @@ class viralComparison:
         hicLinks = defaultdict(lambda : defaultdict(int))
         selfLinks = defaultdict(float)
         cmd = [samtools, 'view', insam]
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc:
-            for l in proc:
-                if not l.startswith('@'):
-                    segs = l.split()
-                    if segs[6] == segs[2]:
-                        selfLinks[segs[2]] += 0.5   # half a count to avoid double-counting pairs
-                    if segs[6] != segs[2] and self.isVirus(segs[2]):
-                        hicLinks[segs[2]][segs[6]] += 1
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8')
+        
+        while True:
+            l = proc.stdout.readline()
+            if l == '' and proc.poll() is not None:
+                break
+            if not l.startswith('@'):
+                segs = l.split()
+                if segs[6] == segs[2]:
+                    selfLinks[segs[2]] += 0.5   # half a count to avoid double-counting pairs
+                if segs[6] != segs[2] and self.isVirus(segs[2]):
+                    hicLinks[segs[2]][segs[6]] += 1
         
         # Let's try k-means clustering to divide the samples
         # assuming that viral intercontig link noise will be in cluster 1 and signal in cluster 2
@@ -288,7 +296,11 @@ class viralComparison:
     def samfaidx(self, samtools : str, ctglst, outfasta):
         cmd = [samtools, 'faidx']
         cmd.append(ctglst)
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8')
+        while True:
+            l = proc.stdout.readline()            
+            if l == '' and proc.poll is not None:
+                break
             for l in proc:
                 outfasta.write(l)
     
@@ -313,8 +325,14 @@ class viralComparison:
         print("Aligning overhangs to full genome fasta file")
         redundancies = 0
         overlaps = dict() # temp container for EC read associations
-        with subprocess.Popen([minimap, minimapOpts, asmCtgFasta, outfasta], stdout=subprocess.PIPE) as proc, open(outfile, 'w') as out:
-            for l in proc:
+        
+        proc = subprocess.Popen([minimap, minimapOpts, asmCtgFasta, outfasta], stdout=subprocess.PIPE, encoding='utf8')
+        with open(outfile, 'w') as out:
+            while True:
+                l = proc.stdout.readline()
+                if l == '' and proc.poll() is not None:
+                    break
+                
                 l = l.rstrip()
                 segs = l.split()
                 
@@ -351,8 +369,13 @@ class viralComparison:
         cmd.extend(minimapOpts)
         cmd.extend([viralCtgFasta, ecReads])
         
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as proc, open(outfile, 'w') as out:
-            for l in proc:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, encoding='utf8')
+        with open(outfile, 'w') as out:
+            while True:
+                l = proc.stdout.readline()
+                if l == '' and proc.poll() is not None:
+                    break # Terminate at the end of the process
+                
                 l = l.rstrip()
                 segs = l.split()
                 
