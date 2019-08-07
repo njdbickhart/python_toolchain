@@ -104,7 +104,7 @@ def main(args):
         vctgfile = args.viral_contigs
         if vctgfile == "None":
             print("Generating a subset list of viral contigs in file: temp_viral.fa")
-            generateViralSubset(args.samtools, args.assembly, args.viruses, out = "temp_viral.fa")
+            generateViralSubset(args.samtools, args.assembly, args.viruses, outfile = "temp_viral.fa")
             vctgfile = "temp_viral.fa"
             
         # Long read alignment to viruses
