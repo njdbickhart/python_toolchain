@@ -162,7 +162,7 @@ class viralComparison:
     def printOutFinalTable(self, outtab : str):
         print("Final associations in table {}".format(outtab))
         with open(outtab, 'w') as out:
-            out.write("VirusCtg\tHostCtg\tCategory\tVirusGenus\tHostKingdom\tHostGenus\n")
+            out.write("VirusCtg\tHostCtg\tCategory\tVirusGenus\tHostKingdom\tHostGenus\tEvidence\n")
             for v in sorted(self.finalTable):
                 for h in sorted(self.finalTable[v]):
                     out.write('\t'.join(self.finalTable[v][h].getListOutput()) + '\n')
@@ -249,9 +249,12 @@ class viralComparison:
                 break
             if not l.startswith('@'):
                 segs = l.split()
-                if segs[6] == segs[2]:
+                if len(segs) < 7:
+                    print(f'Error parsing malformed sam at record: {" ".join(segs)}')
+                    continue
+                if segs[6] == segs[2] or segs[6] == "=":
                     selfLinks[segs[2]] += 0.5   # half a count to avoid double-counting pairs
-                if segs[6] != segs[2] and self.isVirus(segs[2]):
+                if segs[6] != segs[2] and segs[6] != "=" and self.isVirus(segs[2]):
                     hicLinks[segs[2]][segs[6]] += 1
         
         # Let's try k-means clustering to divide the samples
@@ -279,6 +282,7 @@ class viralComparison:
         vLStd = np.std(vLCounts)
         kThresh = vLAvg + (vLStd * hiThresh)
         
+        print(f'Using a threshold of {kThresh} reads to select Hi-C links to host contigs')
         # Now generate intermediary output tab file and fill data structure
         vassocNum = list() # list of number of host contigs associated with viruses
         with open(outtab, 'w') as out:
