@@ -10,14 +10,14 @@ import PyPDF2
 import re
 
 # compiled, global regular expressions
-author = re.compile(r'Authorship:\s*(\d{1,2})')
-tfield = re.compile(r'Type:\s*(.)')
-lognum = re.compile(r'Log Number:\s*(\d+)')
-submit = re.compile(r'Date Submitted to Journal:\s*(\S*)$')
-accept = re.compile(r'Journal Acceptance Date:\s*(\S*)$')
-publish = re.compile(r'Journal Publication Date:\s*(\S*)$')
-journal = re.compile(r'Journal or Equivalent:')
-title = re.compile(r'Title of Manuscript')
+author = re.compile(r'Authorship:\s*(\d{1,2})Type')
+tfield = re.compile(r'Type:\s*(.{1})Official')
+lognum = re.compile(r'Log Number:\s*(\d+)Authorship')
+submit = re.compile(r'Date Submitted to Journal:\s*(\S*)Log Number')
+accept = re.compile(r'Journal Acceptance Date:\s*(\S*)Journal or')
+publish = re.compile(r'Journal Publication Date:\s*(\S*)Date Submitted')
+journal = re.compile(r'Journal or Equivalent:(.+)Title of Manuscript')
+title = re.compile(r'Title of Manuscript:(.+)Authors / Category')
 stopfield = re.compile(r'Authors / Category')
 
 # Dictionary to enable easy looping later
@@ -26,7 +26,9 @@ reDict = {'author' : author,
           'lognum' : lognum,
           'submit' : submit,
           'accept' : accept,
-          'publish' : publish
+          'publish' : publish, 
+          'journal' : journal,
+          'title' : title
           }
 
 def parse_user_input():
@@ -51,45 +53,25 @@ def main(args):
     for i in range(reader.getNumPages()):
         page = reader.getPage(i)
         
-        inEntry = False
-        inJournal = False
-        inTitle = False
         entry = None
         # Read through all lines of the page
         for l in page.extractText().splitlines():
             l = l.rstrip()
-            if author.match(l):
-                inEntry = True
-                entry = arisEntry()
+            entry = arisEntry()
                 
-            if inEntry and inJournal:
-                entry.populate('journal', l)
-                inJournal = False
-                
-            if inEntry and inTitle:
-                entry.populate('title', l)
-                inTitle = False
-                
-            if inEntry:
-                for f,r in reDict.items():
-                    if r.match(l):
-                        m = r.match(l)
-                        entry.populate(f, m.group(1))
-                
-                if journal.match(l):
-                    inJournal = True
+            for f,r in reDict.items():
+                if r.findall(l):
+                    m = r.findall(l)
+                    entry.populate(f, m[0])
                     
-                if title.match(l):
-                    inTitle = True
-                    
-                if stopfield.match(l):
-                    inEntry = False
-                    entryList.append(entry)
+            entryList.append(entry)
                     
     # Now to print out
     with open(args.output, 'w') as out:
+        out.write('\t'.join(['Authorship','Type', 'LogNum', 'Submission', 
+                             'Acceptance', 'Published', 'Journal', 'Title']) + '\n')
         for e in entryList:
-            out.write(e.printout + '\n')
+            out.write(e.printout() + '\n')
                     
     
 class arisEntry:
@@ -118,8 +100,12 @@ class arisEntry:
         self.lookup[field] = value
         
     def printout(self):
+        return '\t'.join([self.lookup[x] for x in ['author', 'tfield', 'lognum',
+                          'submit', 'accept', 'publish', 'journal', 'title']])
+        """
         return '\t'.join([self.author, self.tfield, self.lognum, self.submit, 
                           self.accept, self.publish, self.journal, self.title])
+        """
     
 if __name__ == "__main__":
     args = parse_user_input()
