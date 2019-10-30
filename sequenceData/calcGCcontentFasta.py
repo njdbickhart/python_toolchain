@@ -24,8 +24,8 @@ def read_fasta(fp):
     name, seq = None, []
     for line in fp:
         line = line.rstrip()
-        if line.startswith(">"):
-            line = line.replace(">", "")
+        if line.startswith('>'):
+            line = line.replace('>', '')
             if name: yield(name, ''.join(seq))
             name, seq = line, []
         else:

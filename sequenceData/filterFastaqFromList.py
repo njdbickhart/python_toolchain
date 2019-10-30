@@ -51,7 +51,7 @@ def main(args):
     names = set()
     with open(args.list, 'r') as input:
         for l in input:
-            s = l.rstrip.split()
+            s = l.rstrip().split()
             names.add(s[0])
     
     # It's ugly, but we're going to have to use different rules for the file formats
@@ -71,7 +71,7 @@ def main(args):
 @contextlib.contextmanager
 def smartFile(filename : str, mode : str = 'r'):
     if filename.endswith('gz'):
-        fh = gzip.open(filename, mode)
+        fh = gzip.open(filename, 'rt', encoding='utf-8')
     else:
         fh = open(filename, mode)
     try:

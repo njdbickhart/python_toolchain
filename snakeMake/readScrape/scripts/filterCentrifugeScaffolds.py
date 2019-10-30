@@ -19,15 +19,17 @@ class cententry:
             return False
 
 hosttax = snakemake.params['hosttax']
-sample = snakemake.params['sample']
+sample = snakemake.params['samp']
+log = open(snakemake.log[0], 'a+')
 
 data = {}
+log.write(f'Parsing Centrifuge file for {sample}\n')
 # Read in the centrifuge.out file
-with open(snakemake.input['cent'], 'r') as input:
+with open(snakemake.input['cent'], 'r') as cent:
     # Get rid of the header
-    head = input.readline()
-    for l in input:
-        l = l.rsplit()
+    head = cent.readline()
+    for l in cent:
+        l = l.rstrip()
         s = l.split()
 
         data[s[0]] = cententry(s[0], s[2], int(s[3]), int(s[6]))
@@ -42,8 +44,10 @@ with open(snakemake.output['fasm'], 'w') as out:
                 SeqIO.write(record, out, "fasta")
                 passfilt += 1
             else:
+                #SeqIO.write(record, out, "fasta") # Added just to progress pipeline
                 failfilt += 1
         else:
-            print("Error parsing record: " + record.id)
+            log.write("Error parsing record: " + str(record.id) + '\n')
 
-print(f'Passfilter: {passfilt} Failfilter: {failfilt}')
+log.write(f'Passfilter: {passfilt} Failfilter: {failfilt}\n')
+log.close()

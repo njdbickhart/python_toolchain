@@ -37,7 +37,10 @@ def parse_user_input():
                         help="[Optional] name of the slurm partition for jobs",
                         required=False, type=str, default="general"
                         )
-    
+    parser.add_argument('-e', '--time',
+                        help="[Optional] Time limit on jobs",
+                        required=False, type=str, default="None"
+                        )
     return parser.parse_args()
 
 def main(args):
@@ -71,7 +74,7 @@ def main(args):
                         wkdir + "/errLog",
                         False,
                         modules,
-                        1, 10, 25000, -1, args.partition)
+                        1, 10, 25000, args.time, args.partition)
                 
             bname = os.path.basename(segs[0])
             bsegs = bname.split('.')
@@ -100,7 +103,7 @@ def main(args):
                     wkdir + "/errLog",
                     False,
                     modules,
-                    1, 7, 9000, -1, args.partition)
+                    1, 7, 9000, args.time, args.partition)
             
             bams = slurmBams[k]
             cmds = []
@@ -128,7 +131,7 @@ def urlHash():
 class slurmTools:
     def __init__(self, workDir = ".", scriptDir = "./scripts", outDir = "./out",
                  errDir = "./err", useTime = False, modules = [], nodes = 1,
-                 tasks = 1, mem = 100, time = -1, partition = "general"):
+                 tasks = 1, mem = 100, time = "None", partition = "general"):
         self.workDir = workDir
         self.scriptDir = scriptDir
         self.outDir = outDir
@@ -221,6 +224,9 @@ class slurmTools:
         fields.append('{} --error={}/{}_%j.err'.format(tag, self.errDir, sName))
         fields.append('{} --workdir={}'.format(tag, self.workDir))
         fields.append('{} --partition={}'.format(tag, self.partition))
+
+        if self.time != "None":
+            fields.append('{} -t {}'.format(tag, self.time))
         
         if self.dependencies:
             depStr = "afterany"

@@ -21,7 +21,7 @@ for i in reqPaths:
 print(f' \"samples\":{{')
 for i in range(1, len(sys.argv)):
     dir=sys.argv[i]
-    for filename in glob.iglob(dir + "/**/*realn.bam", recursive=True):
+    for filename in glob.iglob(dir + "/**/*.bam", recursive=True):
         bname = basename(filename)
         bsegs = re.split(fsep, bname)
         print(f'  \"{bsegs[0]}\" : \"{filename}\",')
