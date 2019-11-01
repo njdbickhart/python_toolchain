@@ -1,0 +1,69 @@
+import re
+
+
+configfile : "bams.json"
+
+rule all:
+  input: "vcfs/total.merged.vcf.gz"
+
+rule index_bams:
+  input:
+    bam = lambda wildcards: config["samples"][wildcards.sample]
+  output:
+    idx = "{bam}.bai"
+  shell:
+    """
+    module load samtools
+    samtools index {input.bam}
+    """
+
+def format_name(seg):
+  return re.sub("(.+):(\d+)-(\d+)", "\\1\_\\2\_\\3", seg, 0, re.DOTALL)
+
+rule create_bcfs:
+  input:
+    idx = "{bam}.bai",
+    segs = config["segments"]
+  params:
+    bamlist = config["blist"],
+    fasta = config["fasta"]
+  output:
+    bcf = expand("bcfs/bcf_{rseg}.bcf", rseg=format_name(config["segments"]))
+  shell:
+    """
+    module load bcftools/1.9
+    bcftools mpileup -Ob -r {input.segs} -o {output.bcf} -f {params.fasta} --threads 3 -b {params.bamlist}
+    """
+
+rule call_variants:
+  input:
+    bcf = expand("bcfs/bcf_{rseg}.bcf", rseg=format_name(config["segments"])),
+    segs = config["segments"]
+  output:
+    vcf = expand("vcfs/bcf_{rseg}.vcf.gz", rseg=format_name(config["segments"]))
+  shell:
+    """
+    module load bcftools/1.9
+    bcftools call -vmO z -r {input.segs} -o {output.vcf} --threads 3 {input.bcf}
+    """
+
+rule create_vcf_file:
+  input:
+    vcf = expand("vcfs/bcf_{rseg}.vcf.gz", rseg=format_name(config["segments"]))
+  output:
+    "vcfs/vcf_list"
+  run:
+    with open("vcfs/vcf_list", 'w') as out:
+      for v in snakemake.input["vcf"]:
+        out.write(f'{v}\n')
+
+rule merge_vcfs:
+  input:
+    vcflist = "vcfs/vcf_list"
+  output:
+    "vcfs/total.merged.vcf.gz"
+  shell:
+    """
+    module load bcftools/1.9
+    bcftools concat -a -d all -f {input.vcflist} -O -z -o {output} --threads 3
+    """
