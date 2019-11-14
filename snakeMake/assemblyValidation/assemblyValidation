@@ -1,0 +1,75 @@
+import os
+shell.executable("/usr/bin/bash")
+
+configfile : "default.json"
+
+os.makedirs(config['logdir'], exist_ok=True)
+for x in expand("{logdir}/{fasta}", logdir=config['logdir'], sample=config["fasta"]):
+    os.makedirs(x, exist_ok=True)
+
+rule all:
+
+
+rule align_reads:
+  input:
+    fq1 = lambda wildcards: config["samples"][wildcards.sample][0],
+    fq2 = lambda wildcards: config["samples"][wildcards.sample][1],
+    fasta = config["fasta"]
+  output:
+    temp("mapped/{sample}.bam")
+  log:
+    "{logdir}/{fasta}/{sample}_bwa.log"
+  threads: 8
+  shell:
+    """
+    module load bwa samtools/1.9
+    bwa mem -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | \
+    samtools sort -o {output} -T {sample}.temp -
+    samtools index {output}
+    """
+
+rule merge_bams:
+  input:
+    expand("mapped/{sample}.bam", sample=config["samples"])
+  output:
+    "mapped/merged.bam"
+  threads: 5
+  shell:
+    """
+    module load samtools/1.9
+    samtools merge -@ {threads} {output} {input}
+    samtools index {output}
+    """
+
+rule freebayes:
+    input:
+        ref=config["fasta"],
+        samples="mapped/merged.bam"
+    output:
+        "calls/merged_freebayes.vcf"
+    log:
+        "logs/freebayes.log"
+    params:
+        extra="",         # optional parameters
+        chunksize=100000  # reference genome chunk size for parallelization (default: 100000)
+    threads: 2
+    wrapper:
+        "0.42.0/bio/freebayes"
+
+rule frc_align:
+  input:
+    ref=config["fasta"],
+    samples="mapped/merged.bam"
+  output:
+    "calls/merged_frc.txt"
+  shell:
+    """"
+    module load frc_align
+    FRC --pe-sam {input.samples} --output {output}
+    """
+
+rule lumpy:
+  input:
+    samples="mapped/merged.bam"
+  output:
+    "calls/merged_lumpy.vcf"
