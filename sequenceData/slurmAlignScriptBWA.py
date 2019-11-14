@@ -33,6 +33,10 @@ def parse_user_input():
                         help="[Optional] queue alignments and merge scripts",
                         action='store_true'
                         )
+    parser.add_argument('-q', '--qos',
+                        help="[Optional] name of the slurm qos for jobs",
+                        required=False, type=str, default="general"
+                        )
     parser.add_argument('-p', '--partition',
                         help="[Optional] name of the slurm partition for jobs",
                         required=False, type=str, default="general"
@@ -74,7 +78,7 @@ def main(args):
                         wkdir + "/errLog",
                         False,
                         modules,
-                        1, 10, 25000, args.time, args.partition)
+                        1, 10, 25000, args.time, args.partition, args.qos)
                 
             bname = os.path.basename(segs[0])
             bsegs = bname.split('.')
@@ -103,7 +107,7 @@ def main(args):
                     wkdir + "/errLog",
                     False,
                     modules,
-                    1, 7, 9000, args.time, args.partition)
+                    1, 7, 9000, args.time, args.partition, args.qos)
             
             bams = slurmBams[k]
             cmds = []
@@ -131,7 +135,7 @@ def urlHash():
 class slurmTools:
     def __init__(self, workDir = ".", scriptDir = "./scripts", outDir = "./out",
                  errDir = "./err", useTime = False, modules = [], nodes = 1,
-                 tasks = 1, mem = 100, time = "None", partition = "general"):
+                 tasks = 1, mem = 100, time = "None", partition = "general", qos = "general"):
         self.workDir = workDir
         self.scriptDir = scriptDir
         self.outDir = outDir
@@ -143,6 +147,7 @@ class slurmTools:
         self.mem = mem
         self.time = time
         self.partition = partition
+        self.qos = qos
         
         # Containers for later processes
         self.scripts = []
@@ -224,6 +229,7 @@ class slurmTools:
         fields.append('{} --error={}/{}_%j.err'.format(tag, self.errDir, sName))
         fields.append('{} --workdir={}'.format(tag, self.workDir))
         fields.append('{} --partition={}'.format(tag, self.partition))
+        fields.append('{} -q {}'.format(tag, self.qos))
 
         if self.time != "None":
             fields.append('{} -t {}'.format(tag, self.time))
