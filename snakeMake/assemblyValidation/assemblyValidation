@@ -23,7 +23,6 @@ rule align_reads:
   shell:
     """
     module load bwa samtools/1.9
-    samtools faidx {input.fasta}
     bwa mem -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | \
     samtools sort -o {output} -T {sample}.temp -
     samtools index {output}
@@ -51,20 +50,20 @@ def get_scaffolds(file):
   return array
 
 rule freebayes:
-    input:
-      ref=config["fasta"],
-      samples="mapped/merged.bam"
-    output:
-      vars = expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"]))
-    params:
-      extra="-C 2 -0 -O -q 20 -z 0.10 -E 0 -X -u -p 2 -F 0.75",
-      region=get_scaffolds(config["fasta"])
-    threads: 2
-    shell:
-      """
-      module load freebayes/1.2.0
-      freebayes {params.extra} -r {params.region} -f {input.ref} -v {output.vars} {input.samples}
-      """
+  input:
+    ref=config["fasta"],
+    samples="mapped/merged.bam"
+  output:
+    vars = expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"]))
+  params:
+    extra="-C 2 -0 -O -q 20 -z 0.10 -E 0 -X -u -p 2 -F 0.75",
+    region=get_scaffolds(config["fasta"])
+  threads: 2
+  shell:
+    """
+    module load freebayes/1.2.0
+    freebayes {params.extra} -r {params.region} -f {input.ref} -v {output.vars} {input.samples}
+    """
 
 rule merge_freebayes:
   input:
