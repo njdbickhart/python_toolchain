@@ -115,5 +115,35 @@ rule remap_unmapped:
         cat {input.mUnmap1} {input.mUnmap2} > {output.catunmap} 
         bwa index {input.fasm}	
         bwa mem {input.fasm} {output.catunmap} | samtools view -h -F 256 - | samtools sort -t {params.samp}.sam.temp -n -o {output.readalign} -
+        echo "Done with BWA MEM alignment" > {log}
         bedtools bamtobed -i {output.readalign} > {output.unmaplinks} 2> {log}
+        """
+
+rule match_mates:
+    input:
+        unmaplinks = "linkage/{sample}/{sample}.readlinks.bed",
+        links = "rawreads/{sample}/{sample}_links.sam",
+        rfai = "assembly/{sample}/{sample}.renamed.fasta.fai",
+        fasm = "filtered/{sample}/{sample}.scaffolds.filtered.fasta"
+    log: config['logdir'] + "/{sample}/mate_match.log"
+    params: samp = "{sample}"
+    output:
+        mcontigs = "linkage/{sample}/{sample}.scaffolds.linked.fasta"
+    script:
+        "TODO"
+
+rule clustering:
+    input:
+        mcontigs = expand("linkage/{sample}/{sample}.scaffolds.linked.fasta", sample=config["samples"])
+    log: config['logdir'] + "/clustering_cd_hit.log"
+    params:
+        threads = 15,
+        mem = 50000
+    output:
+        combined = "clusters/combined_assemblies.fasta",
+        cluster_file = "clusters/main_cluster_file.cdhit"
+    shell:
+        """
+        cat {input.mcontigs} > {output.combined}
+        cd-hit-est -i {output.combined} -o clusters/main_cluster_file.cdhit -c 0.95 -n 10 -d 0 -M {params.mem} -T {params.threads} -s 0.9
         """
