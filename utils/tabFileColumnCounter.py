@@ -18,8 +18,8 @@ def parse_user_input():
             description = "A selective tab file grep analog script"
             )
     parser.add_argument('-f', '--file', 
-                        help="Input tab delimited file or \"stdin\"",
-                        required=True, type=str
+                        help="Input tab delimited file or \"stdin\". May be specified more than once!",
+                        action="append", default=[]
                         )
     parser.add_argument('-c', '--column',
                         help="The tab file column to parse \[starts with zero\]",
@@ -35,7 +35,7 @@ def parse_user_input():
                         )
     parser.add_argument('-d', '--delim',
                         help="[Optional] Column delimiter",
-                        type=str, default = " {1}"
+                        type=str, default = "\t"
                         )
     parser.add_argument('-m', '--markdown',
                         help="Markdown flag. Formats output into table format",
@@ -45,11 +45,19 @@ def parse_user_input():
     return parser.parse_args()
 
 def main(args):
+    # Check if there is any input!
+    files = args.file
+    if len(files) < 1:
+        print("Error! Must specify at least one input file or stdin!")
+        args.print_help()
+        exit()
+        
     # generate main worker class
     worker = columnCounter(args.column, args.markdown, delim = args.delim, out = args.output, ignore = args.ignore)
     
-    # Now, read the file
-    worker.readFile(args.file)
+    # Now, read the file(s)
+    for f in files:
+        worker.readFile(f)
     
     # And print out the results (either to file or stdout)
     worker.writeOut()
@@ -66,12 +74,12 @@ def smartFile(filename : str, mode : str = 'r'):
     try:
         yield fh
     finally:
-        if filename is not 'stdin' and filename is not 'stdout':
+        if filename != 'stdin' and filename != 'stdout':
             fh.close()
             
 class columnCounter:
     
-    def __init__(self, colnum : int, mkdwn : bool = False, numeric : bool = False, delim : str = "\s{1}", out : str = "stdout", ignore : str = "None"):
+    def __init__(self, colnum : int, mkdwn : bool = False, numeric : bool = False, delim : str = "\t", out : str = "stdout", ignore : str = "None"):
         self.colnum = colnum
         self.mkdwn = mkdwn
         self.numeric = numeric
