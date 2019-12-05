@@ -112,8 +112,8 @@ rule remap_unmapped:
     shell:
         """
         module load bwa samtools bedtools/2.25.0
-        cat {input.mUnmap1} {input.mUnmap2} > {output.catunmap} 
-        bwa index {input.fasm}	
+        cat {input.mUnmap1} {input.mUnmap2} > {output.catunmap}
+        bwa index {input.fasm}
         bwa mem {input.fasm} {output.catunmap} | samtools view -h -F 256 - | samtools sort -t {params.samp}.sam.temp -n -o {output.readalign} -
         echo "Done with BWA MEM alignment" > {log}
         bedtools bamtobed -i {output.readalign} > {output.unmaplinks} 2> {log}
@@ -128,9 +128,10 @@ rule match_mates:
     log: config['logdir'] + "/{sample}/mate_match.log"
     params: samp = "{sample}"
     output:
-        mcontigs = "linkage/{sample}/{sample}.scaffolds.linked.fasta"
+        mcontigs = "linkage/{sample}/{sample}.scaffolds.linked.fasta",
+        flanks = "linkage/{sample}/{sample}.scaffolds.flanks.bed"
     script:
-        "TODO"
+        "TODO filter fasta and produce a coordinate file for likely location"
 
 rule clustering:
     input:
