@@ -126,7 +126,9 @@ rule match_mates:
         rfai = "assembly/{sample}/{sample}.renamed.fasta.fai",
         fasm = "filtered/{sample}/{sample}.scaffolds.filtered.fasta"
     log: config['logdir'] + "/{sample}/mate_match.log"
-    params: samp = "{sample}"
+    params:
+        samp = "{sample}",
+        edge = 1000
     output:
         mcontigs = "linkage/{sample}/{sample}.scaffolds.linked.fasta",
         flanks = "linkage/{sample}/{sample}.scaffolds.flanks.bed"
