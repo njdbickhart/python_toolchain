@@ -10,7 +10,7 @@ for x in expand("{logdir}/{sample}", logdir=config['logdir'], sample=config["sam
     os.makedirs(x, exist_ok=True)
 
 rule all:
-    input: expand("linkage/{sample}/{sample}.readlinks.bed", sample=config["samples"])
+    input: "genotypes/genotype_summary.tab", expand("genotypes/{sample}.genotype.tab", sample=config["samples"])
 
 rule extract_reads:
     input:
@@ -92,7 +92,7 @@ rule filter_centrifuge:
     log: config['logdir'] + "/{sample}/filt_centrifuge.log"
     params:
         samp = "{sample}",
-        hosttax = "9913"
+        taxids = config["taxids"]
     output:
         fasm = "filtered/{sample}/{sample}.scaffolds.filtered.fasta"
     script:
@@ -133,7 +133,7 @@ rule match_mates:
         mcontigs = "linkage/{sample}/{sample}.scaffolds.linked.fasta",
         flanks = "linkage/{sample}/{sample}.scaffolds.flanks.bed"
     script:
-        "TODO filter fasta and produce a coordinate file for likely location"
+        "scripts/matchMates.py"
 
 rule clustering:
     input:
@@ -150,3 +150,14 @@ rule clustering:
         cat {input.mcontigs} > {output.combined}
         cd-hit-est -i {output.combined} -o clusters/main_cluster_file.cdhit -c 0.95 -n 10 -d 0 -M {params.mem} -T {params.threads} -s 0.9
         """
+
+rule genotype:
+    input:
+        cluster_file = "clusters/main_cluster_file.cdhit",
+        flanks = expand("linkage/{sample}/{sample}.scaffolds.flanks.bed", sample=config["samples"])
+    log: config['logdir'] + "/genotyping_script.log"
+    output:
+        summary = "genotypes/genotype_summary.tab",
+        insertions = expand("genotypes/{sample}.genotype.tab", sample=config["samples"])
+    script:
+        "scripts/genotypeNovSeq.py"

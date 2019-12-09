@@ -10,17 +10,26 @@ class cententry:
         self.score = score
         self.qlen = qlen
 
-    def meetsCriteria(self, hosttax):
-        if self.taxid == hosttax:
+    def meetsCriteria(self, taxset):
+        if self.taxid in taxset:
             return True
         elif self.score < self.qlen:
             return True # The score is a sum of hits weighted by length
         else:
             return False
 
-hosttax = snakemake.params['hosttax']
+taxidfile = snakemake.params['taxids']
 sample = snakemake.params['samp']
 log = open(snakemake.log[0], 'a+')
+
+# Generate set of appropriate taxids
+taxids = set()
+with open(taxidfile, 'r') as input:
+    for l in input:
+        l = l.rstrip()
+        taxids.add(l)
+
+log.write("Loaded taxid file")
 
 data = {}
 log.write(f'Parsing Centrifuge file for {sample}\n')
@@ -40,7 +49,7 @@ failfilt = 0
 with open(snakemake.output['fasm'], 'w') as out:
     for record in SeqIO.parse(snakemake.input['rasm'], "fasta"):
         if record.id in data:
-            if data[record.id].meetsCriteria(hosttax):
+            if data[record.id].meetsCriteria(taxids):
                 SeqIO.write(record, out, "fasta")
                 passfilt += 1
             else:

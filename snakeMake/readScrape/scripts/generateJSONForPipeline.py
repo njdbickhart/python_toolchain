@@ -6,7 +6,7 @@ from os.path import basename
 
 usage = "Usage: python3 " + sys.argv[0] + " <space delimited list of directories with BAM files>"
 
-reqPaths = ['repeatmasker', 'centrifuge', 'centrifugedb']
+reqPaths = ['repeatmasker', 'centrifuge', 'centrifugedb', 'taxids']
 
 fsep = re.compile('[\._]')
 

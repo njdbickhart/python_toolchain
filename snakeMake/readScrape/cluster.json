@@ -24,5 +24,10 @@
   {
     "mem" : "10000",
     "ntasks-per-node" : "3"
+  },
+  "clustering":
+  {
+    "mem" : "50000",
+    "ntasks-per-node" : "15"
   }
 }

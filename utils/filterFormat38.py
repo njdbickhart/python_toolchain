@@ -35,6 +35,8 @@ def main(args):
         for l in input:
             seventeen = l[3:20]
             entries.add(seventeen)
+            
+    print(f'Loaded {len(entries)} entries for comparison')
                     
     with open(args.file, 'r') as input, open(args.output, 'w') as out:
         for l in input:
