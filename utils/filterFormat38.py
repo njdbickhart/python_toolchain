@@ -33,8 +33,8 @@ def main(args):
     entries = set()
     with open(args.list, 'r') as input:
         for l in input:
-            l = l.rstrip()
-            entries.add(l)
+            seventeen = l[3:20]
+            entries.add(seventeen)
                     
     with open(args.file, 'r') as input, open(args.output, 'w') as out:
         for l in input:
