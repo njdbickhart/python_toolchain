@@ -25,7 +25,7 @@ class Cluster:
 
     def processCDHITLine(self, line):
         line = csub.sub('', line)
-        match = cpat.match(line)
+        m = cpat.match(line)
         if m.group(4) == "*":
             self.paragon = m.group(3)
             self.percs.append(100.0)
@@ -47,7 +47,10 @@ class Cluster:
         sizeStd = np.std(self.sizes) if aboveOne else 0.0
         percAvg = np.average(self.percs) if aboveOne else self.percs[0]
         percMin = np.amin(self.percs) if aboveOne else self.percs[0]
-        self.samples = [m.group(1) for m in csamp.match(x) for x in self.scaffolds]
+        self.samples = list()
+        for x in self.scaffolds:
+            m = csamp.match(x)
+            self.samples.append(m.group(1))
         self.samplookup = {self.samples[i]:i for i in range(len(self.samples))}
         return [self.cname, self.paragon, self.maxSize, sizeAvg, sizeStd, len(self.scaffolds), percAvg, percMin, ';'.join(self.samples)]
 
