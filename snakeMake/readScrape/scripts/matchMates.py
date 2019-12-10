@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # This script is designed to run with a snakemake pipeline
 # It takes unmapped mate alignments, makes sure they map to contig ends
 # and gives a bedpe file with the likely insertion site of the novel sequence
@@ -43,7 +42,7 @@ class evidence:
                 if comp > end:
                     end = comp
                     reads += v
-            else if comp < start and comp >= start - edge:
+            elif comp < start and comp >= start - edge:
                 if start > end:
                     end = start
                     start = comp

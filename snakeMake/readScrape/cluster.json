@@ -17,7 +17,7 @@
 
   "run_centrifuge":
   {
-    "mem" : "15000"
+    "mem" : "30000"
   },
 
   "remap_unmapped":

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # This script is designed to run with a snakemake pipeline
 # It reads in cd-hit clusters and chromosome insertion coordinate bed files
 # It attempts to genotype each sample and then prepares a summary tab file
