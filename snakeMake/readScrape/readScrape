@@ -101,8 +101,8 @@ rule filter_centrifuge:
 rule remap_unmapped:
     input:
         fasm = "filtered/{sample}/{sample}.scaffolds.filtered.fasta",
-        mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
-        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R2.fq"
+        mUnmap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
+        mUnmap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
     log: config['logdir'] + "/{sample}/remap_unmap.log"
     params: samp = "{sample}"
     output:
@@ -130,6 +130,7 @@ rule match_mates:
         samp = "{sample}",
         edge = 1000
     output:
+        filtreads = "linkage/{sample}/{sample}.filt.readlinks.bed",
         mcontigs = "linkage/{sample}/{sample}.scaffolds.linked.fasta",
         flanks = "linkage/{sample}/{sample}.scaffolds.flanks.bed"
     script:

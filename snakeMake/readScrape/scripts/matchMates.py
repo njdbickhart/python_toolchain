@@ -9,8 +9,8 @@ log = open(snakemake.log[0], 'w')
 class evidence:
     def __init__(self, scaff):
         self.scaffold = scaff
-        self.chrs = defaultdict(int())
-        self.chrpos = defaultdict(defaultdict(int()))
+        self.chrs = defaultdict(int)
+        self.chrpos = defaultdict(lambda : defaultdict(int))
 
     def addEvidence(self, chr, pos):
         self.chrs[chr] += 1
@@ -54,7 +54,7 @@ class evidence:
         if end == 0:
             end = start
         # return bed with chr, start, end, novelcontig, support
-        return (winner, start, end, self.scaffold, reads)
+        return (winner, str(start), str(end), self.scaffold, str(reads))
 
 
 class read:
@@ -80,36 +80,38 @@ unlinks = snakemake.input["unmaplinks"]
 links = snakemake.input["links"]
 fai = snakemake.input["rfai"]
 contigs = snakemake.input["fasm"]
-edge = snakemake.params["edge"]
+edge = int(snakemake.params["edge"])
+sampname = snakemake.params["samp"]
 
 # Read in scaffold fai file for lengths
 ctglens = dict()
 with open(fai, 'r') as input:
     for l in input:
         s = l.rstrip().split()
-        ctglens[s[0]] = s[1]
+        ctglens[s[0]] = int(s[1])
 
-log.write("Finished reading fai file")
+log.write("Finished reading fai file\n")
 
 # Read unmapped read names and create data structure
 unlist = dict()
 filt = 0
 total = 0
-with open(unlinks, 'r') as input:
+with open(unlinks, 'r') as input, open(snakemake.output["filtreads"], 'w') as out:
     for l in input:
         s = l.rstrip().split()
         # Test if read maps to ends of contig
         clen = ctglens[s[0]]
         pos = int(s[1])
         total += 1
-        if pos > edge or pos < (clen - edge):
+        if pos > edge and pos < (clen - edge):
             filt += 1
         else:
+            out.write(l)
             r = read()
             r.loadBed(s)
             unlist[s[3]] = r
 
-log.write(f'UnmappedReads: Filtered {filt} reads out of {total}')
+log.write(f'UnmappedReads: Filtered {filt} reads out of {total}\n')
 
 # Read links sam and try to associate with mates
 evid = dict()   #Evidence class dictionary
@@ -127,10 +129,10 @@ with open(links, 'r') as input:
             if comp.num != r.num:
                 if comp.name not in evid:
                     evid[comp.name] = evidence(comp.name)
-                evid[comp.name].addEvidence(r.name, r.pos)
+                evid[comp.name].addEvidence(r.chr, r.pos)
                 keeps[comp.name] = 1
 
-log.write("Finished collecting evidence of mate mapping")
+log.write("Finished collecting evidence of mate mapping\n")
 
 # produce bed file with mate map associations
 count = 0
@@ -140,7 +142,7 @@ with open(snakemake.output["flanks"], 'w') as out:
         count += 1
         out.write('\t'.join(temp) + '\n')
 
-log.write(f'Wrote out {count} entries with evidence')
+log.write(f'Wrote out {count} entries with evidence\n')
 
 # Filter out scaffolds that had evidence
 filtered = 0
@@ -148,7 +150,7 @@ with open(contigs, 'r') as input, open(snakemake.output["mcontigs"], 'w') as out
     for l in input:
         if l.startswith(">"):
             lsegs = l.split()
-            lm = re.match(r">(.+)", lsegs[0])
+            lm = re.match(r">(.+)", lsegs[0]).group(1)
 
             if lm in keeps:
                 write = True
@@ -157,5 +159,5 @@ with open(contigs, 'r') as input, open(snakemake.output["mcontigs"], 'w') as out
                 filtered += 1
         if write: output.write(l)
 
-log.write(f'Filtered {filtered} novel contigs at the end')
+log.write(f'Filtered {filtered} novel contigs at the end\n')
 log.close()
