@@ -114,7 +114,7 @@ with open(unlinks, 'r') as input, open(snakemake.output["filtreads"], 'w') as ou
 log.write(f'UnmappedReads: Filtered {filt} reads out of {total}\n')
 
 # Read links sam and try to associate with mates
-evid = dict()   #Evidence class dictionary
+evid = dict()   #Evidence class dictionary # {scaffold} -> evidence
 keeps = dict()  #Scaffolds to keep
 with open(links, 'r') as input:
     for l in input:
@@ -127,10 +127,10 @@ with open(links, 'r') as input:
             r.loadSam(s)
             comp = unlist[s[0]]
             if comp.num != r.num:
-                if comp.name not in evid:
-                    evid[comp.name] = evidence(comp.name)
-                evid[comp.name].addEvidence(r.chr, r.pos)
-                keeps[comp.name] = 1
+                if comp.chr not in evid:
+                    evid[comp.chr] = evidence(comp.chr)
+                evid[comp.chr].addEvidence(r.chr, r.pos)
+                keeps[comp.chr] = 1
 
 log.write("Finished collecting evidence of mate mapping\n")
 
