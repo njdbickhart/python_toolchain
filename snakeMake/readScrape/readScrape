@@ -47,7 +47,7 @@ rule run_spades:
     output:
         "assembly/{sample}/scaffolds.fasta"
     shell:
-        "module load spades/3.12.0; spades.py --pe1-1 {input.mUnmap1} --pe1-2 {input.mUnmap2} --s1 {input.mMap1} --s2 {input.mMap2} -t {threads} -m {params.memlimit} -o {params.outdir}"
+        "spades.py --pe1-1 {input.mUnmap1} --pe1-2 {input.mUnmap2} --s1 {input.mMap1} --s2 {input.mMap2} -t {threads} -m {params.memlimit} -o {params.outdir}"
 
 rule modify_and_index:
     input:
@@ -74,7 +74,6 @@ rule run_centrifuge:
         rasm = "assembly/{sample}/{sample}.renamed.fasta"
     log: config['logdir'] + "/{sample}/centrifuge.log"
     params:
-        centrifuge = config["centrifuge"],
         centrifugedb = config["centrifugedb"],
         hosttax = "9913"
     output:
@@ -83,8 +82,8 @@ rule run_centrifuge:
         kraken = "classification/{sample}/{sample}.centrifuge.krakenOut"
     shell:
         """
-        {params.centrifuge} --report-file {output.report} -x {params.centrifugedb} -k 1 --host-taxids {params.hosttax} -f {input.rasm} > {output.output} 2> {log}
-        {params.centrifuge}-kreport -x {params.centrifugedb} {output.output} --min-score 0 --min-length 0 > {output.kraken} 2> {log}
+        centrifuge --report-file {output.report} -x {params.centrifugedb} -k 1 --host-taxids {params.hosttax} -f {input.rasm} > {output.output} 2> {log}
+        centrifuge-kreport -x {params.centrifugedb} {output.output} --min-score 0 --min-length 0 > {output.kraken} 2> {log}
         """
 
 rule filter_centrifuge:
@@ -113,7 +112,6 @@ rule remap_unmapped:
         unmaplinks = "linkage/{sample}/{sample}.readlinks.bed"
     shell:
         """
-        module load bwa samtools bedtools/2.25.0
         cat {input.mUnmap1} {input.mUnmap2} > {output.catunmap}
         bwa index {input.fasm}
         bwa mem {input.fasm} {output.catunmap} | samtools view -h -F 256 - | samtools sort -t {params.samp}.sam.temp -n -o {output.readalign} -
