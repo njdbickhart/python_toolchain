@@ -13,6 +13,10 @@ A pipeline to gather unmapped reads from a reference genome alignment and conver
 * Minimap2
 * [cd-hit](http://weizhongli-lab.org/cd-hit/)
 
+## Workflow
+
+![workflow](/njdbickhart/python_toolchain/blob/a8471a2274a1e6ee27b171bfd33524f3667867df/snakeMake/readScrape/readscrape_schema.pdf)
+
 ## Installation
 
 First, clone my python_toolchain github repository:
