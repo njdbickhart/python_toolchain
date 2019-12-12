@@ -72,7 +72,7 @@ def getScaffIndex(entries, value):
             return i
     return -99
 
-cluster = snakemake.input["cluster_file"]
+cluster = snakemake.input["c_file"]
 flanks = {k: v for k, v in map(getSampleName, snakemake.input["flanks"])}
 summary = snakemake.output["summary"]
 
