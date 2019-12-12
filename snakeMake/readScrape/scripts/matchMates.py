@@ -16,6 +16,13 @@ class evidence:
         self.chrs[chr] += 1
         self.chrpos[chr][pos] += 1
 
+    def dumpAllObs(self, out):
+        for k, v in sorted(self.chrs.items(), key=lambda x: x[1], reverse=True):
+            out.write(f'{self.scaffold}\t{k}\t{v}')
+            for j, l in self.chrpos[k].items():
+                out.write(f'\t{j}')
+            out.write("\n")
+
     def getLikelyLoc(self, edge):
         # Select winner
         winner = "None"
@@ -73,7 +80,7 @@ class read:
     def loadBed(self, segs):
         self.num = 1 if segs[3].endswith('/1') else 2
         self.name = segs[3]
-        self.chr = segs[0][:-2]
+        self.chr = segs[0]
         self.pos = int(segs[1])
 
 unlinks = snakemake.input["unmaplinks"]
@@ -82,6 +89,7 @@ fai = snakemake.input["rfai"]
 contigs = snakemake.input["fasm"]
 edge = int(snakemake.params["edge"])
 sampname = snakemake.params["samp"]
+raw = snakemake.output["raw"]
 
 # Read in scaffold fai file for lengths
 ctglens = dict()
@@ -136,8 +144,9 @@ log.write("Finished collecting evidence of mate mapping\n")
 
 # produce bed file with mate map associations
 count = 0
-with open(snakemake.output["flanks"], 'w') as out:
+with open(raw, 'w') as temp, open(snakemake.output["flanks"], 'w') as out:
     for k, v in evid.items():
+        v.dumpAllObs(temp)
         temp = v.getLikelyLoc(edge)
         count += 1
         out.write('\t'.join(temp) + '\n')

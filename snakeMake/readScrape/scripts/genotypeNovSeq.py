@@ -8,7 +8,7 @@ import numpy as np
 
 csub = re.compile(r'[\+\/\%]')
 crem = re.compile(r'at\s')
-csamp = re.comple(r'(.+)\..+\.')
+csamp = re.compile(r'(.+)\..+\.')
 cpat = re.compile(r'(\d+)\s+(\d+)nt, >(.+)\.{3} (.+)$')
 
 log = open(snakemake.log[0], 'w')
@@ -26,6 +26,9 @@ class Cluster:
     def processCDHITLine(self, line):
         line = csub.sub('', line)
         m = cpat.match(line)
+        if not m or len(m.groups()) < 4:
+            log.write(f'Did not resolve cd-hit line: {line}\n')
+            return
         if m.group(4) == "*":
             self.paragon = m.group(3)
             self.percs.append(100.0)
@@ -52,7 +55,7 @@ class Cluster:
             m = csamp.match(x)
             self.samples.append(m.group(1))
         self.samplookup = {self.samples[i]:i for i in range(len(self.samples))}
-        return [self.cname, self.paragon, self.maxSize, sizeAvg, sizeStd, len(self.scaffolds), percAvg, percMin, ';'.join(self.samples)]
+        return [self.cname, self.paragon, str(self.maxSize), str(sizeAvg), str(sizeStd), str(len(self.scaffolds)), str(percAvg), str(percMin), ';'.join(self.samples)]
 
     def getSampInfo(self, samp):
         index = self.samplookup[samp]
@@ -78,8 +81,9 @@ log.write("Starting cluster condensing")
 # Generate clusters. Cross ref samples
 clist = list()
 counter = 0
-sampdata = dict(list())
+sampdata = defaultdict(list)
 with open(cluster, 'r') as input, open(summary, 'w') as out:
+    out.write("cluster\tparagon\tmaxsize\tavgsize\tsizestdev\tnumSamps\tavgPercID\tminPercID\tsampNames\n")
     for l in input:
         l = l.rstrip()
         if l.startswith('>'):
@@ -91,13 +95,15 @@ with open(cluster, 'r') as input, open(summary, 'w') as out:
 
     for c in clist:
         counter += 1
-        out.write('\t'.join(c.returnOutTab) + '\n')
+        out.write('\t'.join(c.returnOutTab()) + '\n')
         for s in c.samples:
             sampdata[s].append(c.getSampInfo(s))
 
 # Read flanks files and create individual genotype files
+association = defaultdict(lambda: defaultdict(int)) # {cluster}->{chr} = count
 for k, v in flanks.items():
     with open(v, 'r') as input, open(f'genotypes/{k}.genotype.tab', 'w') as out:
+        out.write("sample\tcluster\tscaffname\tlength\tpercID\tchr\tstart\tend\tsupport\n")
         for l in input:
             s = l.rstrip().split()
             working = sampdata[k]
@@ -105,8 +111,17 @@ for k, v in flanks.items():
             if index == -99:
                 log.write(f'Error finding scaffold: {s[3]} in {k}')
                 continue
-            temp = working[index]
-            out.write(k + "\t" + "\t".join(temp) + f'{s[0]}\t{s[1]}\t{s[2]}\t{s[4]}\n')
+            temp = [str(x) for x in working[index]]
+            association[temp[0]][s[0]] += 1
+            out.write(k + "\t" + "\t".join(temp) + f'\t{s[0]}\t{s[1]}\t{s[2]}\t{s[4]}\n')
 
 log.write("Done processing genotypes")
+with open(snakemake.output["associations"], 'w') as out:
+    out.write("Cluster\tCount\tAssociations\n")
+    for k, d in association.items():
+        out.write("{}\t{}".format(k, len(d.keys())))
+        for j, n in sorted(d.items(), key=lambda item: item[1], reverse=True):
+            out.write(f'\t{j};{n}')
+        out.write("\n")
+
 log.close()

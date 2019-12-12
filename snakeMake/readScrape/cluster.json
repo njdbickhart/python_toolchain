@@ -25,9 +25,18 @@
     "mem" : "10000",
     "ntasks-per-node" : "3"
   },
-  "clustering":
+
+  "c_step":
   {
     "mem" : "50000",
-    "ntasks-per-node" : "15"
+    "ntasks-per-node" : "15",
+    "stdout" : "logs/collation.total.stdout",
+    "jobname" : "snakemakeCDHIT"
+  },
+
+  "genotyping":
+  {
+    "stdout" : "logs/genotyping.total.stdout",
+    "jobname" : "snakemakeGenotyping"
   }
 }

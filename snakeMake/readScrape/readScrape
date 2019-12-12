@@ -9,6 +9,8 @@ os.makedirs(config['logdir'], exist_ok=True)
 for x in expand("{logdir}/{sample}", logdir=config['logdir'], sample=config["samples"]):
     os.makedirs(x, exist_ok=True)
 
+localrules: pre_c
+
 rule all:
     input: "genotypes/genotype_summary.tab", expand("genotypes/{sample}.genotype.tab", sample=config["samples"])
 
@@ -132,33 +134,46 @@ rule match_mates:
     output:
         filtreads = "linkage/{sample}/{sample}.filt.readlinks.bed",
         mcontigs = "linkage/{sample}/{sample}.scaffolds.linked.fasta",
+        raw = "linkage/{sample}/{sample}.observances.bed",
         flanks = "linkage/{sample}/{sample}.scaffolds.flanks.bed"
     script:
         "scripts/matchMates.py"
 
-rule clustering:
+rule pre_c:
     input:
-        mcontigs = expand("linkage/{sample}/{sample}.scaffolds.linked.fasta", sample=config["samples"])
-    log: config['logdir'] + "/clustering_cd_hit.log"
+        expand("linkage/{sample}/{sample}.scaffolds.linked.fasta", sample=config["samples"])
+    log: config['logdir'] + "/prec_cd_hit.log"
+    output:
+        combined = "collation/combined_assemblies.fasta"
+    run:
+        with open(output.combined, 'w') as out:
+            for i in input:
+                with open(i, 'r') as data:
+                    for l in data:
+                        out.write(l)
+
+rule c_step:
+    input:
+        "collation/combined_assemblies.fasta"
+    log: config['logdir'] + "/collation_cd_hit.log"
     params:
         threads = 15,
         mem = 50000
     output:
-        combined = "clusters/combined_assemblies.fasta",
-        cluster_file = "clusters/main_cluster_file.cdhit"
+        c_file = "collation/main_c_file.cdhit.clstr"
     shell:
         """
-        cat {input.mcontigs} > {output.combined}
-        cd-hit-est -i {output.combined} -o clusters/main_cluster_file.cdhit -c 0.95 -n 10 -d 0 -M {params.mem} -T {params.threads} -s 0.9
+        cd-hit-est -i {input} -o collation/main_c_file.cdhit -c 0.95 -n 10 -d 0 -M {params.mem} -T {params.threads} -s 0.9
         """
 
 rule genotype:
     input:
-        cluster_file = "clusters/main_cluster_file.cdhit",
+        c_file = "collation/main_c_file.cdhit.clstr",
         flanks = expand("linkage/{sample}/{sample}.scaffolds.flanks.bed", sample=config["samples"])
     log: config['logdir'] + "/genotyping_script.log"
     output:
         summary = "genotypes/genotype_summary.tab",
-        insertions = expand("genotypes/{sample}.genotype.tab", sample=config["samples"])
+        insertions = expand("genotypes/{sample}.genotype.tab", sample=config["samples"]),
+        associations = "genotypes/association_counts.tab"
     script:
         "scripts/genotypeNovSeq.py"
