@@ -34,7 +34,7 @@
     "jobname" : "snakemakeCDHIT"
   },
 
-  "genotyping":
+  "genotype":
   {
     "stdout" : "logs/genotyping.total.stdout",
     "jobname" : "snakemakeGenotyping"
