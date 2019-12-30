@@ -144,9 +144,9 @@ log.write("Finished collecting evidence of mate mapping\n")
 
 # produce bed file with mate map associations
 count = 0
-with open(raw, 'w') as temp, open(snakemake.output["flanks"], 'w') as out:
+with open(raw, 'w') as rtemp, open(snakemake.output["flanks"], 'w') as out:
     for k, v in evid.items():
-        v.dumpAllObs(temp)
+        v.dumpAllObs(rtemp)
         temp = v.getLikelyLoc(edge)
         count += 1
         out.write('\t'.join(temp) + '\n')

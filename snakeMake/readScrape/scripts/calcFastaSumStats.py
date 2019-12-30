@@ -9,7 +9,7 @@ with open(snakemake.output[0], 'w') as out:
     for f in snakemake.input:
         # Get samplename
         segs = f.split("/")
-        bsegs = segs[0].split(".")
+        bsegs = segs[-1].split(".")
         sample = bsegs[0]
         sizes = list()
 
@@ -21,7 +21,7 @@ with open(snakemake.output[0], 'w') as out:
                 sizes.append(int(lsegs[1]))
 
         # Calculate stats and print
-        count = length(sizes)
+        count = len(sizes)
         sum = np.sum(sizes) if count > 0 else 0
         mean = np.mean(sizes) if count > 0 else 0
         median = np.median(sizes) if count > 0 else 0

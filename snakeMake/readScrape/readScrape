@@ -9,10 +9,10 @@ os.makedirs(config['logdir'], exist_ok=True)
 for x in expand("{logdir}/{sample}", logdir=config['logdir'], sample=config["samples"]):
     os.makedirs(x, exist_ok=True)
 
-localrules: pre_c
+localrules: tabulate_spades, pre_c
 
 rule all:
-    input: "genotypes/genotype_summary.tab", expand("genotypes/{sample}.genotype.tab", sample=config["samples"])
+    input: "assembly/summaryStatsOfSamples.tab", "genotypes/genotype_summary.tab", expand("genotypes/{sample}.genotype.tab", sample=config["samples"])
 
 rule extract_reads:
     input:
