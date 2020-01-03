@@ -1,0 +1,192 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jan  3 12:54:06 2020
+
+@author: dbickhart
+"""
+
+import argparse
+import sys
+import pysam
+import contextlib
+import numpy as np
+from os.path import basename
+from collections import defaultdict
+
+fileHead = ["File", "GenomeSize", "AvgReadLen", "TotalReads", "MappedReads", "MapPerc", "RawXCov", "MapXCov", "AvgMapChrXCov", "AvgChrMapPerc"]
+
+def parse_user_input():
+    parser = argparse.ArgumentParser(
+            description = "Generate restriction enzyme maps for an assembly fasta and select fragments of a specific size range"
+            )
+    parser.add_argument('-f', '--file', 
+                        help="The input, indexed bam file. May be specified more than once!",
+                        action="append", default=[]
+                        )
+    parser.add_argument('-o', '--output',
+                        help="Output tab delimited file. [stdout]",
+                        type=str, default="stdout"
+                        )
+    parser.add_argument('-r', '--reads',
+                        help="How many reads to sample for determining average read length [1000]",
+                        type=int, default=1000
+                        )
+
+    return parser.parse_args()
+
+def main(args):
+    # Validate input
+    if len(args.file) < 1:
+        print("Error! Must enter at least one file!")
+        print(args.usage)
+        sys.exit()
+        
+    # Process files
+    classes = list()
+    for f in args.file:
+        worker = samStats(f, args.reads)
+        try:
+            worker.calculate()
+        except BamFileException:
+            continue # Continue if the file wasn't a proper bam file!
+        classes.append(worker)
+        
+    # Create the list of stats 
+    data = list()
+    for w in classes:
+        data.append(w.retList)
+        
+    # If the genome size and read length is the same, remove redundant info
+    gsizes = {x[1] for x in data}
+    rlen = {x[2] for x in data}
+    cropg = True if len(gsizes) == 1 else False
+    cropr = True if len(rlen) == 1 else False
+    
+    removes = list()
+    if cropg: removes.append(1)
+    if cropr: removes.append(2)
+    
+    if cropg or cropr:
+        fileHead = [x for i, x in enumerate(fileHead) if i not in removes]
+        for i, d in enumerate(data):
+            d = [x for j, x in enumerate(d) if j not in removes]
+            data[i] = d
+       
+    # Print output
+    with smartFile(args.output, 'w') as out:
+        out.write('\t'.join(fileHead) + "\n")
+        for d in data:
+            out.write('\t'.join(fileHead) + "\n")
+        
+    
+class samStats:
+    
+    def __init__(self, file : str, reads: int):
+        self.file = file
+        self.reads = reads
+        
+        # other attributes
+        self.avgRLen = 0
+        self.gsize = 0
+        self.totReads = 0   # Total reads
+        self.mapReads = 0   # Total mapped reads
+        self.unmapReads = 0 # Total unmapped reads
+        self.compUnmap = 0  # Unmapped, no paired reads
+        self.chrLens = dict()
+        self.mapChrR = defaultdict(int) # per chr map reads
+        self.unmapChrR = defaultdict(int)   # per chr unmap reads
+        
+        # Final stats
+        self.mapPerc = ""
+        self.rawX = ""
+        self.mapX = ""
+        self.avgMapX = ""
+        self.avgMapPerc = ""
+        
+    def calculate(self):
+        # first determine if file is valid
+        bam = pysam.AlignmentFile(self.file, "rb")
+        
+        if not bam.check_index():
+            raise BamFileException("Index Check", "Bam file did not have index!")
+        
+        # Calculate average read length
+        self._calcAvgRLen(bam)
+        
+        # Fill attribute containers
+        self._pullStats()
+        
+        # Calculate final summary stats
+        self._finalStats()
+        
+    def retList(self)-> list:
+        return [basename(self.file), "{:,}".format(self.gsize), str(self.avgRLen), 
+                "{:,}".format(self.totReads), "{:,}".format(self.mapReads), 
+                self.mapPerc, self.rawX, self.mapX, self.avgMapX, self.avgMapPerc]
+        
+        
+    def _finalStats(self):
+        self.mapPerc = "{0:.3f}".format(self.mapReads / self.totReads)
+        self.rawX = "{0:.3f}".format((self.totReads * self.avgRLen) / self.gsize)
+        self.mapX = "{0:.3f}".format((self.mapReads * self.avgRLen) / self.gzize)
+        
+        clens = list(self.chrLens.values())
+        maps = list(self.mapChrR.values())
+        unmaps = list(self.unmapChrR.values())
+        
+        self.avgMapX = "{0:.3f}".format(np.mean([((x * self.avgRLen) / y) for x, y in zip(maps, clens)]))
+        self.avgMapPerc = "{0:.3f}".format(np.mean([x / (x + y) for x, y in zip(maps, unmaps)]))
+        
+    def _pullStats(self):
+        text = pysam.idxstats(self.file)
+        lines = text.split(sep="\n")
+        for i in lines:
+            segs = i.split()
+            clen = int(segs[1])
+            mapped = int(segs[2])
+            unmapped = int(segs[3])
+            self.totReads += mapped + unmapped
+            self.mapReads += mapped
+            self.unmapReads += unmapped
+            self.gsize += clen
+            
+            if segs[0] == "*":
+                self.compUnmap = unmapped
+            else:
+                self.chLens = clen
+                self.mapChrR[segs[0]] = mapped
+                self.unmapChrR[segs[0]] = unmapped
+            
+    
+    def _calcAvgRLen(self, bam):
+        rlens = []
+        for i in bam.head(self.reads):
+            rlens.append(i.infer_read_length())
+            
+        self.avgRLen = int(np.mean(rlens))
+        
+
+class BamFileException(Exception):
+    
+    def __init__(self, expression, message):
+        self.expression = expression
+        self.message = message
+        
+@contextlib.contextmanager
+def smartFile(filename : str, mode : str = 'r'):
+    if filename == 'stdin' or filename == 'stdout':
+        if filename == 'stdin':
+            fh = sys.stdin
+        else:
+            fh = sys.stdout
+    else:
+        fh = open(filename, mode)
+    try:
+        yield fh
+    finally:
+        if filename != 'stdin' and filename != 'stdout':
+            fh.close()
+
+if __name__ == "__main__":
+    args = parse_user_input()
+    main(args)
