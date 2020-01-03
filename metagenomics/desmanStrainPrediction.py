@@ -1,4 +1,4 @@
-#!/software/apps/python_3/gcc/64/3.6.2/bin/python3
+#!/usr/bin/env python
 #SBATCH --nodes=1
 #SBATCH --mem=18000
 #SBATCH --ntasks-per-node=2
@@ -48,10 +48,10 @@ def parse_user_input():
                         help="Desman deviation fit points for strain count determination (usually desman_dic.fits)",
                         required=False, default="desman_dic.fits"
                         )
-    parser.add_argument('-t', '--scg',
-                        help='SCG gene label file (gene,contig,start,end,strand)',
-                        required=True, type=str
-                        )
+    #parser.add_argument('-t', '--scg',
+    #                    help='SCG gene label file (gene,contig,start,end,strand)',
+    #                    required=True, type=str
+    #                    )
     #parser.add_argument('-e', '--access',
     #                    help='Accessory gene label file (gene,contig,start,end,strand)',
     #                    required=True, type=str
@@ -80,10 +80,20 @@ def main(args):
     l_x = list(zip(*lowess))[0]
     l_y = list(zip(*lowess))[1]
     
+    real = dict()
+    for i,j in zip(l_x, l_y):
+        real[i] = j
+
+    r_x = list(real.keys())
+    r_y = list(real.values())
     # Select x value from elbow plot and use that in desman
-    k = kneed.KneeLocator(l_x, l_y, invert=False, direction='decreasing')
+    #a = kneed.KneeLocator(x, y, curve='convex', direction='decreasing')
+    #astrains = a.knee
+    k = kneed.KneeLocator(r_x, r_y, curve='convex', direction='decreasing', S=1.0)
     strains = k.knee
-    
+    for i,j in zip(r_x, r_y):
+        print(f'x:{i}\ty:{j}')
+
     print(f'Identified {strains} as the optimal strain count from the values')
     with open(args.strains + ".strain.count", 'w') as out:
         out.write(f'{args.output}\t{strains}\n')
@@ -91,8 +101,9 @@ def main(args):
     # Run desman on the data
     gamma, eta, tau = desmanRun(args.desman, 'dfreqssel_var.csv', 'dfreqstran_df.csv', int(strains))
     
+    print(f'Desman stats: gamma = {gamma}, eta = {eta}, tau = {tau}')
     # Grep out the SCG haplotypes
-    scgHaplotypes(args.desman, args.contigs, args.scg, args.assembly, tau)
+    #scgHaplotypes(args.desman, args.contigs, args.scg, args.assembly, tau)
     
     # Run the strain differentiation 
     #strainTigs(args.desman, 'original_contigs.fa', args.assembly, gamma, eta, 

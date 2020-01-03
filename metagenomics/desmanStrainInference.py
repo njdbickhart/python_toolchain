@@ -1,4 +1,4 @@
-#!/software/apps/python_3/gcc/64/3.6.2/bin/python3
+#!/usr/bin/env python
 #SBATCH --nodes=1
 #SBATCH --mem=12000
 #SBATCH --ntasks-per-node=6

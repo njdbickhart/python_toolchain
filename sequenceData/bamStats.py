@@ -13,11 +13,10 @@ import numpy as np
 from os.path import basename
 from collections import defaultdict
 
-fileHead = ["File", "GenomeSize", "AvgReadLen", "TotalReads", "MappedReads", "MapPerc", "RawXCov", "MapXCov", "AvgMapChrXCov", "AvgChrMapPerc"]
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
-            description = "Generate restriction enzyme maps for an assembly fasta and select fragments of a specific size range"
+            description = "Calculate and tabulate BAM file index stats"
             )
     parser.add_argument('-f', '--file', 
                         help="The input, indexed bam file. May be specified more than once!",
@@ -35,10 +34,12 @@ def parse_user_input():
     return parser.parse_args()
 
 def main(args):
+    fileHead = ["File", "GenomeSize", "AvgReadLen", "TotalReads", "MappedReads", "MapPerc", "RawXCov", "MapXCov", "AvgMapChrXCov", "AvgChrMapPerc"]
+    
     # Validate input
     if len(args.file) < 1:
         print("Error! Must enter at least one file!")
-        print(args.usage)
+        #args.print_help()
         sys.exit()
         
     # Process files
@@ -54,11 +55,11 @@ def main(args):
     # Create the list of stats 
     data = list()
     for w in classes:
-        data.append(w.retList)
+        data.append(w.retList())
         
     # If the genome size and read length is the same, remove redundant info
-    gsizes = {x[1] for x in data}
-    rlen = {x[2] for x in data}
+    gsizes = set([x[1] for x in data])
+    rlen = set([x[2] for x in data])
     cropg = True if len(gsizes) == 1 else False
     cropr = True if len(rlen) == 1 else False
     
@@ -74,9 +75,11 @@ def main(args):
        
     # Print output
     with smartFile(args.output, 'w') as out:
+        if cropg or cropr:
+            print(f'#Genome size: {gsizes} and avg read len: {rlen}. Cropping similar columns')
         out.write('\t'.join(fileHead) + "\n")
         for d in data:
-            out.write('\t'.join(fileHead) + "\n")
+            out.write('\t'.join(d) + "\n")
         
     
 class samStats:
@@ -128,20 +131,29 @@ class samStats:
     def _finalStats(self):
         self.mapPerc = "{0:.3f}".format(self.mapReads / self.totReads)
         self.rawX = "{0:.3f}".format((self.totReads * self.avgRLen) / self.gsize)
-        self.mapX = "{0:.3f}".format((self.mapReads * self.avgRLen) / self.gzize)
+        self.mapX = "{0:.3f}".format((self.mapReads * self.avgRLen) / self.gsize)
         
         clens = list(self.chrLens.values())
         maps = list(self.mapChrR.values())
         unmaps = list(self.unmapChrR.values())
         
-        self.avgMapX = "{0:.3f}".format(np.mean([((x * self.avgRLen) / y) for x, y in zip(maps, clens)]))
-        self.avgMapPerc = "{0:.3f}".format(np.mean([x / (x + y) for x, y in zip(maps, unmaps)]))
+        avgMX = [((x * self.avgRLen) / y) if y > 0 else 0 for x, y in zip(maps, clens)]
+        avgPC = [x / (x + y) if y > 0 or x > 0 else 0 for x, y in zip(maps, unmaps)]
+        if len(avgMX) < 1 or len(avgPC) < 1:
+            print(f'Error with chr table. avgMx: {avgMX} avgPC: {avgPC}')
+            self.avgMapX = "0"
+            self.avgMapPerc = "0"
+            return        
+        self.avgMapX = "{0:.3f}".format(np.mean(avgMX))
+        self.avgMapPerc = "{0:.3f}".format(np.mean(avgPC))
         
     def _pullStats(self):
         text = pysam.idxstats(self.file)
         lines = text.split(sep="\n")
         for i in lines:
             segs = i.split()
+            if len(segs) < 4:
+                continue
             clen = int(segs[1])
             mapped = int(segs[2])
             unmapped = int(segs[3])
@@ -150,10 +162,10 @@ class samStats:
             self.unmapReads += unmapped
             self.gsize += clen
             
-            if segs[0] == "*":
+            if segs[0].startswith("*"):
                 self.compUnmap = unmapped
             else:
-                self.chLens = clen
+                self.chrLens[segs[0]] = clen
                 self.mapChrR[segs[0]] = mapped
                 self.unmapChrR[segs[0]] = unmapped
             
@@ -161,7 +173,9 @@ class samStats:
     def _calcAvgRLen(self, bam):
         rlens = []
         for i in bam.head(self.reads):
-            rlens.append(i.infer_read_length())
+            l = i.infer_read_length()
+            if isinstance(l, int):
+                rlens.append(l)
             
         self.avgRLen = int(np.mean(rlens))
         

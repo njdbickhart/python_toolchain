@@ -103,8 +103,8 @@ def generateParseDict(data : str, isFile : bool):
     if isFile:
         with open(data, 'r') as f:
             for l in f:
-               l = l.rstrip('\n')
-               search.add(l)
+               l = l.rstrip().split()
+               search.add(l[0])
     else:
         for x in data.split(sep=','):
             search.add(x)
