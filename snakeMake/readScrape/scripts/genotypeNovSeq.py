@@ -6,7 +6,7 @@ from collections import defaultdict
 import re
 import numpy as np
 
-csub = re.compile(r'[\+\/\%]')
+csub = re.compile(r'[\+\/\-\%]')
 crem = re.compile(r'at\s')
 csamp = re.compile(r'(.+)\..+\.')
 cpat = re.compile(r'(\d+)\s+(\d+)nt, >(.+)\.{3} (.+)$')
