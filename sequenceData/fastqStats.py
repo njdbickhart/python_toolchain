@@ -3,7 +3,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import gzip
-import contextlib
 import collections
 import seaborn as sns
 import pandas as pd
@@ -71,27 +70,23 @@ def main(args):
         print_plot(df, args.output)
         print(df.describe())
 
-@contextlib.contextmanager
 def smartFile(filename : str, mode : str = 'r'):
     fh = None
     if filename.endswith('.gz'):
         fh = gzip.open(filename, mode='rt')
     else:
         fh = open(filename, mode)
-    try:
-        yield fh
-    finally:
-        if filename != 'stdin' and filename != 'stdout':
-            fh.close()
-
+    return fh
+    
 def print_plot(df, outbase, outsuffix = "total"):
     df.to_csv(outbase + "_" + outsuffix + "_stats.tab")
     plt = plot_fastq_info(df, outbase)
     plt.savefig(outbase + "_" + outsuffix + "_plots.png")
             
 def get_fastq_info(filename, fqinfo):
+    infile = smartFile(filename, 'r')
 
-    for head, seq, qual in fastq_reader_fh(smartFile(filename, 'r')):
+    for head, seq, qual in fastq_reader_fh(infile):
         fqinfo.seq_lengths.append(len(seq))
         
         fqinfo.mean_qualities.append(round(np.mean(bytearray(qual, "ascii")) - 33, 2))
@@ -106,6 +101,8 @@ def get_fastq_info(filename, fqinfo):
         fqinfo.nts_T.append(ntc['T'])
         fqinfo.nts_C.append(ntc['C'])
         fqinfo.nts_U.append(ntc['U'])
+        
+    infile.close()
 
     return fqinfo
 
