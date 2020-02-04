@@ -2,12 +2,16 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import gzip
+import contextlib
 import collections
 import seaborn as sns
 import pandas as pd
 import numpy as np
 import glob
 import argparse
+
+version = "0.2"
 
 plt.style.use("seaborn-colorblind")
 
@@ -19,10 +23,10 @@ matplotlib.rcParams['figure.titlesize']=20
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
-            description = "Join tab files with similar header rows together"
+            description = "Generate summary information and PDF plots of Fastq Stats. Version:" + version
             )
     parser.add_argument('-f', '--file', 
-                        help="A single fastq file. If specified at the same time as 'b', this is preferentially run.",
+                        help="A single fastq file (can be gzipped). If specified at the same time as 'b', this is preferentially run.",
                         type=str, default=None
                         )
     parser.add_argument('-b', '--base',
@@ -49,7 +53,7 @@ def main(args):
             files.append(args.file)
         else:
             # Folder checking
-            for exts in ('*.fq', '*.fastq'):
+            for exts in ('*.fq', '*.fastq', '*.fq.gz', '*.fastq.gz'):
                 files.extend(glob.glob('{}/{}'.format(args.base, exts)))
 
     data = fastq_info()
@@ -67,6 +71,19 @@ def main(args):
         print_plot(df, args.output)
         print(df.describe())
 
+@contextlib.contextmanager
+def smartFile(filename : str, mode : str = 'r'):
+    fh = None
+    if filename.endswith('.gz'):
+        fh = gzip.open(filename, mode='rt')
+    else:
+        fh = open(filename, mode)
+    try:
+        yield fh
+    finally:
+        if filename != 'stdin' and filename != 'stdout':
+            fh.close()
+
 def print_plot(df, outbase, outsuffix = "total"):
     df.to_csv(outbase + "_" + outsuffix + "_stats.tab")
     plt = plot_fastq_info(df, outbase)
@@ -74,7 +91,7 @@ def print_plot(df, outbase, outsuffix = "total"):
             
 def get_fastq_info(filename, fqinfo):
 
-    for head, seq, qual in fastq_reader_fh(open(filename, 'r')):
+    for head, seq, qual in fastq_reader_fh(smartFile(filename, 'r')):
         fqinfo.seq_lengths.append(len(seq))
         
         fqinfo.mean_qualities.append(round(np.mean(bytearray(qual, "ascii")) - 33, 2))
@@ -229,11 +246,12 @@ def plot_fastq_info(df, outbase):
     # left side
     plot_kmer_start(axs.pop(), df)
     
+    plot_kmer_end(axs.pop(), df)
+    
     plot_nt_content(axs.pop(), df)
     
     plot_gc_bins(axs.pop(), df, 20)
     
-    plot_qualities(axs.pop(), df)
     
     plt.subplots_adjust(left=0.2, wspace=1.0, top=2.8)
     plt.suptitle(outbase + " (" + str(len(df)) + " reads, " + str(round(df.seq_length.sum() / (1000.0**3), 2)) + " Gbp)")
