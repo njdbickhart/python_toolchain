@@ -1,0 +1,5 @@
+channels:
+    - bioconda
+dependencies:
+    - blobtools=1.0.1
+    - diamond=0.9.30

@@ -1,0 +1,4 @@
+channels:
+    - bioconda
+dependencies:
+    - mash=2.2.2
