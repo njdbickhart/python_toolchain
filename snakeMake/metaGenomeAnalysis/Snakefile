@@ -2,6 +2,8 @@ import os
 # The following is a cluster-environment specific change
 shell.executable("/usr/bin/bash")
 
+configfile : "config.json"
+
 rule fastqc:
     input:
         INPUTDIR + "/{study}/{sample}/{sample}_{num}.fastq.gz"
