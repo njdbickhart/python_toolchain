@@ -1,265 +1,36 @@
 import os
+import re
+import subprocess
 # The following is a cluster-environment specific change
 shell.executable("/usr/bin/bash")
+# Wildcards: {sample} {assembly_group}
 
 configfile : "config.json"
 
-rule fastqc:
+# Dealing with logdirs and other directories
+os.makedirs(config['logdir'], exist_ok=True)
+os.makedirs("assembly", exist_ok=True)
+
+def getAssemblyBaseName(files):
+    return [re.sub('\.fa.{0,3}', '', os.basename(x)) for x in files]
+
+include: "rules/annotate.snakefile"
+include: "rules/binning.snakefile"
+include: "rules/taxify.snakefile"
+
+localrules: all
+rule all:
     input:
-        INPUTDIR + "/{study}/{sample}/{sample}_{num}.fastq.gz"
-    output:
-        html = OUTPUTDIR + '/qc/fastqc/{study}/{sample}_{num}_fastqc.html',
-        zip = OUTPUTDIR + '/qc/fastqc/{study}/{sample}_{num}_fastqc.zip'
-    params: ""
-    log:
-        OUTPUTDIR + '/logs/fastqc/{study}/{sample}_{num}.log'
-    wrapper:
-        "0.27.1/bio/fastqc"
+        expand("assembly/{assembly_group}.fa", assembly_group=getAssemblyBaseName(config["assemblies"])),
+        "FinishedBinning",
 
-rule trimmomatic:
+# Take configuration assemblies and softlink them
+rule link_assemblies:
     input:
-        r1 = INPUTDIR + "/{study}/{sample}/{sample}_1.fastq.gz",
-        r2 = INPUTDIR + "/{study}/{sample}/{sample}_2.fastq.gz"
+        config["assemblies"]
     output:
-        r1 = SCRATCHDIR + "/trimmed/{study}/{sample}_1.trimmed.fastq.gz",
-        r2 = SCRATCHDIR + "/trimmed/{study}/{sample}_2.trimmed.fastq.gz",
-        # reads where trimming entirely removed the mate
-        r1_unpaired = SCRATCHDIR + "/trimmed/{study}/{sample}_1.unpaired.fastq.gz",
-        r2_unpaired = SCRATCHDIR + "/trimmed/{study}/{sample}_2.unpaired.fastq.gz"
-    log:
-        OUTPUTDIR +  "/logs/trimmomatic/{study}/{sample}.log"
-    params:
-        trimmer=["ILLUMINACLIP:{}:2:30:7".format(ADAPTERS), "LEADING:2", "TRAILING:2", "SLIDINGWINDOW:4:2", "MINLEN:50"],
-        extra=""
-    wrapper:
-        "0.27.1/bio/trimmomatic/pe"
-
-rule fastqc_trimmed:
-    input:
-        SCRATCHDIR + "/trimmed/{study}/{sample}_{num}.trimmed.fastq.gz"
-    output:
-        html = OUTPUTDIR + '/qc/fastqc/{study}/{sample}_{num}.trimmed_fastqc.html',
-        zip = OUTPUTDIR + '/qc/fastqc/{study}/{sample}_{num}.trimmed_fastqc.zip'
-    params: ""
-    log:
-        OUTPUTDIR + '/logs/fastqc/{study}/{sample}_{num}.trimmed.log'
-    wrapper:
-        "0.27.1/bio/fastqc"
-
-rule multiqc:
-    input:
-        rawG = expand("{base}/qc/fastqc/{study}/{sample}_{num}_fastqc.zip", base = OUTPUTDIR, study = METAG_ACCESSION, sample = metaG_run_accession, num = [1,2]),
-        trimmedG = expand("{base}/qc/fastqc/{study}/{sample}_{num}.trimmed_fastqc.zip", base = OUTPUTDIR, study = METAG_ACCESSION, sample = metaG_run_accession, num = [1,2]),
-        rawT = expand("{base}/qc/fastqc/{study}/{sample}_{num}_fastqc.zip", base = OUTPUTDIR, study = METAT_ACCESSION, sample = metaT_run_accession, num = [1,2]),
-        trimmedT = expand("{base}/qc/fastqc/{study}/{sample}_{num}.trimmed_fastqc.zip", base = OUTPUTDIR, study = METAT_ACCESSION, sample = metaT_run_accession, num = [1,2])
-    output:
-        html_rawG = OUTPUTDIR + "/qc/rawG_multiqc.html",
-        stats_rawG = OUTPUTDIR + "/qc/rawG_multiqc_general_stats.txt",
-        html_trimmedG = OUTPUTDIR + "/qc/trimmedG_multiqc.html",
-        stats_trimmedG = OUTPUTDIR + "/qc/trimmedG_multiqc_general_stats.txt",
-        html_rawT = OUTPUTDIR + "/qc/rawT_multiqc.html",
-        stats_rawT = OUTPUTDIR + "/qc/rawT_multiqc_general_stats.txt",
-        html_trimmedT = OUTPUTDIR + "/qc/trimmedT_multiqc.html",
-        stats_trimmedT = OUTPUTDIR + "/qc/trimmedT_multiqc_general_stats.txt"
-    conda:
-        "envs/multiqc.yaml"
-    shell:
-        """
-        multiqc -n multiqc.html {input.rawG}
-        mv multiqc.html {output.html_rawG}
-        mv multiqc_data/multiqc_general_stats.txt {output.stats_rawG}
-        rm -rf multiqc_data
-        multiqc -n multiqc.html {input.trimmedG}
-        mv multiqc.html {output.html_trimmedG}
-        mv multiqc_data/multiqc_general_stats.txt {output.stats_trimmedG}
-        rm -rf multiqc_data
-
-        multiqc -n multiqc.html {input.trimmedT}
-        mv multiqc.html {output.html_trimmedT}
-        mv multiqc_data/multiqc_general_stats.txt {output.stats_trimmedT}
-        rm -rf multiqc_data
-
-        multiqc -n multiqc.html {input.trimmedT}
-        mv multiqc.html {output.html_trimmedT}
-        mv multiqc_data/multiqc_general_stats.txt {output.stats_trimmedT}
-        rm -rf multiqc_data
-        """
-
-rule bwa_index:
-    input:
-        SCRATCHDIR + "/bwa_index/{assembly_group}.fa"
-    output:
-        SCRATCHDIR + "/bwa_index/{assembly_group}.fa.amb",
-        SCRATCHDIR + "/bwa_index/{assembly_group}.fa.ann",
-        SCRATCHDIR + "/bwa_index/{assembly_group}.fa.bwt",
-        SCRATCHDIR + "/bwa_index/{assembly_group}.fa.pac",
-        SCRATCHDIR + "/bwa_index/{assembly_group}.fa.sa"
-    log:
-        OUTPUTDIR + "/logs/bwa_index/{assembly_group}.log"
-    params:
-        algorithm="bwtsw"
-    conda:
-        "envs/metabat.yaml"
-    shell:
-        """
-        bwa index {input} 2> {log}
-        """
-
-rule bwa_mem:
-    input:
-        amb = SCRATCHDIR + "/bwa_index/{assembly_group}.fa.amb",
-        ann = SCRATCHDIR + "/bwa_index/{assembly_group}.fa.ann",
-        bwt = SCRATCHDIR + "/bwa_index/{assembly_group}.fa.bwt",
-        pac = SCRATCHDIR + "/bwa_index/{assembly_group}.fa.pac",
-        sa = SCRATCHDIR + "/bwa_index/{assembly_group}.fa.sa",
-        reference = SCRATCHDIR + "/bwa_index/{assembly_group}.fa",
-        r1 = SCRATCHDIR + "/trimmed/{study}/{sample}_1.trimmed.fastq.gz",
-        r2 = SCRATCHDIR + "/trimmed/{study}/{sample}_2.trimmed.fastq.gz",
-    output:
-        SCRATCHDIR + "/mapping/{assembly_group}/{study}/{sample}.bam"
-    log:
-        OUTPUTDIR + "/logs/bwa_mem/{assembly_group}/{study}/{sample}.log"
-    params:
-        extra="",
-        #pipe_cmd = "samtools sort -o {output} -",
-        threads = 8
-    conda:
-        "envs/metabat.yaml"
-    shell:
-        """
-        bwa mem -t {params.threads} {params.extra} {input.reference} {input.r1} {input.r2} | samtools sort -o {output} - >> {log} 2>&1
-        """
-
-# TODO
-rule diamond:
-    input:
-    output:
-    params:
-    conda:
-        "envs/blobtools.yaml"
-    shell:
-        """
-        diamond blastx --query --db --threads --outfmt 6 --sensitive --max-target-seqs 1 --evalue 1e-25 -o
-        """
-
-#TODO
-rule blobtools_taxify:
-    input:
-    output:
-    params:
-    log:
-    conda:
-        "envs/blobtools.yaml"
-    shell:
-        """
-        blobtools taxify -f -m -s 0 -t 2 -o
-        """
-
-#TODO
-rule blobtools_create:
-    input:
-    output:
-    params:
-    log:
-    conda:
-        "envs/blobtools.yaml"
-    shell:
-        """
-        blobtools create -i -b -t -o --db
-        """
-
-#TODO
-rule blobtools_viewplot:
-    input:
-    output:
-    params:
-    log:
-    conda:
-        "envs/blobtools.yaml"
-    shell:
-    """
-    blobtools plot -i --notitle --format pdf -r superkingdom -o
-    blobtools plot -i --notitle --format pdf -r phylum -o
-
-    blobtools view -i -o -r all
-    """
-
-rule metabat_abundance:
-    input:
-        lambda wildcards: get_sample_list_onegroup("{assembly_group}".format(assembly_group=wildcards.assembly_group), METAG_SAMPLELIST, METAG_ACCESSION)
-    output:
-        OUTPUTDIR + "/metabat2/{assembly_group}/jgi_abund.txt"
-    conda:
-         "envs/metabat.yaml"
-    log:
-        OUTPUTDIR + "/logs/metabat2/{assembly_group}.abun.log"
-    shell:
-        """
-        jgi_summarize_bam_contig_depths --outputDepth {output} {input} > {log} 2>&1
-        """
-
-rule metabat_binning:
-    input:
-        assembly = OUTPUTDIR + "/megahit/{assembly_group}/final.contigs.fa",
-        depth = OUTPUTDIR + "/metabat2/{assembly_group}/jgi_abund.txt"
-    output:
-        OUTPUTDIR + "/metabat2/{assembly_group}/{assembly_group}_bin"
-    conda:
-         "envs/metabat.yaml"
-    params:
-        other = "--saveCls",
-        threads = 8
-    log:
-        OUTPUTDIR + "/logs/metabat2/{assembly_group}.bin.log"
-    shell:
-        """
-        metabat2 {params.other} --numThreads {params.threads} -i {input.assembly} -a {input.depth} -o {output} > {log} 2>&1
-        """
-
-rule eukrep:
-    input:
-        assembly = OUTPUTDIR + "/megahit/{assembly_group}/final.contigs.fa",
-    output:
-        OUTPUTDIR + "/eukrep/{assembly_group}/euk.final.contigs.fa"
-    conda:
-        "envs/EukRep.yaml"
-    log:
-        OUTPUTDIR + "/logs/eukrep/{assembly_group}.eukrep.log"
-    params:
-        prok = OUTPUTDIR + "/eukrep/{assembly_group}/prok.final.contigs.fa",
-        min_contig = 1000
-    shell:
-        """
-        EukRep -i {input} -o {output} --prokarya {params.prok} --min {params.min_contig} > {log} 2>&1
-        """
-
-rule metabat_binning_euk:
-    input:
-        assembly = OUTPUTDIR + "/eukrep/{assembly_group}/euk.final.contigs.fa",
-        depth = OUTPUTDIR + "/metabat2/{assembly_group}/jgi_abund.txt"
-    output:
-        OUTPUTDIR + "/metabat2_euk/{assembly_group}/{assembly_group}_eukbin"
-    conda:
-         "envs/metabat.yaml"
-    params:
-        other = "--saveCls",
-        threads = 8
-    log:
-        OUTPUTDIR + "/logs/metabat2/{assembly_group}.eukbin.log"
-    shell:
-        """
-        metabat2 {params.other} --numThreads {params.threads} -i {input.assembly} -a {input.depth} -o {output} > {log} 2>&1
-        """
-
-rule prodigal:
-    input:
-        assembly = OUTPUTDIR + "/megahit/{assembly_group}/final.contigs.fa",
-    output:
-        proteins = OUTPUTDIR + "/prodigal/{assembly_group}/proteins.faa",
-        genes = OUTPUTDIR + "/prodigal/{assembly_group}/genes.gff"
-    conda:
-        "envs/prodigal.yaml"
-    shell:
-        """
-        prodigal -i {input.assembly} -f gff -o {output.genes} -a {output.proteins} -p meta
-        """
+        expand("assembly/{assembly_group}.fa", assembly_group=getAssemblyBaseName(config["assemblies"]))
+    run:
+        for i in input:
+            cmd = ["ln", "-s", i, "assembly/" + re.sub('\.fa.{0,3}', '', os.path.basename(i)) + ".fa"]
+            subprocess.call(cmd)
