@@ -29,7 +29,7 @@ rule link_assemblies:
     input:
         config["assemblies"]
     output:
-        expand("assembly/{assembly_group}.fa", assembly_group=getAssemblyBaseName(config["assemblies"]))
+        "assembly/{assembly_group}.fa"
     run:
         for i in input:
             cmd = ["ln", "-s", i, "assembly/" + re.sub('\.fa.{0,3}', '', os.path.basename(i)) + ".fa"]

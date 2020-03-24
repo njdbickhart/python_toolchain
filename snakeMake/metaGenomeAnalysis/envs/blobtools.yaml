@@ -1,5 +1,7 @@
 channels:
     - bioconda
 dependencies:
+    - python=3.6
     - blobtools=1.0.1
     - diamond=0.9.30
+    - samtools=1.9

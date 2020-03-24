@@ -4,6 +4,12 @@ KING = ["full", "euk"]
 
 rule all_binned:
     input:
+        "FinishedBinning"
+
+rule temp_completion:
+    input:
+        expand("binning/metabat2/{assembly_group}/metabat_bin_{king}.tab", assembly_group=wildcards.assembly_group, king=KING),
+        expand("binning/concoct/{assembly_group}/clustering_merged_{king}.csv", assembly_group=wildcards.assembly_group, king=KING)
     output:
         temp(touch("FinishedBinning"))
 

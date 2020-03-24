@@ -1,0 +1,35 @@
+{
+  "__default__" :
+  {
+    "mem" : "5000",
+    "ntasks-per-node" : "1",
+    "nodes" : "1",
+    "partition" : "priority",
+    "qos" : "msn",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.stdout",
+    "jobname" : "{rule} [{wildcards.assembly_group}]"
+  },
+
+  "bwa_mem" :
+  {
+    "mem" : "10000",
+    "ntasks-per-node" : "9",
+    "stdout" : "logs/bwa/{rule}.{wildcards.assembly_group}.{wildcards.sample}.stdout",
+    "jobname" : "bwa [{wildcards.assembly_group}{wildcards.sample}]"
+  },
+  "metabat_binning" :
+  {
+    "mem" : "10000",
+    "ntasks-per-node" : "8",
+  },
+  "metabat_binning_euk" :
+  {
+    "mem" : "10000",
+    "ntasks-per-node" : "8",
+  },
+  "run_concoct" :
+  {
+    "mem" : "10000",
+    "ntasks-per-node" : "8",
+  }
+}
