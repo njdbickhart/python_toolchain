@@ -8,8 +8,9 @@ rule all_binned:
 
 rule temp_completion:
     input:
-        expand("binning/metabat2/{assembly_group}/metabat_bin_{king}.tab", assembly_group=wildcards.assembly_group, king=KING),
-        expand("binning/concoct/{assembly_group}/clustering_merged_{king}.csv", assembly_group=wildcards.assembly_group, king=KING)
+        expand("binning/metabat2/{assembly_group}/metabat_bin_full.tab", assembly_group=getAssemblyBaseName(config["assemblies"])),
+        expand("binning/metabat2/{assembly_group}/metabat_bin_euk.tab", assembly_group=getAssemblyBaseName(config["assemblies"])),
+        expand("binning/concoct/{assembly_group}/clustering_merged_{king}.csv", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING)
     output:
         temp(touch("FinishedBinning"))
 
@@ -26,7 +27,7 @@ rule bwa_index:
     log:
         config['logdir'] + "/{assembly_group}.log"
     conda:
-        "envs/metabat.yaml"
+        "../envs/metabat.yaml"
     shell:
         """
         bwa index {input} 2> {log}
@@ -43,7 +44,7 @@ rule bwa_mem:
         r1 = lambda wildcards: config["samples"][wildcards.sample][0],
         r2 = lambda wildcards: config["samples"][wildcards.sample][1],
     output:
-        "/mapping/{assembly_group}/{sample}.bam"
+        "mapping/{assembly_group}/{sample}.bam"
     log:
         config['logdir'] + "/bwa_mem/{assembly_group}_{sample}.log"
     params:
@@ -51,7 +52,7 @@ rule bwa_mem:
         #pipe_cmd = "samtools sort -o {output} -",
         threads = 8
     conda:
-        "envs/metabat.yaml"
+        "../envs/metabat.yaml"
     shell:
         """
         bwa mem -t {params.threads} {params.extra} {input.reference} {input.r1} {input.r2} | samtools sort -o {output} - >> {log} 2>&1
@@ -61,11 +62,11 @@ rule bwa_mem:
 
 rule metabat_abundance:
     input:
-        expand("/mapping/{assembly_group}/{sample}.bam", assembly_group=wildcards.assembly_group, sample=wildcards.sample)
+        expand("mapping/{assembly_group}/{sample}.bam", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])
     output:
         "binning/metabat2/{assembly_group}/jgi_abund.txt"
     conda:
-         "envs/metabat.yaml"
+         "../envs/metabat.yaml"
     log:
         config['logdir'] + "/binning/{assembly_group}.abun.log"
     shell:
@@ -80,7 +81,7 @@ rule metabat_binning:
     output:
         "binning/metabat2/{assembly_group}/metabat_bin_full.tab"
     conda:
-         "envs/metabat.yaml"
+         "../envs/metabat.yaml"
     params:
         other = "--saveCls --minContig 3000 --noBinOut",
         threads = 8
@@ -95,13 +96,13 @@ rule eukrep:
     input:
         assembly = "assembly/{assembly_group}.fa"
     output:
-        "/eukrep/{assembly_group}/euk.final.contigs.fa"
+        "eukrep/{assembly_group}/euk.final.contigs.fa"
     conda:
-        "envs/EukRep.yaml"
+        "../envs/EukRep.yaml"
     log:
         config['logdir'] + "/eukrep/{assembly_group}.eukrep.log"
     params:
-        prok = "/eukrep/{assembly_group}/prok.final.contigs.fa",
+        prok = "eukrep/{assembly_group}/prok.final.contigs.fa",
         min_contig = 1000
     shell:
         """
@@ -110,12 +111,12 @@ rule eukrep:
 
 rule metabat_binning_euk:
     input:
-        assembly = "/eukrep/{assembly_group}/euk.final.contigs.fa",
+        assembly = "eukrep/{assembly_group}/euk.final.contigs.fa",
         depth = "binning/metabat2/{assembly_group}/jgi_abund.txt"
     output:
-        "/binning/metabat2/{assembly_group}/metabat_bin_euk.tab"
+        "binning/metabat2/{assembly_group}/metabat_bin_euk.tab"
     conda:
-         "envs/metabat.yaml"
+         "../envs/metabat.yaml"
     params:
         other = "--saveCls --minContig 3000 --noBinOut",
         threads = 8
@@ -135,7 +136,7 @@ rule concoct_ctgprep:
         contigs = "binning/concoct/{assembly_group}/contigs_10k_full.fa",
         bed = "binning/concoct/{assembly_group}/contigs_10k_full.bed"
     conda:
-        "envs/concoct.yaml"
+        "../envs/concoct.yaml"
     shell:
         """
         cut_up_fasta.py {input.assembly} -c 10000 -o 0 --merge_last -b {output.bed} > {output.contigs}
@@ -143,12 +144,12 @@ rule concoct_ctgprep:
 
 rule concoct_ctgprep_euk:
     input:
-        assembly = "/eukrep/{assembly_group}/euk.final.contigs.fa"
+        assembly = "eukrep/{assembly_group}/euk.final.contigs.fa"
     output:
         contigs = "binning/concoct/{assembly_group}/contigs_10k_euk.fa",
         bed = "binning/concoct/{assembly_group}/contigs_10k_euk.bed"
     conda:
-        "envs/concoct.yaml"
+        "../envs/concoct.yaml"
     shell:
         """
         cut_up_fasta.py {input.assembly} -c 10000 -o 0 --merge_last -b {output.bed} > {output.contigs}
@@ -157,11 +158,11 @@ rule concoct_ctgprep_euk:
 rule concoct_calc_cov:
     input:
         bed = "binning/concoct/{assembly_group}/contigs_10k_{king}.fa",
-        bam = expand("/mapping/{assembly_group}/{sample}.bam", assembly_group=wildcards.assembly_group, sample=wildcards.sample)
+        bam = expand("mapping/{assembly_group}/{sample}.bam", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])
     output:
         coverage = "binning/concoct/{assembly_group}/coverage_file_{king}.tab"
     conda:
-        "envs/concoct.yaml"
+        "../envs/concoct.yaml"
     shell:
         """
         concoct_coverage_table.py {input.bed} {input.bam} > {output.coverage}
@@ -179,7 +180,7 @@ rule run_concoct:
         read_length = 150,
         min_length = 3000
     conda:
-        "envs/concoct.yaml"
+        "../envs/concoct.yaml"
     shell:
         """
         concoct \

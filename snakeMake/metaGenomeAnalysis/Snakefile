@@ -9,10 +9,11 @@ configfile : "config.json"
 
 # Dealing with logdirs and other directories
 os.makedirs(config['logdir'], exist_ok=True)
+os.makedirs(config['logdir'] + "/bwa", exist_ok=True)
 os.makedirs("assembly", exist_ok=True)
 
 def getAssemblyBaseName(files):
-    return [re.sub('\.fa.{0,3}', '', os.basename(x)) for x in files]
+    return [re.sub('\.fa.{0,3}', '', os.path.basename(x)) for x in files]
 
 include: "rules/annotate.snakefile"
 include: "rules/binning.snakefile"

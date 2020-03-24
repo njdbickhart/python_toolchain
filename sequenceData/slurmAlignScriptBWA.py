@@ -227,7 +227,7 @@ class slurmTools:
         fields.append('{} --mem={}'.format(tag, self.mem))
         fields.append('{} --output={}/{}_%j.out'.format(tag, self.outDir, sName))
         fields.append('{} --error={}/{}_%j.err'.format(tag, self.errDir, sName))
-        fields.append('{} --workdir={}'.format(tag, self.workDir))
+        fields.append('{} --chdir={}'.format(tag, self.workDir))
         fields.append('{} --partition={}'.format(tag, self.partition))
         fields.append('{} -q {}'.format(tag, self.qos))
 

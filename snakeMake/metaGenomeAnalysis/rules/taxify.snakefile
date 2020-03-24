@@ -9,7 +9,7 @@ rule diamond:
     params:
         db = config['diamonddb']
     conda:
-        "envs/blobtools.yaml"
+        "../envs/blobtools.yaml"
     shell:
         """
         diamond blastx --query {input} --db {params.db} --threads {threads} --outfmt 6 --sensitive --max-target-seqs 1 --evalue 1e-25 -o {output}
@@ -25,7 +25,7 @@ rule blobtools_taxify:
         tax = config['diamondtaxid']
     log:
     conda:
-        "envs/blobtools.yaml"
+        "../envs/blobtools.yaml"
     shell:
         """
         blobtools taxify -f {input} -m {params.tax} -s 0 -t 2 -o {output}
@@ -40,26 +40,29 @@ rule blobtools_cov:
     params:
         outbase = "blobtools/{assembly_group}_{sample}"
     conda:
-        "envs/blobtools.yaml"
+        "../envs/blobtools.yaml"
     shell:
         """
         blobtools map2cov -i {input.fasta} -b {input.bams} -o {params.outbase}
         """
 
+def getCovStr(covs):
+    return "-c " + " -c ".join(covs)
+
 rule blobtools_create:
     input:
         contigs = "assembly/{assembly_group}.fa",
-        covs = expand("blobtools/{assembly_group}_{sample}.cov", assembly_group=wildcards.assembly_group, sample=wildcards.sample),
+        covs = expand("blobtools/{assembly_group}_{sample}.cov", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"]),
         tax = "blobtools/taxify.{assembly_group}.diamondout.tsv.taxified.out"
     output:
         blobdb = "blobtools/{assembly_group}.blobDB.json"
     params:
-        cstr = "-c " + " -c ".join(input.covs),
+        cstr = getCovStr(expand("blobtools/{assembly_group}_{sample}.cov", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])),
         outpre = "blobtools/{assembly_group}",
         db = config["ncbidb"]
     log:
     conda:
-        "envs/blobtools.yaml"
+        "../envs/blobtools.yaml"
     shell:
         """
         echo "using {params.cstr}"
@@ -73,14 +76,12 @@ rule blobtools_viewplot:
         supplot = "blobtools/supkingdom.{assembly_group}.blobDB.json.bestsum.superkingdom.p8.span.100.blobplot.covsum.pdf",
         phylumplot = "blobtools/phylum.{assembly_group}.blobDB.json.bestsum.phylum.p8.span.100.blobplot.covsum.pdf",
         table = "blobtools/table.{assembly_group}.blobDB.table.txt"
-    params:
-    log:
     conda:
-        "envs/blobtools.yaml"
+        "../envs/blobtools.yaml"
     shell:
-    """
-    blobtools plot -i {input.blobdb} --notitle --format pdf -r superkingdom -o blobtools/supkingdom
-    blobtools plot -i {input.blobdb} --notitle --format pdf -r phylum -o blobtools/phylum
-
-    blobtools view -i {input.blobdb} -o blobtools/table -r all
-    """
+        """
+        blobtools plot -i {input.blobdb} --notitle --format pdf -r superkingdom -o blobtools/supkingdom
+        blobtools plot -i {input.blobdb} --notitle --format pdf -r phylum -o blobtools/phylum
+        
+        blobtools view -i {input.blobdb} -o blobtools/table -r all
+        """
