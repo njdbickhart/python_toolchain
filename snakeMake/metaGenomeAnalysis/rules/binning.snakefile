@@ -185,7 +185,7 @@ rule run_concoct:
         """
         concoct \
             --coverage_file {input.coverage} \
-            --composition_file {input.fasta} \
+            --composition_file {input.contigs} \
             --basename {params.basename} \
             --read_length {params.read_length} \
             --length_threshold {params.min_length} \
