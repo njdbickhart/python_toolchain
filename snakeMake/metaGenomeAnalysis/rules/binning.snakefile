@@ -157,7 +157,7 @@ rule concoct_ctgprep_euk:
 
 rule concoct_calc_cov:
     input:
-        bed = "binning/concoct/{assembly_group}/contigs_10k_{king}.fa",
+        bed = "binning/concoct/{assembly_group}/contigs_10k_{king}.bed",
         bam = expand("mapping/{assembly_group}/{sample}.bam", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])
     output:
         coverage = "binning/concoct/{assembly_group}/coverage_file_{king}.tab"

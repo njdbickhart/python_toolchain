@@ -27,6 +27,13 @@
     "mem" : "10000",
     "ntasks-per-node" : "8",
   },
+  "concoct_calc_cov" :
+  {
+    "mem" : "10000",
+    "ntasks-per-node" : "8",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.king}.stdout",
+    "jobname" : "concoct [{wildcards.assembly_group}{wildcards.king}]"
+  },
   "run_concoct" :
   {
     "mem" : "10000",

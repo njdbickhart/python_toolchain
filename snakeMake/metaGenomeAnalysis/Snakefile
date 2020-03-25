@@ -24,6 +24,7 @@ rule all:
     input:
         expand("assembly/{assembly_group}.fa", assembly_group=getAssemblyBaseName(config["assemblies"])),
         "FinishedBinning",
+        "Finishedtaxify"
 
 # Take configuration assemblies and softlink them
 rule link_assemblies:

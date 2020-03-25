@@ -1,4 +1,7 @@
 
+rule all_taxified:
+    input:
+        "FinishedTaxify"
 
 rule diamond:
     input:
@@ -33,7 +36,7 @@ rule blobtools_taxify:
 
 rule blobtools_cov:
     input:
-        bams = "/mapping/{assembly_group}/{sample}.bam",
+        bams = "mapping/{assembly_group}/{sample}.bam",
         fasta = "assembly/{assembly_group}.fa"
     output:
         cov = "blobtools/{assembly_group}_{sample}.cov"
@@ -82,6 +85,12 @@ rule blobtools_viewplot:
         """
         blobtools plot -i {input.blobdb} --notitle --format pdf -r superkingdom -o blobtools/supkingdom
         blobtools plot -i {input.blobdb} --notitle --format pdf -r phylum -o blobtools/phylum
-        
+
         blobtools view -i {input.blobdb} -o blobtools/table -r all
         """
+
+rule blobtools_complete:
+    input:
+        expand("blobtools/table.{assembly_group}.blobDB.table.txt", assembly_group=getAssemblyBaseName(config["assemblies"]))
+    output:
+        temp(touch("FinishedTaxify"))
