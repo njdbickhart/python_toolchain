@@ -59,9 +59,9 @@ rule bwa_mem:
         """
 rule create_bam_index:
     input:
-        "{file}.bam"
+        "mapping/{assembly_group}/{file}.bam"
     output:
-        "{file}.bam.bai"
+        "mapping/{assembly_group}/{file}.bam.bai"
     conda:
         "../envs/metabat.yaml"
     threads:
