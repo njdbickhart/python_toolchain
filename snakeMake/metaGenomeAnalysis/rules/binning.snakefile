@@ -57,7 +57,17 @@ rule bwa_mem:
         """
         bwa mem -t {params.threads} {params.extra} {input.reference} {input.r1} {input.r2} | samtools sort -o {output} - >> {log} 2>&1
         """
-
+rule create_bam_index:
+    input:
+        "{file}.bam"
+    output:
+        "{file}.bam.bai"
+    conda:
+        "../envs/metabat.yaml"
+    threads:
+        1
+    shell:
+        "samtools index {input}"
 # Metabat
 
 rule metabat_abundance:
@@ -158,7 +168,8 @@ rule concoct_ctgprep_euk:
 rule concoct_calc_cov:
     input:
         bed = "binning/concoct/{assembly_group}/contigs_10k_{king}.bed",
-        bam = expand("mapping/{assembly_group}/{sample}.bam", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])
+        bam = expand("mapping/{assembly_group}/{sample}.bam", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"]),
+        bai = expand("mapping/{assembly_group}/{sample}.bam.bai", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])
     output:
         coverage = "binning/concoct/{assembly_group}/coverage_file_{king}.tab"
     conda:
