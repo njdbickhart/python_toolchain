@@ -17,14 +17,14 @@ def getAssemblyBaseName(files):
 
 include: "rules/annotate.snakefile"
 include: "rules/binning.snakefile"
-include: "rules/taxify.snakefile"
+# The blobtools packages are not able to be run on conda yet
+#include: "rules/taxify.snakefile"
 
 localrules: all
 rule all:
     input:
         expand("assembly/{assembly_group}.fa", assembly_group=getAssemblyBaseName(config["assemblies"])),
-        "FinishedBinning",
-        "FinishedTaxify"
+        "FinishedBinning"
 
 # Take configuration assemblies and softlink them
 rule link_assemblies:
