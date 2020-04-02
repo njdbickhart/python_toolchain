@@ -1,3 +1,5 @@
+# Note: many of these rules were refactored from MagPy
+# Credit to: https://github.com/WatsonLab/MAGpy
 import os
 
 #TODO: refactor for my pipeline
@@ -59,7 +61,6 @@ rule diamond_bin_summary:
 		echo -e 'name\tnprots\tnhits\tnfull\tgenus\tngenus\tspecies\tnspecies\tavgpid' >> {output}
             	find diamond_report/ -name "bin*.tsv" | xargs -I {{}} cat {{}} >> {output}
 		'''
-
 
 rule diamond_bin_summary_plus:
         input: "diamond_bin_report.tsv"

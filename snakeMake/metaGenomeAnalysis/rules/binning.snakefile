@@ -1,6 +1,11 @@
 import os
 
 KING = ["full", "euk"]
+BINS = ["metabat2", "concoct"]
+if config.get("hic"):
+    BINS.append("bin3c")
+
+localrules: convert_concoct, metabat_convert, modify_bin3c
 
 rule all_binned:
     input:
@@ -8,9 +13,7 @@ rule all_binned:
 
 rule temp_completion:
     input:
-        expand("binning/metabat2/{assembly_group}/metabat_bin_full.tab", assembly_group=getAssemblyBaseName(config["assemblies"])),
-        expand("binning/metabat2/{assembly_group}/metabat_bin_euk.tab", assembly_group=getAssemblyBaseName(config["assemblies"])),
-        expand("binning/concoct/{assembly_group}/clustering_merged_{king}.csv", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING)
+        expand("binning/{bins}/{assembly_group}/{bins}.{king}.clusters.tab", bins= BINS, assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING)
     output:
         temp(touch("FinishedBinning"))
 
@@ -137,6 +140,17 @@ rule metabat_binning_euk:
         metabat2 {params.other} --numThreads {params.threads} -i {input.assembly} -a {input.depth} -o {output} > {log} 2>&1
         """
 
+rule metabat_convert:
+    input:
+        "binning/metabat2/{assembly_group}/metabat_bin_{king}.tab"
+    output:
+        "binning/metabat2/{assembly_group}/metabat2.{king}.clusters.tab"
+    run:
+        with open(input, 'r') as bins, open(output, 'w') as out:
+            for l in bins:
+                s = l.rstrip().split()
+                out.write(f'{s[0]}\tmetabat2.{s[1]}\n')
+
 # Concoct
 
 rule concoct_ctgprep:
@@ -204,3 +218,103 @@ rule run_concoct:
 
         merge_cutup_clustering.py {output.bins} > {output.fbins}
         """
+rule convert_concoct:
+    input:
+        "binning/concoct/{assembly_group}/clustering_merged_{king}.csv"
+    output:
+        "binning/concoct/{assembly_group}/concoct.{king}.clusters.tab"
+    run:
+        with open(input, 'r') as bins, open(output, 'w') as out:
+            bins.readline()
+            for l in bins:
+                s = l.rstrip().split(',')
+                out.write(f'{s[0]}\tconcoct.{s[1]}\n')
+
+if config.get("hic"):
+
+    rule align_hic:
+        input:
+            amb = "assembly/{assembly_group}.fa.amb",
+            ann = "assembly/{assembly_group}.fa.ann",
+            bwt = "assembly/{assembly_group}.fa.bwt",
+            pac = "assembly/{assembly_group}.fa.pac",
+            sa = "assembly/{assembly_group}.fa.sa",
+            reference = "assembly/{assembly_group}.fa",
+            r1 = lambda wildcards: config["hic"][wildcards.enzyme][0],
+            r2 = lambda wildcards: config["hic"][wildcards.enzyme][1]
+        output:
+            "mapping/{assembly_group}/hic_{enzyme}.bam"
+        threads: 8
+        conda:
+            "../envs/metabat.yaml"
+        shell:
+            """
+            bwa mem -5SP {input.reference} {input.r1} {input.r2} | \
+            samtools view -F 0x904 -bS - | \
+            samtools sort -o {output} -
+            """
+
+    rule bin3c_contact:
+        input:
+            reference = "assembly/{assembly_group}.fa",
+            bam = "mapping/{assembly_group}/hic_{enzyme}.bam"
+        output:
+            "binning/bin3c/{assembly_group}/{enzyme}_full_out"
+        threads: 1
+        conda:
+            "../envs/bin3c.yaml"
+        params:
+            enzyme = lambda wildcards: config["hic"][wildcards.enzyme]
+        shell:
+            """
+            bin3C mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
+            """
+
+    rule bin3c_contact_euk:
+        input:
+            reference = "eukrep/{assembly_group}/euk.final.contigs.fa",
+            bam = "mapping/{assembly_group}/hic_{enzyme}.bam"
+        output:
+            "binning/bin3c/{assembly_group}/{enzyme}_euk_out"
+        threads: 1
+        conda:
+            "../envs/bin3c.yaml"
+        params:
+            enzyme = lambda wildcards: config["hic"][wildcards.enzyme]
+        shell:
+            """
+            bin3C mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
+            """
+
+    rule bin3c_cluster:
+        input:
+            "binning/bin3c/{assembly_group}/{enzyme}_{king}_out"
+        output:
+            outfolder = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust",
+            outclust = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust/clustering.mcl"
+        threads: 1
+        conda:
+            "../envs/bin3c.yaml"
+        shell:
+            """
+            bin3C cluster --no-plot -v {input.folder}/contact_map.p.gz {output.outfolder}
+            """
+
+    rule modify_bin3c:
+        input:
+            expand("binning/bin3c/{assembly_group}/{enzyme}_{king}_clust/clustering.mcl", assembly_group=getAssemblyBaseName(config["assemblies"]), enzyme=config["hic"], king=KING)
+        output:
+            "binning/bin3c/{assembly_group}/bin3c.{king}.clusters.tab"
+        run:
+            with open(output, 'w') as out:
+                seen = set()
+                bnum = 0
+                for j in input:
+                    with open(j, 'r') as bins:
+                        for l in bins:
+                            s = l.rstrip().split()
+                            for i in s:
+                                if not i in seen:
+                                    out.write(f'{i}\tbin3c.{bnum}\n')
+                                seen.add(i)
+                            bnum += 1

@@ -3,12 +3,18 @@
   "diamonddb" : "/path/to/diamonddb",
   "diamondtaxid" : "/path/to/diamondtaxid",
   "ncbidb" : "/path/to/ncbidb",
-  
+
   "assemblies" : [
     "/path/to/assembly/file.fa",
   ],
   "samples" : {
     "YMPrep3" : [
+      "/path/to/read/one/read_R1.fastq",
+      "/path/to/read/two/read_R2.fastq"
+    ]
+  },
+  "hic" : {
+    "Sau3CI" : [
       "/path/to/read/one/read_R1.fastq",
       "/path/to/read/two/read_R2.fastq"
     ]
