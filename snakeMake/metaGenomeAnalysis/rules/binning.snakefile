@@ -142,11 +142,11 @@ rule metabat_binning_euk:
 
 rule metabat_convert:
     input:
-        "binning/metabat2/{assembly_group}/metabat_bin_{king}.tab"
+        bin = "binning/metabat2/{assembly_group}/metabat_bin_{king}.tab"
     output:
-        "binning/metabat2/{assembly_group}/metabat2.{king}.clusters.tab"
+        cluster = "binning/metabat2/{assembly_group}/metabat2.{king}.clusters.tab"
     run:
-        with open(input, 'r') as bins, open(output, 'w') as out:
+        with open(input.bin, 'r') as bins, open(output.cluster, 'w') as out:
             for l in bins:
                 s = l.rstrip().split()
                 out.write(f'{s[0]}\tmetabat2.{s[1]}\n')
@@ -220,11 +220,11 @@ rule run_concoct:
         """
 rule convert_concoct:
     input:
-        "binning/concoct/{assembly_group}/clustering_merged_{king}.csv"
+        bin = "binning/concoct/{assembly_group}/clustering_merged_{king}.csv"
     output:
-        "binning/concoct/{assembly_group}/concoct.{king}.clusters.tab"
+        cluster = "binning/concoct/{assembly_group}/concoct.{king}.clusters.tab"
     run:
-        with open(input, 'r') as bins, open(output, 'w') as out:
+        with open(input.bin, 'r') as bins, open(output.cluster, 'w') as out:
             bins.readline()
             for l in bins:
                 s = l.rstrip().split(',')
@@ -306,7 +306,7 @@ if config.get("hic"):
         output:
             "binning/bin3c/{assembly_group}/bin3c.{king}.clusters.tab"
         run:
-            with open(output, 'w') as out:
+            with open(output[0], 'w') as out:
                 seen = set()
                 bnum = 0
                 for j in input:
