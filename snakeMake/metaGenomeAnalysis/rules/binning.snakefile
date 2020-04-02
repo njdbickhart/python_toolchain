@@ -290,14 +290,15 @@ if config.get("hic"):
         input:
             "binning/bin3c/{assembly_group}/{enzyme}_{king}_out"
         output:
-            outfolder = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust",
             outclust = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust/clustering.mcl"
         threads: 1
+        params:
+            outfolder = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust"
         conda:
             "../envs/bin3c.yaml"
         shell:
             """
-            bin3C cluster --no-plot -v {input.folder}/contact_map.p.gz {output.outfolder}
+            bin3C cluster --no-plot -v {input.folder}/contact_map.p.gz {params.outfolder}
             """
 
     rule modify_bin3c:
