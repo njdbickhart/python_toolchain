@@ -1,7 +1,14 @@
 channels:
+    - anaconda
     - bioconda
 dependencies:
     - python=3.6
-    - blobtools=1.0.1
     - diamond=0.9.30
     - samtools=1.9
+    - docopt
+    - tqdm
+    - pyyaml
+    - git
+    - pysam
+    - pip:
+      - git+https://github.com/DRL/blobtools.git
