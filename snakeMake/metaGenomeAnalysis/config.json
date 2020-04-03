@@ -13,6 +13,7 @@
       "/path/to/read/two/read_R2.fastq"
     ]
   },
+  "bin3c" : "/path/to/bin3c/exe",
   "hic" : {
     "Sau3CI" : [
       "/path/to/read/one/read_R1.fastq",

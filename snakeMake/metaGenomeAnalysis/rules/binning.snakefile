@@ -249,7 +249,7 @@ if config.get("hic"):
             "../envs/metabat.yaml"
         shell:
             """
-            bwa mem -5SP {input.reference} {input.r1} {input.r2} | \
+            bwa mem -t {threads} -5SP {input.reference} {input.r1} {input.r2} | \
             samtools view -F 0x904 -bS - | \
             samtools sort -o {output} -
             """
@@ -264,10 +264,11 @@ if config.get("hic"):
         conda:
             "../envs/bin3c.yaml"
         params:
-            enzyme = lambda wildcards: config["hic"][wildcards.enzyme]
+            enzyme = lambda wildcards: config["hic"][wildcards.enzyme],
+            bin3c = config["bin3c"]
         shell:
             """
-            bin3C mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
+            {params.bin3c} mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
             """
 
     rule bin3c_contact_euk:
@@ -280,10 +281,11 @@ if config.get("hic"):
         conda:
             "../envs/bin3c.yaml"
         params:
-            enzyme = lambda wildcards: config["hic"][wildcards.enzyme]
+            enzyme = lambda wildcards: config["hic"][wildcards.enzyme],
+            bin3c = config["bin3c"]
         shell:
             """
-            bin3C mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
+            {params.bin3c} mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
             """
 
     rule bin3c_cluster:
@@ -293,12 +295,13 @@ if config.get("hic"):
             outclust = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust/clustering.mcl"
         threads: 1
         params:
-            outfolder = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust"
+            outfolder = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust",
+            bin3c = config["bin3c"]
         conda:
             "../envs/bin3c.yaml"
         shell:
             """
-            bin3C cluster --no-plot -v {input.folder}/contact_map.p.gz {params.outfolder}
+            {params.bin3c} cluster --no-plot -v {input.folder}/contact_map.p.gz {params.outfolder}
             """
 
     rule modify_bin3c:
