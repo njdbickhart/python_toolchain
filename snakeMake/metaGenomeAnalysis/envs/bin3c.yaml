@@ -3,6 +3,6 @@ channels:
 dependencies:
     - python=2.7
     - samtools=1.9
-source:
-    - git_url: https://github.com/cerebis/bin3C.git
-    - folder: bin3c
+    - pip=19.0.1
+    - pip: 
+      - git+https://github.com/cerebis/bin3C.git
