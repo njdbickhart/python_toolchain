@@ -5,3 +5,4 @@ channels:
     - defaults
 dependencies:
     - das_tool=1.1.1
+    - diamond=0.9.30

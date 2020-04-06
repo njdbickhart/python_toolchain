@@ -264,7 +264,7 @@ if config.get("hic"):
         conda:
             "../envs/bin3c.yaml"
         params:
-            enzyme = lambda wildcards: config["hic"][wildcards.enzyme],
+            enzyme = lambda wildcards: config["hic"].keys(),
             bin3c = config["bin3c"]
         shell:
             """
@@ -281,7 +281,7 @@ if config.get("hic"):
         conda:
             "../envs/bin3c.yaml"
         params:
-            enzyme = lambda wildcards: config["hic"][wildcards.enzyme],
+            enzyme = lambda wildcards: config["hic"].keys(),
             bin3c = config["bin3c"]
         shell:
             """
@@ -322,3 +322,30 @@ if config.get("hic"):
                                     out.write(f'{i}\tbin3c.{bnum}\n')
                                 seen.add(i)
                             bnum += 1
+
+rule das_tool:
+    input:
+        binfiles = expand("binning/{bins}/{assembly_group}/{bins}.{king}.clusters.tab", bins=BINS, assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
+        reference = "assembly/{assembly_group}.fa"
+    output:
+        expand("binning/DASTool/{{assembly_group}}.{{king}}{postfix}",
+               postfix=["_DASTool_summary.txt", "_DASTool_hqBins.pdf", "_DASTool_scores.pdf"]),
+        expand("binning/DASTool/{{assembly_group}}.{{king}}_{bins}.eval",
+               bins= BINS),
+        cluster_attribution = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv"
+    threads: 10
+    log:
+        config['logdir'] + "/dastool.{assembly_group}.{king}.log"
+    conda:
+        "../envs/dastool.yaml"
+    params:
+        binnames = ",".join(BINS),
+        scaffolds2bin = lambda wildcards, input: ",".join(input.binfiles),
+        output_prefix = "binning/DASTool/{assembly_group}.{king}"
+    shell:
+        """
+        DAS_Tool --outputbasename {params.output_prefix} --bins {params.scaffolds2bin} \
+        --labels {params.binnames} --contigs {input.reference} --search_engine diamond \
+        --write_bin_evals 1 --create_plots 1 --threads {threads} --debug &> {log};
+        mv {params.output_prefix}_DASTool_scaffolds2bin.txt {output.cluster_attribution} &>> {log}
+        """
