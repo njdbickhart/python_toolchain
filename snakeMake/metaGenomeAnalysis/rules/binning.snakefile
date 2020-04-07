@@ -13,7 +13,8 @@ rule all_binned:
 
 rule temp_completion:
     input:
-        expand("binning/{bins}/{assembly_group}/{bins}.{king}.clusters.tab", bins= BINS, assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING)
+        expand("binning/{bins}/{assembly_group}/{bins}.{king}.clusters.tab", bins= BINS, assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
+        expand("binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING)
     output:
         temp(touch("FinishedBinning"))
 
@@ -231,7 +232,7 @@ rule convert_concoct:
                 out.write(f'{s[0]}\tconcoct.{s[1]}\n')
 
 if config.get("hic"):
-
+    
     rule align_hic:
         input:
             amb = "assembly/{assembly_group}.fa.amb",
@@ -251,7 +252,7 @@ if config.get("hic"):
             """
             bwa mem -t {threads} -5SP {input.reference} {input.r1} {input.r2} | \
             samtools view -F 0x904 -bS - | \
-            samtools sort -o {output} -
+            samtools sort -o {output} -n -
             """
 
     rule bin3c_contact:
@@ -259,12 +260,12 @@ if config.get("hic"):
             reference = "assembly/{assembly_group}.fa",
             bam = "mapping/{assembly_group}/hic_{enzyme}.bam"
         output:
-            "binning/bin3c/{assembly_group}/{enzyme}_full_out"
+            directory("binning/bin3c/{assembly_group}/{enzyme}_full_out")
         threads: 1
         conda:
             "../envs/bin3c.yaml"
         params:
-            enzyme = lambda wildcards: config["hic"].keys(),
+            enzyme = lambda wildcards: wildcards.enzyme,
             bin3c = config["bin3c"]
         shell:
             """
@@ -276,12 +277,12 @@ if config.get("hic"):
             reference = "eukrep/{assembly_group}/euk.final.contigs.fa",
             bam = "mapping/{assembly_group}/hic_{enzyme}.bam"
         output:
-            "binning/bin3c/{assembly_group}/{enzyme}_euk_out"
+            directory("binning/bin3c/{assembly_group}/{enzyme}_euk_out")
         threads: 1
         conda:
             "../envs/bin3c.yaml"
         params:
-            enzyme = lambda wildcards: config["hic"].keys(),
+            enzyme = lambda wildcards: wildcards.enzyme,
             bin3c = config["bin3c"]
         shell:
             """
@@ -290,18 +291,21 @@ if config.get("hic"):
 
     rule bin3c_cluster:
         input:
-            "binning/bin3c/{assembly_group}/{enzyme}_{king}_out"
+            directory("binning/bin3c/{assembly_group}/{enzyme}_{king}_out")
         output:
             outclust = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust/clustering.mcl"
         threads: 1
         params:
-            outfolder = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust",
+            outfolder = "binning/bin3c/{assembly_group}/{enzyme}_{king}_temp",
+            realout = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust",
             bin3c = config["bin3c"]
         conda:
             "../envs/bin3c.yaml"
         shell:
             """
-            {params.bin3c} cluster --no-plot -v {input.folder}/contact_map.p.gz {params.outfolder}
+            python2 {params.bin3c} cluster --no-plot -v {input}/contact_map.p.gz {params.outfolder}
+            mv {params.outfolder}/clustering.mcl {params.realout}/
+            rm -r {params.outfolder}
             """
 
     rule modify_bin3c:
