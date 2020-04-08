@@ -41,9 +41,16 @@
   },
   "das_tool" :
   {
-    "mem" : "35000",
+    "mem" : "45000",
     "ntasks-per-node" : "10",
-    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.king}.stdout",
-    "jobname" : "dastool [{wildcards.assembly_group}{wildcards.king}]"
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.full.stdout",
+    "jobname" : "dastool [{wildcards.assembly_group}full]"
+  },
+  "das_tool_euk" :
+  {
+    "mem" : "45000",
+    "ntasks-per-node" : "10",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.euk.stdout",
+    "jobname" : "dastool [{wildcards.assembly_group}euk]"
   }
 }

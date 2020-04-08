@@ -232,7 +232,7 @@ rule convert_concoct:
                 out.write(f'{s[0]}\tconcoct.{s[1]}\n')
 
 if config.get("hic"):
-    
+
     rule align_hic:
         input:
             amb = "assembly/{assembly_group}.fa.amb",
@@ -329,25 +329,54 @@ if config.get("hic"):
 
 rule das_tool:
     input:
-        binfiles = expand("binning/{bins}/{assembly_group}/{bins}.{king}.clusters.tab", bins=BINS, assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
+        binfiles = expand("binning/{bins}/{assembly_group}/{bins}.full.clusters.tab", bins=BINS, assembly_group=getAssemblyBaseName(config["assemblies"])),
         reference = "assembly/{assembly_group}.fa"
     output:
-        expand("binning/DASTool/{{assembly_group}}.{{king}}{postfix}",
+        expand("binning/DASTool/{{assembly_group}}.full{postfix}",
                postfix=["_DASTool_summary.txt", "_DASTool_hqBins.pdf", "_DASTool_scores.pdf"]),
-        expand("binning/DASTool/{{assembly_group}}.{{king}}_{bins}.eval",
+        expand("binning/DASTool/{{assembly_group}}.full_{bins}.eval",
                bins= BINS),
-        cluster_attribution = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv"
+        cluster_attribution = "binning/DASTool/{assembly_group}.full_cluster_attribution.tsv"
     threads: 10
     log:
-        config['logdir'] + "/dastool.{assembly_group}.{king}.log"
+        config['logdir'] + "/dastool.{assembly_group}.full.log"
     conda:
         "../envs/dastool.yaml"
     params:
         binnames = ",".join(BINS),
         scaffolds2bin = lambda wildcards, input: ",".join(input.binfiles),
-        output_prefix = "binning/DASTool/{assembly_group}.{king}"
+        output_prefix = "binning/DASTool/{assembly_group}.full"
     shell:
         """
+        echo {params.output_prefix} {params.scaffolds2bin} {params.binnames}
+        DAS_Tool --outputbasename {params.output_prefix} --bins {params.scaffolds2bin} \
+        --labels {params.binnames} --contigs {input.reference} --search_engine diamond \
+        --write_bin_evals 1 --create_plots 1 --threads {threads} --debug &> {log};
+        mv {params.output_prefix}_DASTool_scaffolds2bin.txt {output.cluster_attribution} &>> {log}
+        """
+
+rule das_tool_euk:
+    input:
+        binfiles = expand("binning/{bins}/{assembly_group}/{bins}.euk.clusters.tab", bins=BINS, assembly_group=getAssemblyBaseName(config["assemblies"])),
+        reference = "assembly/{assembly_group}.fa"
+    output:
+        expand("binning/DASTool/{{assembly_group}}.euk{postfix}",
+               postfix=["_DASTool_summary.txt", "_DASTool_hqBins.pdf", "_DASTool_scores.pdf"]),
+        expand("binning/DASTool/{{assembly_group}}.euk_{bins}.eval",
+               bins= BINS),
+        cluster_attribution = "binning/DASTool/{assembly_group}.euk_cluster_attribution.tsv"
+    threads: 10
+    log:
+        config['logdir'] + "/dastool.{assembly_group}.euk.log"
+    conda:
+        "../envs/dastool.yaml"
+    params:
+        binnames = ",".join(BINS),
+        scaffolds2bin = lambda wildcards, input: ",".join(input.binfiles),
+        output_prefix = "binning/DASTool/{assembly_group}.euk"
+    shell:
+        """
+        echo {params.output_prefix} {params.scaffolds2bin} {params.binnames}
         DAS_Tool --outputbasename {params.output_prefix} --bins {params.scaffolds2bin} \
         --labels {params.binnames} --contigs {input.reference} --search_engine diamond \
         --write_bin_evals 1 --create_plots 1 --threads {threads} --debug &> {log};
