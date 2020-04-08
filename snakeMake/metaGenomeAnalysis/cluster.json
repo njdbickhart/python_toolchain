@@ -38,5 +38,12 @@
   {
     "mem" : "10000",
     "ntasks-per-node" : "8",
+  },
+  "das_tool" :
+  {
+    "mem" : "35000",
+    "ntasks-per-node" : "10",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.king}.stdout",
+    "jobname" : "dastool [{wildcards.assembly_group}{wildcards.king}]"
   }
 }
