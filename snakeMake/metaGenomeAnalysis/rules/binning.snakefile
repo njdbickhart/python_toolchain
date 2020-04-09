@@ -348,6 +348,7 @@ rule das_tool:
         output_prefix = "binning/DASTool/{assembly_group}.full"
     shell:
         """
+        module load usearch/11.0.667
         echo {params.output_prefix} {params.scaffolds2bin} {params.binnames}
         DAS_Tool --outputbasename {params.output_prefix} --bins {params.scaffolds2bin} \
         --labels {params.binnames} --contigs {input.reference} --search_engine diamond \
@@ -376,6 +377,7 @@ rule das_tool_euk:
         output_prefix = "binning/DASTool/{assembly_group}.euk"
     shell:
         """
+        module load usearch/11.0.667
         echo {params.output_prefix} {params.scaffolds2bin} {params.binnames}
         DAS_Tool --outputbasename {params.output_prefix} --bins {params.scaffolds2bin} \
         --labels {params.binnames} --contigs {input.reference} --search_engine diamond \
