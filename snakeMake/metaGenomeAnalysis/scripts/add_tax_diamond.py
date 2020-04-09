@@ -5,34 +5,32 @@ import sys
 
 from ete3 import NCBITaxa
 
-# get NCBI taxonomy object
+# get NCBI taxonomu object
 ncbi = NCBITaxa()
+
+if len(sys.argv) == 1:
+	print("Please provide a filename")
+	sys.exit()
+
 
 # open the file
 checkm_file = snakemake.input[0]
 outfile = snakemake.output[0]
 
 # skip three lines
-for i in range(3):
-    checkm_file.readline()
+row1 = checkm_file.readline()
 
 # print titles for the output
-titles = ["bin_id",
-		"marker_lineage",
-		"ml_uid",
-		"n_genomes",
-		"n_markers",
-		"n_marker_sets",
-		"n_0",
-		"n_1",
-		"n_2",
-		"n_3",
-		"n_4",
-		"n_5_plus",
-		"completeness",
-		"contamination",
-		"strain_het",
-		"superkingdom",
+titles = ["name",
+		"nprots",
+		"nhits",
+		"nfull",
+		"genus",
+		"ngenus",
+		"species",
+		"nspecies",
+		"avgpid",
+		"Superkingdom",
 		"kingdom",
 		"phylum",
 		"class",
@@ -40,31 +38,21 @@ titles = ["bin_id",
 		"family",
 		"genus"]
 
-
-
 # iterate over file
 with open(checkm_file, 'r') as input, open(outfile, 'w') as out:
     out.write('\t'.join(map(str,titles)) + '\n')
-    for row in input:
-
+    for row in checkm_file:
     	# split on whitespace
-    	arr = row.split()
-
+    	arr = row.rstrip('\n\r').split('\t')
     	# only consider data lines
     	if (len(arr) > 1):
-
-    		# get taxonomy free of the k__ bit
-    		if (arr[1]=="root"):
-    			tax = "root"
-    		else:
-    			tax = arr[1].split("__")[1]
-
-    		# map taxid and tax names
+    		tax = arr[4]
+    		# map taxid and tax name
     		name2taxid = ncbi.get_name_translator([tax])
 
     		# empty variables unless we change them
-            lineages = ["superkingdom", "kingdom", "phylum", "class", "order", "family", "genus"]
-    		values = {x : "" for x in lineages}
+    		lineages = ["superkingdom", "kingdom", "phylum", "class", "order", "family", "genus"]
+            values = {x : "" for x in lineages}
 
     		# check we got what we asked for
     		if tax in name2taxid.keys():

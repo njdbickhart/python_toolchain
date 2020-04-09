@@ -5,6 +5,9 @@ BINS = ["metabat2", "concoct"]
 if config.get("hic"):
     BINS.append("bin3c")
 
+wildcard_constraints:
+    king = "(full|euk)"
+
 localrules: convert_concoct, metabat_convert, modify_bin3c
 
 rule all_binned:
@@ -14,7 +17,8 @@ rule all_binned:
 rule temp_completion:
     input:
         expand("binning/{bins}/{assembly_group}/{bins}.{king}.clusters.tab", bins= BINS, assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
-        expand("binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING)
+        expand("binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
+        expand("binning/DASTool/{assembly_group}.{king}_cluster_counts.tab", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
     output:
         temp(touch("FinishedBinning"))
 
@@ -384,3 +388,28 @@ rule das_tool_euk:
         --write_bin_evals 1 --create_plots 1 --threads {threads} --debug &> {log};
         mv {params.output_prefix}_DASTool_scaffolds2bin.txt {output.cluster_attribution} &>> {log}
         """
+
+rule mag_generation:
+    input:
+        cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv",
+        reference = "assembly/{assembly_group}.fa"
+    output:
+        dir = directory("mags/{assembly_group}/{king}"),
+        counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
+    conda:
+        "../envs/concoct.yaml"
+    run:
+        import os
+        from collections import defaultdict
+        import subprocess
+        os.makedirs(output.dir)
+        bins = defaultdict(list)
+        with open(input.cluster, 'r') as clust:
+            for l in clust:
+                s = l.rstrip().split()
+                bins[s[1]].append(s[0])
+        with open(output.counts, 'w') as out:
+            for bins, ctgs in bins.items():
+                outfile = output.dir + f'/dastool.{bins}.fa'
+                subprocess.Popen(f'samtools faidx {input.reference} ' + ' '.join(ctgs) + f' > {outfile}', shell=True)
+                out.write(f'{bins}\t{len(ctgs)}\n')

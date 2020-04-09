@@ -25,13 +25,14 @@ rule blobtools_taxify:
         "blobtools/taxify.{assembly_group}.diamondout.tsv.taxified.out"
     threads: 2
     params:
-        tax = config['diamondtaxid']
+        tax = config['diamondtaxid'],
+        blobtools = config['blobtools']
     log:
     conda:
         "../envs/blobtools.yaml"
     shell:
         """
-        blobtools taxify -f {input} -m {params.tax} -s 0 -t 2 -o {output}
+        {params.blobtools} taxify -f {input} -m {params.tax} -s 0 -t 2 -o {output}
         """
 
 rule blobtools_cov:
@@ -41,12 +42,13 @@ rule blobtools_cov:
     output:
         cov = "blobtools/{assembly_group}.{sample}.cov"
     params:
-        outbase = "blobtools/{assembly_group}.{sample}"
+        outbase = "blobtools/{assembly_group}.{sample}",
+        blobtools = config['blobtools']
     conda:
         "../envs/blobtools.yaml"
     shell:
         """
-        blobtools map2cov -i {input.fasta} -b {input.bams} -o {params.outbase}
+        {params.blobtools} map2cov -i {input.fasta} -b {input.bams} -o {params.outbase}
         """
 
 def getCovStr(covs):
@@ -62,14 +64,15 @@ rule blobtools_create:
     params:
         cstr = getCovStr(expand("blobtools/{assembly_group}.{sample}.cov", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])),
         outpre = "blobtools/{assembly_group}",
-        db = config["ncbidb"]
+        db = config["ncbidb"],
+        blobtools = config['blobtools']
     log:
     conda:
         "../envs/blobtools.yaml"
     shell:
         """
         echo "using {params.cstr}"
-        blobtools create -i {input.contigs} {params.cstr} -t {input.tax} -o {params.outpre} --db {params.db}
+        {params.blobtools} create -i {input.contigs} {params.cstr} -t {input.tax} -o {params.outpre} --db {params.db}
         """
 
 rule blobtools_viewplot:
@@ -81,12 +84,14 @@ rule blobtools_viewplot:
         table = "blobtools/table.{assembly_group}.blobDB.table.txt"
     conda:
         "../envs/blobtools.yaml"
+    params:
+        blobtools = config['blobtools']
     shell:
         """
-        blobtools plot -i {input.blobdb} --notitle --format pdf -r superkingdom -o blobtools/supkingdom
-        blobtools plot -i {input.blobdb} --notitle --format pdf -r phylum -o blobtools/phylum
+        {params.blobtools} plot -i {input.blobdb} --notitle --format pdf -r superkingdom -o blobtools/supkingdom
+        {params.blobtools} plot -i {input.blobdb} --notitle --format pdf -r phylum -o blobtools/phylum
 
-        blobtools view -i {input.blobdb} -o blobtools/table -r all
+        {params.blobtools} view -i {input.blobdb} -o blobtools/table -r all
         """
 
 rule blobtools_complete:

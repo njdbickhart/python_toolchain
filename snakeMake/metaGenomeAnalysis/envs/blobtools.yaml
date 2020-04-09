@@ -10,5 +10,3 @@ dependencies:
     - pyyaml
     - git
     - pysam
-    - pip:
-      - git+https://github.com/DRL/blobtools.git

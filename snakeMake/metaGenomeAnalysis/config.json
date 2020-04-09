@@ -3,7 +3,8 @@
   "diamonddb" : "/path/to/diamonddb",
   "diamondtaxid" : "/path/to/diamondtaxid",
   "ncbidb" : "/path/to/ncbidb",
-
+  "checkm_dataroot": "/path/to/checkmdbfolder",
+  "sourmash_gbk" : "/path/to/sourmashfold",
   "assemblies" : [
     "/path/to/assembly/file.fa",
   ],
@@ -14,6 +15,7 @@
     ]
   },
   "bin3c" : "/path/to/bin3c/exe",
+  "blobtools" : "/path/to/blobtools/exe",
   "hic" : {
     "Sau3CI" : [
       "/path/to/read/one/read_R1.fastq",
