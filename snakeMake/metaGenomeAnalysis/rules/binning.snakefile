@@ -398,18 +398,5 @@ rule mag_generation:
         counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
     conda:
         "../envs/concoct.yaml"
-    run:
-        import os
-        from collections import defaultdict
-        import subprocess
-        os.makedirs(output.dir)
-        bins = defaultdict(list)
-        with open(input.cluster, 'r') as clust:
-            for l in clust:
-                s = l.rstrip().split()
-                bins[s[1]].append(s[0])
-        with open(output.counts, 'w') as out:
-            for bins, ctgs in bins.items():
-                outfile = output.dir + f'/dastool.{bins}.fa'
-                subprocess.Popen(f'samtools faidx {input.reference} ' + ' '.join(ctgs) + f' > {outfile}', shell=True)
-                out.write(f'{bins}\t{len(ctgs)}\n')
+    script:
+        "../scripts/magGeneration.py"
