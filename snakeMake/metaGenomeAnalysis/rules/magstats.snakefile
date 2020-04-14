@@ -4,7 +4,7 @@ import os
 
 #TODO: refactor for my pipeline
 
-local_rules: sourmash_report, diamond_bin_summary
+localrules: sourmash_report, diamond_bin_summary
 
 def getIds():
     assembly, king, ids, = glob_wildcards("mags/{assembly_group}/{king}/{id}.fa")
