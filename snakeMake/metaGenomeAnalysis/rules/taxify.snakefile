@@ -40,9 +40,9 @@ rule blobtools_cov:
         bams = "mapping/{assembly_group}/{sample}.bam",
         fasta = "assembly/{assembly_group}.fa"
     output:
-        cov = "blobtools/{assembly_group}.{sample}.cov"
+        cov = "blobtools/{assembly_group}.{sample}.bam.cov"
     params:
-        outbase = "blobtools/{assembly_group}.{sample}",
+        outbase = "blobtools/{assembly_group}",
         blobtools = config['blobtools']
     conda:
         "../envs/blobtools.yaml"
@@ -57,7 +57,7 @@ def getCovStr(covs):
 rule blobtools_create:
     input:
         contigs = "assembly/{assembly_group}.fa",
-        covs = expand("blobtools/{assembly_group}.{sample}.cov", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"]),
+        covs = expand("blobtools/{assembly_group}.{sample}.bam.cov", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"]),
         tax = "blobtools/taxify.{assembly_group}.diamondout.tsv.taxified.out"
     output:
         blobdb = "blobtools/{assembly_group}.blobDB.json"
