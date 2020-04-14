@@ -66,8 +66,8 @@ rule diamond_report:
     input:
         tsv='stats/{assembly_group}/{king}/diamond/{id}.diamond.tsv',
         faa='stats/{assembly_group}/{king}/proteins/{id}.faa'
-    output: 
-        'stats/{assembly_group}/{king}/diamond_report/bin.{id}.tsv', 
+    output:
+        'stats/{assembly_group}/{king}/diamond_report/bin.{id}.tsv',
         'stats/{assembly_group}/{king}/diamond_report/con.{id}.tsv'
     params:
         outdir="stats/{assembly_group}/{king}/diamond_report",
@@ -76,7 +76,7 @@ rule diamond_report:
     shell: "{params.dir}/diamond_report.pl {input.tsv} {input.faa} {params.outdir}"
 
 rule diamond_bin_summary:
-    input: expand("stats/{assembly_group}/{king}/diamond_report/bin.{id}.tsv", id=getIds())
+    input: expand("stats/{assembly_group}/{king}/diamond_report/bin.{id}.tsv", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING, id=getIds())
     output: temp("stats/diamond_bin_report.tsv")
     shell:
         """
