@@ -19,6 +19,7 @@ rule temp_completion:
         expand("binning/{bins}/{assembly_group}/{bins}.{king}.clusters.tab", bins= BINS, assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
         expand("binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
         expand("binning/DASTool/{assembly_group}.{king}_cluster_counts.tab", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
+        expand("mags/{assembly_group}/{id}.fa")
     output:
         temp(touch("FinishedBinning"))
 
@@ -396,12 +397,26 @@ rule mag_generation:
         cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv",
         reference = "assembly/{assembly_group}.fa"
     output:
-        dir = directory("mags/{assembly_group}/"),
-        files = dynamic("mags/{assembly_group}/{id}.fa"),
-        counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
+        files = dynamic("mags/{assembly_group}/{id}.fa")
     params:
-        king = "{king}"
+        king = "{king}",
+        dir = "mags/{assembly_group}"
     conda:
         "../envs/concoct.yaml"
     script:
         "../scripts/magGeneration.py"
+
+rule mag_counts:
+    input:
+        cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv"
+    output:
+        counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
+    run:
+        from collections import defaultdict
+        with open(input.cluster, 'r') as clust, open(output.counts, 'w') as out:
+            bins = defaultdict(int)
+            for l in clust:
+                s = l.rstrip().split()
+                bins[s[1]] += 1
+            for b, c in bins.items():
+                out.write(f'{b}\t{c}\n')
