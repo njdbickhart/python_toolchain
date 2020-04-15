@@ -6,9 +6,7 @@ import os
 
 localrules: sourmash_report, diamond_bin_summary
 
-def getIds():
-    assembly, ids, = glob_wildcards("mags/{assembly_group}/{id}.fa")
-    return ids
+
 
 rule all_stats:
     input:

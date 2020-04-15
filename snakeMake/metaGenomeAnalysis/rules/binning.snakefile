@@ -18,8 +18,7 @@ rule temp_completion:
     input:
         expand("binning/{bins}/{assembly_group}/{bins}.{king}.clusters.tab", bins= BINS, assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
         expand("binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
-        expand("binning/DASTool/{assembly_group}.{king}_cluster_counts.tab", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
-        expand("mags/{assembly_group}/{id}.fa")
+        expand("binning/DASTool/{assembly_group}.{king}_cluster_counts.tab", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING)
     output:
         temp(touch("FinishedBinning"))
 
@@ -406,8 +405,13 @@ rule mag_generation:
     script:
         "../scripts/magGeneration.py"
 
+def getIds():
+    assembly, ids, = glob_wildcards("mags/{assembly_group}/{id}.fa")
+    return ids
+
 rule mag_counts:
     input:
+        files = expand("mags/{assembly_group}/{id}.fa", assembly_group=getAssemblyBaseName(config["assemblies"]), id=getIds())
         cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv"
     output:
         counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
