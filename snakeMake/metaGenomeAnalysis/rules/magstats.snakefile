@@ -22,8 +22,8 @@ rule stats_completion:
 
 rule checkm:
     input:
-        "mags/{assembly_group}/",
-        "FinishedBinning"
+        mags = "mags/{assembly_group}",
+        fini = "FinishedBinning"
     output: "stats/{assembly_group}/total.checkm.txt"
     threads: 16
     conda:
@@ -34,7 +34,7 @@ rule checkm:
         """
         checkm_db={params.cdr}
         echo ${{checkm_db}} | checkm data setRoot ${{checkm_db}}
-        checkm lineage_wf -f checkm.txt --reduced_tree -t {threads} -x fa {input} ./checkm
+        checkm lineage_wf -f checkm.txt --reduced_tree -t {threads} -x fa {input.mags} ./checkm
         """
 
 rule checkm_plus:
@@ -46,13 +46,13 @@ rule checkm_plus:
 
 rule prodigal_stats:
     input:
-        'mags/{assembly_group}/{id}.fa',
-        "FinishedBinning"
+        mags = 'mags/{assembly_group}/{id}.fa',
+        fini = "FinishedBinning"
     output:
         faa='stats/{assembly_group}/proteins/{id}.faa',
         gff='stats/{assembly_group}/proteins/{id}_prodigal.gff'
     conda: "../envs/prodigal.yaml"
-    shell: 'prodigal -p meta -a {output.faa} -q -i {input} -f gff -o {output.gff}'
+    shell: 'prodigal -p meta -a {output.faa} -q -i {input.mags} -f gff -o {output.gff}'
 
 rule diamond_prer:
     input: 'stats/{assembly_group}/proteins/{id}.faa'
@@ -95,11 +95,11 @@ rule diamond_bin_summary_plus:
 
 rule sourmash_sig:
     input:
-        'mags/{assembly_group}/{id}.fa',
-        "FinishedBinning"
+        mags = 'mags/{assembly_group}/{id}.fa',
+        fini = "FinishedBinning"
     output: dynamic('stats/sourmash/{assembly_group}/{id}.sig')
     conda: "../envs/sourmash.yaml"
-    shell: "sourmash compute --scaled 1000 -k 31 -o {output} {input}"
+    shell: "sourmash compute --scaled 1000 -k 31 -o {output} {input.mags}"
 
 rule sourmash_gather:
     input: 'stats/sourmash/{assembly_group}/{id}.sig'
