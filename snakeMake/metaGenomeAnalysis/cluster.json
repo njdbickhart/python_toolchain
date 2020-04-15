@@ -52,5 +52,33 @@
     "ntasks-per-node" : "10",
     "stdout" : "logs/{rule}.{wildcards.assembly_group}.euk.stdout",
     "jobname" : "dastool [{wildcards.assembly_group}euk]"
+  },
+  "diamond" :
+  {
+    "mem" : "20000",
+    "ntasks-per-node" : "16",
+    "stdout" : "logs/blobtools.{rule}.{wildcards.assembly_group}.stdout",
+    "jobname" : "blobdiamond [{wildcards.assembly_group}]"
+  },
+  "blobtools_taxify" :
+  {
+    "mem": "10000",
+    "ntasks-per-node" : "2"
+  },
+  "blobtools_create" :
+  {
+    "mem" : "10000"
+  },
+  "checkm" :
+  {
+    "mem" : "18000",
+    "ntasks-per-node" : "16",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.king}.stdout"
+  },
+  "diamond_prer" :
+  {
+    "mem" : "20000",
+    "ntasks-per-node" : "16",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.king}.{wildcards.id}.stdout"
   }
 }
