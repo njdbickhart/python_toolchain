@@ -10,6 +10,8 @@ with open(snakemake.input["cluster"], 'r') as clust:
         bins[s[1]].append(s[0])
 with open(snakemake.output["counts"], 'w') as out:
     for bins, ctgs in bins.items():
-        outfile = snakemake.output["dir"] + f'/dastool.{bins}.fa'
-        subprocess.Popen(f'samtools faidx {snakemake.input["reference"]} ' + ' '.join(ctgs) + f' > {outfile}', shell=True)
+        outfile = snakemake.output["dir"] + f'/{snakemake.params["king"]}.dastool.{bins}.fa'
+        cmd = f'samtools faidx {snakemake.input["reference"]} ' + ' '.join(ctgs) + f' > {outfile}'
+        print(cmd)
+        subprocess.Popen(cmd, shell=True)
         out.write(f'{bins}\t{len(ctgs)}\n')

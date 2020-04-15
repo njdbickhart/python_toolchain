@@ -31,7 +31,8 @@ rule bwa_index:
         "assembly/{assembly_group}.fa.ann",
         "assembly/{assembly_group}.fa.bwt",
         "assembly/{assembly_group}.fa.pac",
-        "assembly/{assembly_group}.fa.sa"
+        "assembly/{assembly_group}.fa.sa",
+        "assembly/{assembly_group}.fa.fai"
     log:
         config['logdir'] + "/{assembly_group}.log"
     conda:
@@ -39,6 +40,7 @@ rule bwa_index:
     shell:
         """
         bwa index {input} 2> {log}
+        samtools faidx {input} 2> {log}
         """
 
 rule bwa_mem:
@@ -394,8 +396,11 @@ rule mag_generation:
         cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv",
         reference = "assembly/{assembly_group}.fa"
     output:
-        dir = directory("mags/{assembly_group}/{king}"),
+        dir = directory("mags/{assembly_group}/"),
+        files = dynamic("mags/{assembly_group}/{id}.fa"),
         counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
+    params:
+        king = "{king}"
     conda:
         "../envs/concoct.yaml"
     script:
