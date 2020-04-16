@@ -55,7 +55,7 @@
   },
   "diamond" :
   {
-    "mem" : "20000",
+    "mem" : "30000",
     "ntasks-per-node" : "16",
     "stdout" : "logs/blobtools.{rule}.{wildcards.assembly_group}.stdout",
     "jobname" : "blobdiamond [{wildcards.assembly_group}]"
@@ -77,7 +77,7 @@
   },
   "diamond_prer" :
   {
-    "mem" : "20000",
+    "mem" : "30000",
     "ntasks-per-node" : "16",
     "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.id}.stdout"
   }

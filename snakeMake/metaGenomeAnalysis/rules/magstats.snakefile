@@ -22,19 +22,20 @@ rule stats_completion:
 
 rule checkm:
     input:
-        mags = "mags/{assembly_group}",
+        mags = expand("mags/{assembly_group}/{id}.fa", assembly_group=getAssemblyBaseName(config["assemblies"]), id=getIds()),
         fini = "FinishedBinning"
     output: "stats/{assembly_group}/total.checkm.txt"
     threads: 16
     conda:
         "../envs/checkm.yaml"
     params:
-        cdr=config["checkm_dataroot"]
+        cdr=config["checkm_dataroot"],
+        dir="mags/{assembly_group}"
     shell:
         """
         checkm_db={params.cdr}
         echo ${{checkm_db}} | checkm data setRoot ${{checkm_db}}
-        checkm lineage_wf -f checkm.txt --reduced_tree -t {threads} -x fa {input.mags} ./checkm
+        checkm lineage_wf -f checkm.txt --reduced_tree -t {threads} -x fa {params.dir} ./checkm
         """
 
 rule checkm_plus:
@@ -97,15 +98,15 @@ rule sourmash_sig:
     input:
         mags = 'mags/{assembly_group}/{id}.fa',
         fini = "FinishedBinning"
-    output: dynamic('stats/sourmash/{assembly_group}/{id}.sig')
+    output: 'stats/sourmash/{assembly_group}/{id}.sig'
     conda: "../envs/sourmash.yaml"
     shell: "sourmash compute --scaled 1000 -k 31 -o {output} {input.mags}"
 
 rule sourmash_gather:
     input: 'stats/sourmash/{assembly_group}/{id}.sig'
     output:
-        csv=dynamic('stats/sourmash/{assembly_group}/{id}.csv'),
-        out=dynamic('stats/sourmash/{assembly_group}/{id}.sm')
+        csv='stats/sourmash/{assembly_group}/{id}.csv',
+        out='stats/sourmash/{assembly_group}/{id}.sm'
     params:
         gb=config["sourmash_gbk"]
     conda: "../envs/sourmash.yaml"
@@ -119,12 +120,12 @@ rule sourmash_report:
     run:
         import os
         import re
-        assembly = wildcards.assembly_group
         with open(output.file, 'w') as out:
             out.write("assembly,file,intersect_bp,f_orig_query,f_match,f_unique_to_query,f_unique_weighted,average_abund,median_abund,std_abund,name,filename,md5\n")
             for i in input.csvs:
                 fname = re.sub('\.csv', '', os.path.basename(i))
+                assembly = os.path.abspath(i).split('/')
                 with open(i, 'r') as text:
                     text.readline()
                     for l in text:
-                        out.write(f'{assembly},{fname},' + l)
+                        out.write(f'{assembly[-2]},{fname},' + l)

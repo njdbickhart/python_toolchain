@@ -411,11 +411,10 @@ def getIds():
 
 rule mag_counts:
     input:
-        files = expand("mags/{assembly_group}/{id}.fa", assembly_group=getAssemblyBaseName(config["assemblies"]), id=getIds())
+        files = expand("mags/{assembly_group}/{id}.fa", assembly_group=getAssemblyBaseName(config["assemblies"]), id=getIds()),
         cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv"
     output:
-        counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab",
-        dir = directory("mags/{assembly_group}")
+        counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
     run:
         from collections import defaultdict
         with open(input.cluster, 'r') as clust, open(output.counts, 'w') as out:
