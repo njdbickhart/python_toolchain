@@ -4,7 +4,7 @@ import os
 
 #TODO: refactor for my pipeline
 
-localrules: sourmash_report, diamond_bin_summary
+localrules: sourmash_report, diamond_bin_summary, diamond_bin_summary_plus
 
 
 
@@ -22,7 +22,7 @@ rule stats_completion:
 
 rule checkm:
     input:
-        mags = expand("mags/{assembly_group}/{id}.fa", assembly_group=getAssemblyBaseName(config["assemblies"]), id=getIds()),
+        mags = "mags/{assembly_group}",
         fini = "FinishedBinning"
     output: "stats/{assembly_group}/total.checkm.txt"
     threads: 16
@@ -84,7 +84,7 @@ rule diamond_bin_summary:
     shell:
         """
         echo -e 'name\tnprots\tnhits\tnfull\tgenus\tngenus\tspecies\tnspecies\tavgpid' >> {output}
-        find stats/*/*/diamond_report/ -name "bin*.tsv" | xargs -I {{}} cat {{}} >> {output}
+        find stats/*/diamond_report/ -name "bin*.tsv" | xargs -I {{}} cat {{}} >> {output}
     	"""
 
 rule diamond_bin_summary_plus:

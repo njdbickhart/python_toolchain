@@ -391,15 +391,14 @@ rule das_tool_euk:
         mv {params.output_prefix}_DASTool_scaffolds2bin.txt {output.cluster_attribution} &>> {log}
         """
 
-rule mag_generation:
+checkpoint mag_generation:
     input:
         cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv",
         reference = "assembly/{assembly_group}.fa"
     output:
-        files = dynamic("mags/{assembly_group}/{id}.fa")
+        dir = directory("mags/{assembly_group}")
     params:
         king = "{king}",
-        dir = "mags/{assembly_group}"
     conda:
         "../envs/concoct.yaml"
     script:
@@ -411,7 +410,7 @@ def getIds():
 
 rule mag_counts:
     input:
-        files = expand("mags/{assembly_group}/{id}.fa", assembly_group=getAssemblyBaseName(config["assemblies"]), id=getIds()),
+        dir = "mags/{assembly_group}",
         cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv"
     output:
         counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
