@@ -59,9 +59,9 @@ def main(args):
     with smartFile(file) as input, open(args.output, 'w') as out:
         if fastq:
             for head, seq, qual in fastq_reader_fh(input):
-                inlist = True if head in names else False
+                inlist = True if head[1:] in names else False
                 if (inlist and not exclude) or (not inlist and exclude):
-                    out.write(f'{head}\n{seq}\n+\n{qual}')
+                    out.write(f'{head}\n{seq}\n+\n{qual}\n')
         else:
             for head, seq in read_fasta(input):
                 inlist = True if head in names else False
