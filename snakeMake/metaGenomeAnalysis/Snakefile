@@ -17,7 +17,7 @@ def getAssemblyBaseName(files):
 
 include: "rules/annotate.snakefile"
 include: "rules/binning.snakefile"
-#include: "rules/magstats.snakefile"
+include: "rules/magstats.snakefile"
 include: "rules/taxify.snakefile"
 
 localrules: link_assemblies
@@ -28,9 +28,9 @@ rule all:
         "FinishedTaxify"
         #"FinishedStats"
 
-#rule mag_stats:
-#    input:
-#        "FinishedStats"
+rule mag_stats:
+    input:
+        "FinishedStats"
 
 # Take configuration assemblies and softlink them
 rule link_assemblies:

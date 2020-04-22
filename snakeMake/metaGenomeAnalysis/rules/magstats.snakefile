@@ -12,32 +12,28 @@ rule all_stats:
     input:
         "FinishedStats"
 
+ASM, IDS = glob_wildcards("mags/{assembly_split}/{id}.fa")
+
 rule stats_completion:
     input:
-        expand("stats/{assembly_group}_{king}/total.checkm_plus.txt", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING ),
+        expand("stats/{assembly_split}/total.checkm_plus.txt", assembly_split=ASM),
         "stats/diamond_bin_report_plus.tsv",
         'stats/sourmash/sourmash_report.csv'
     output:
         temp(touch("FinishedStats"))
 
-rule beginStats:
-    input:
-       justAssemblySplit,
-       getIds
-    output:
-       temp(touch("BeginStats_{assembly_group}_{king}"))
 
 rule checkm:
     input:
-        mags = "mags/{assembly_group}_{king}",
-        start = "BeginStats_{assembly_group}_{king}"
-    output: "stats/{assembly_group}_{king}/total.checkm.txt"
+        mags = "mags/{assembly_split}",
+        start = "BeginStats_{assembly_split}"
+    output: "stats/{assembly_split}/total.checkm.txt"
     threads: 16
     conda:
         "../envs/checkm.yaml"
     params:
         cdr=config["checkm_dataroot"],
-        dir="mags/{assembly_group}"
+        dir="mags/{assembly_split}"
     shell:
         """
         checkm_db={params.cdr}
@@ -46,8 +42,8 @@ rule checkm:
         """
 
 rule checkm_plus:
-    input: "stats/{assembly_group}_{king}/total.checkm.txt"
-    output: "stats/{assembly_group}_{king}/total.checkm_plus.txt"
+    input: "stats/{assembly_split}/total.checkm.txt"
+    output: "stats/{assembly_split}/total.checkm_plus.txt"
     threads: 1
     conda: "../envs/ete3.yaml"
     script: "../scripts/add_tax.py"
@@ -86,7 +82,7 @@ rule diamond_report:
     shell: "{params.dir}/diamond_report.pl {input.tsv} {input.faa} {params.outdir}"
 
 rule diamond_bin_summary:
-    input: expand("stats/{assembly_split}/diamond_report/bin.{id}.tsv", assembly_split=justAssemblySplit, id=justIds)
+    input: expand("stats/{assembly_split}/diamond_report/bin.{{id}}.tsv", assembly_split=ASM)
     output: temp("stats/diamond_bin_report.tsv")
     shell:
         """
@@ -121,7 +117,7 @@ rule sourmash_gather:
 
 rule sourmash_report:
     input:
-        csvs = expand("stats/sourmash/{assembly_split}/{id}.csv", assembly_split=justAssemblySplit, id=getIds)
+        csvs = expand("stats/sourmash/{assembly_split}/{id}.csv", assembly_split=ASM)
     output:
         file = 'stats/sourmash/sourmash_report.csv'
     run:

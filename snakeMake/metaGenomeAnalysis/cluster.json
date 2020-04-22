@@ -78,12 +78,12 @@
   {
     "mem" : "18000",
     "ntasks-per-node" : "16",
-    "stdout" : "logs/{rule}.{wildcards.assembly_group}.stdout"
+    "stdout" : "logs/{rule}.{wildcards.assembly_split}.stdout"
   },
   "diamond_prer" :
   {
     "mem" : "30000",
     "ntasks-per-node" : "16",
-    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.id}.stdout"
+    "stdout" : "logs/{rule}.{wildcards.assembly_split}.{wildcards.id}.stdout"
   }
 }
