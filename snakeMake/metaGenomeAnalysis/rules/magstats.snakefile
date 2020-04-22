@@ -14,17 +14,24 @@ rule all_stats:
 
 rule stats_completion:
     input:
-        expand("stats/{assembly_group}/total.checkm_plus.txt", assembly_group=getAssemblyBaseName(config["assemblies"])),
+        expand("stats/{assembly_group}_{king}/total.checkm_plus.txt", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING ),
         "stats/diamond_bin_report_plus.tsv",
         'stats/sourmash/sourmash_report.csv'
     output:
         temp(touch("FinishedStats"))
 
+rule beginStats:
+    input:
+       justAssemblySplit,
+       getIds
+    output:
+       temp(touch("BeginStats_{assembly_group}_{king}"))
+
 rule checkm:
     input:
-        mags = "mags/{assembly_group}",
-        fini = "FinishedBinning"
-    output: "stats/{assembly_group}/total.checkm.txt"
+        mags = "mags/{assembly_group}_{king}",
+        start = "BeginStats_{assembly_group}_{king}"
+    output: "stats/{assembly_group}_{king}/total.checkm.txt"
     threads: 16
     conda:
         "../envs/checkm.yaml"
@@ -39,25 +46,25 @@ rule checkm:
         """
 
 rule checkm_plus:
-    input: "stats/{assembly_group}/total.checkm.txt"
-    output: "stats/{assembly_group}/total.checkm_plus.txt"
+    input: "stats/{assembly_group}_{king}/total.checkm.txt"
+    output: "stats/{assembly_group}_{king}/total.checkm_plus.txt"
     threads: 1
     conda: "../envs/ete3.yaml"
     script: "../scripts/add_tax.py"
 
 rule prodigal_stats:
     input:
-        mags = 'mags/{assembly_group}/{id}.fa',
-        fini = "FinishedBinning"
+        mags = 'mags/{assembly_split}/{id}.fa',
+        start = "BeginStats_{assembly_split}"
     output:
-        faa='stats/{assembly_group}/proteins/{id}.faa',
-        gff='stats/{assembly_group}/proteins/{id}_prodigal.gff'
+        faa='stats/{assembly_split}/proteins/{id}.faa',
+        gff='stats/{assembly_split}/proteins/{id}_prodigal.gff'
     conda: "../envs/prodigal.yaml"
     shell: 'prodigal -p meta -a {output.faa} -q -i {input.mags} -f gff -o {output.gff}'
 
 rule diamond_prer:
-    input: 'stats/{assembly_group}/proteins/{id}.faa'
-    output: 'stats/{assembly_group}/diamond/{id}.diamond.tsv'
+    input: 'stats/{assembly_split}/proteins/{id}.faa'
+    output: 'stats/{assembly_split}/diamond/{id}.diamond.tsv'
     threads: 16
     params:
         db=config["diamonddb"],
@@ -67,19 +74,19 @@ rule diamond_prer:
 
 rule diamond_report:
     input:
-        tsv='stats/{assembly_group}/diamond/{id}.diamond.tsv',
-        faa='stats/{assembly_group}/proteins/{id}.faa'
+        tsv='stats/{assembly_split}/diamond/{id}.diamond.tsv',
+        faa='stats/{assembly_split}/proteins/{id}.faa'
     output:
-        'stats/{assembly_group}/diamond_report/bin.{id}.tsv',
-        'stats/{assembly_group}/diamond_report/con.{id}.tsv'
+        'stats/{assembly_split}/diamond_report/bin.{id}.tsv',
+        'stats/{assembly_split}/diamond_report/con.{id}.tsv'
     params:
-        outdir="stats/{assembly_group}/diamond_report",
+        outdir="stats/{assembly_split}/diamond_report",
         dir = workflow.basedir + '/scripts'
     conda: "../envs/bioperl.yaml"
     shell: "{params.dir}/diamond_report.pl {input.tsv} {input.faa} {params.outdir}"
 
 rule diamond_bin_summary:
-    input: expand("stats/{assembly_group}/diamond_report/bin.{id}.tsv", assembly_group=getAssemblyBaseName(config["assemblies"]), id=getIds())
+    input: expand("stats/{assembly_split}/diamond_report/bin.{id}.tsv", assembly_split=justAssemblySplit, id=justIds)
     output: temp("stats/diamond_bin_report.tsv")
     shell:
         """
@@ -96,17 +103,17 @@ rule diamond_bin_summary_plus:
 
 rule sourmash_sig:
     input:
-        mags = 'mags/{assembly_group}/{id}.fa',
-        fini = "FinishedBinning"
-    output: 'stats/sourmash/{assembly_group}/{id}.sig'
+        mags = 'mags/{assembly_split}/{id}.fa',
+        start = "BeginStats_{assembly_split}"
+    output: 'stats/sourmash/{assembly_split}/{id}.sig'
     conda: "../envs/sourmash.yaml"
     shell: "sourmash compute --scaled 1000 -k 31 -o {output} {input.mags}"
 
 rule sourmash_gather:
-    input: 'stats/sourmash/{assembly_group}/{id}.sig'
+    input: 'stats/sourmash/{assembly_split}/{id}.sig'
     output:
-        csv='stats/sourmash/{assembly_group}/{id}.csv',
-        out='stats/sourmash/{assembly_group}/{id}.sm'
+        csv='stats/sourmash/{assembly_split}/{id}.csv',
+        out='stats/sourmash/{assembly_split}/{id}.sm'
     params:
         gb=config["sourmash_gbk"]
     conda: "../envs/sourmash.yaml"
@@ -114,7 +121,7 @@ rule sourmash_gather:
 
 rule sourmash_report:
     input:
-        csvs = expand("stats/sourmash/{assembly_group}/{id}.csv", assembly_group=getAssemblyBaseName(config["assemblies"]), id=getIds())
+        csvs = expand("stats/sourmash/{assembly_split}/{id}.csv", assembly_split=justAssemblySplit, id=getIds)
     output:
         file = 'stats/sourmash/sourmash_report.csv'
     run:

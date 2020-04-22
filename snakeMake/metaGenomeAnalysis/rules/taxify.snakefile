@@ -26,18 +26,20 @@ rule blobtools_taxify:
     threads: 2
     params:
         tax = config['diamondtaxid'],
-        blobtools = config['blobtools']
+        blobtools = config['blobtools'],
+        outbase = "blobtools/taxify"
     log:
     conda:
         "../envs/blobtools.yaml"
     shell:
         """
-        {params.blobtools} taxify -f {input} -m {params.tax} -s 0 -t 2 -o {output}
+        {params.blobtools} taxify -f {input} -m {params.tax} -s 0 -t 2 -o {params.outbase}
         """
 
 rule blobtools_cov:
     input:
         bams = "mapping/{assembly_group}/{sample}.bam",
+        bais = "mapping/{assembly_group}/{sample}.bam.bai",
         fasta = "assembly/{assembly_group}.fa"
     output:
         cov = "blobtools/{assembly_group}.{sample}.bam.cov"

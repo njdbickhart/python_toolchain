@@ -297,7 +297,7 @@ if config.get("hic"):
 
     rule bin3c_cluster:
         input:
-            directory("binning/bin3c/{assembly_group}/{enzyme}_{king}_out")
+            "binning/bin3c/{assembly_group}/{enzyme}_{king}_out"
         output:
             outclust = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust/clustering.mcl"
         threads: 1
@@ -391,12 +391,13 @@ rule das_tool_euk:
         mv {params.output_prefix}_DASTool_scaffolds2bin.txt {output.cluster_attribution} &>> {log}
         """
 
-checkpoint mag_generation:
+rule mag_generation:
     input:
-        cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv",
-        reference = "assembly/{assembly_group}.fa"
+        reference = "assembly/{assembly_group}.fa",
+        cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv"
     output:
-        dir = directory("mags/{assembly_group}")
+        dir = directory("mags/{assembly_group}_{king}/"),
+        counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
     params:
         king = "{king}",
     conda:
@@ -404,22 +405,15 @@ checkpoint mag_generation:
     script:
         "../scripts/magGeneration.py"
 
-def getIds():
-    assembly, ids, = glob_wildcards("mags/{assembly_group}/{id}.fa")
-    return ids
+#def getIds(wildcards):
+#    checkpoint_output = checkpoints.mag_generation.get(**wildcards).output[0]
+#    return expand("mags/{{assembly_group}}_{{king}}/{id}.fa",
+#           id=glob_wildcards(os.path.join(checkpoint_output, "{id}.fa")).id)
 
-rule mag_counts:
-    input:
-        dir = "mags/{assembly_group}",
-        cluster = "binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv"
-    output:
-        counts = "binning/DASTool/{assembly_group}.{king}_cluster_counts.tab"
-    run:
-        from collections import defaultdict
-        with open(input.cluster, 'r') as clust, open(output.counts, 'w') as out:
-            bins = defaultdict(int)
-            for l in clust:
-                s = l.rstrip().split()
-                bins[s[1]] += 1
-            for b, c in bins.items():
-                out.write(f'{b}\t{c}\n')
+#def justAssemblySplit(wildcards):
+#    checkpoint_output = checkpoints.mag_generation.get(**wildcards).output[0]
+#    return expand("mags/{assembly_group}_{king}", assembly_group=getAssemblyBasename(config["assemblies"]), king=KING)
+
+#def justIds(wildcards):
+#    checkpoint_output = checkpoints.mag_generation.get(**wildcards).output[0]
+#    return glob_wildcards(os.path.join(checkpoint_output, "{id}.fa")).id 

@@ -34,6 +34,11 @@
     "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.king}.stdout",
     "jobname" : "concoct [{wildcards.assembly_group}{wildcards.king}]"
   },
+  "align_hic" :
+  {
+    "mem" : "10000",
+    "ntasks-per-node" : "8"
+  },
   "run_concoct" :
   {
     "mem" : "10000",
