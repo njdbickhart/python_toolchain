@@ -30,7 +30,7 @@ def parse_user_input():
                         )
     parser.add_argument('-s', '--second',
                         help="A single fastq file (can be gzipped). The second fastq for comparison.",
-                        type=bool, required=True
+                        type=str, required=True
                         )
     parser.add_argument('-o', '--output',
                         help="Output file Basename",
