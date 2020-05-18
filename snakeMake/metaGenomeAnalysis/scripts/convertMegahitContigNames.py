@@ -18,10 +18,10 @@ with open(sys.argv[1], 'r') as input, open(sys.argv[2], 'w') as out:
                 start = 0
                 llen = len(seq)
                 out.write(previous + '\n')
-                while llen - start >= 60:
-                    out.write(s[0][start:start+60] + '\n')
+                while llen - start > 60:
+                    out.write(seq[start:start+60] + '\n')
                     start += 60
-                out.write(s[0][start:] + '\n')
+                out.write(seq[start:] + '\n')
             previous = s[0]
             seq = ''
         else:

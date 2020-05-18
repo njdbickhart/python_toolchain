@@ -85,5 +85,9 @@
     "mem" : "30000",
     "ntasks-per-node" : "16",
     "stdout" : "logs/{rule}.{wildcards.assembly_split}.{wildcards.id}.stdout"
+  },
+  "bin3c_cluster" :
+  {
+    "mem" : "300000"
   }
 }

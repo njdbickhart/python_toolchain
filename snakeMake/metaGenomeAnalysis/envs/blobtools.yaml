@@ -10,3 +10,5 @@ dependencies:
     - pyyaml
     - git
     - pysam
+    - numpy
+    - matplotlib
