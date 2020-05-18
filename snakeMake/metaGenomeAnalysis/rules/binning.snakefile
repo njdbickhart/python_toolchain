@@ -82,7 +82,7 @@ rule create_bam_index:
 
 rule metabat_abundance:
     input:
-        expand("mapping/{assembly_group}/{sample}.bam", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])
+        expand("mapping/{{assembly_group}}/{sample}.bam", sample=config["samples"])
     output:
         "binning/metabat2/{assembly_group}/jgi_abund.txt"
     conda:
@@ -189,8 +189,8 @@ rule concoct_ctgprep_euk:
 rule concoct_calc_cov:
     input:
         bed = "binning/concoct/{assembly_group}/contigs_10k_{king}.bed",
-        bam = expand("mapping/{assembly_group}/{sample}.bam", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"]),
-        bai = expand("mapping/{assembly_group}/{sample}.bam.bai", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])
+        bam = expand("mapping/{{assembly_group}}/{sample}.bam", sample=config["samples"]),
+        bai = expand("mapping/{{assembly_group}}/{sample}.bam.bai", sample=config["samples"])
     output:
         coverage = "binning/concoct/{assembly_group}/coverage_file_{king}.tab"
     conda:
@@ -335,7 +335,7 @@ if config.get("hic"):
 
 rule das_tool:
     input:
-        binfiles = expand("binning/{bins}/{assembly_group}/{bins}.full.clusters.tab", bins=BINS, assembly_group=getAssemblyBaseName(config["assemblies"])),
+        binfiles = expand("binning/{bins}/{{assembly_group}}/{bins}.full.clusters.tab", bins=BINS),
         reference = "assembly/{assembly_group}.fa"
     output:
         expand("binning/DASTool/{{assembly_group}}.full{postfix}",
@@ -364,7 +364,7 @@ rule das_tool:
 
 rule das_tool_euk:
     input:
-        binfiles = expand("binning/{bins}/{assembly_group}/{bins}.euk.clusters.tab", bins=BINS, assembly_group=getAssemblyBaseName(config["assemblies"])),
+        binfiles = expand("binning/{bins}/{{assembly_group}}/{bins}.euk.clusters.tab", bins=BINS),
         reference = "assembly/{assembly_group}.fa"
     output:
         expand("binning/DASTool/{{assembly_group}}.euk{postfix}",

@@ -64,7 +64,7 @@ rule blobtools_create:
     output:
         blobdb = "blobtools/{assembly_group}.blobDB.json"
     params:
-        cstr = getCovStr(expand("blobtools/{assembly_group}.{sample}.cov", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])),
+        cstr = getCovStr(expand("blobtools/{assembly_group}.{sample}.bam.cov", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])),
         outpre = "blobtools/{assembly_group}",
         db = config["ncbidb"],
         blobtools = config['blobtools']
