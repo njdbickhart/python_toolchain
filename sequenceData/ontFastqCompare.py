@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import matplotlib
+import os
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import gzip
@@ -45,12 +46,18 @@ def main(args):
 
     data = fastq_comp()
     
-    for fnum in range(len(files)):	
-        data = get_fastq_info(files[fnum], data, fnum + 1)
+    df = None
+    if os.path.exists(args.output + "_total_raw.tab"):
+        print("Resuming previous run for expediency")
+        df = pd.read_csv(args.output + "_total_raw.tab", index_col=0)
+        df.columns = ["Category", "1", "2"]
+    else:
+        for fnum in range(len(files)):	
+            data = get_fastq_info(files[fnum], data, fnum + 1)
     
-    df = data.get_pddf()
+        df = data.get_pddf()
     print_plot(df, args.output)
-    print(df.describe())
+    #print(df.describe())
 
 def smartFile(filename : str, mode : str = 'r'):
     fh = None
@@ -61,9 +68,11 @@ def smartFile(filename : str, mode : str = 'r'):
     return fh
     
 def print_plot(df, outbase, outsuffix = "total"):
+    print(df.describe())
+    print(df.head().to_string())
     with open(outbase + "_" + outsuffix + "_stats.tab", 'w') as out:
-        out.write(df.describe() + "\n")
-    #df.to_csv(outbase + "_" + outsuffix + "_stats.tab")
+        out.write(df.describe().to_string())
+    df.to_csv(outbase + "_" + outsuffix + "_raw.tab")
     plt = plot_fastq_info(df, outbase)
     plt.savefig(outbase + "_" + outsuffix + "_plots.png")
     
@@ -133,21 +142,33 @@ def xlabel_pos_right(ax):
 
 def compare_quals(ax, df, cols):
     ax.set_title("Difference in Histogram quality scores", loc="left")
-    data = df.loc[df['Category'] == "meanQuality"].loc[:,cols]
-    ax.hist(data, 160, range=(-40, 40))
-    ax.set_xlim(left=-40, right=40)
-    ax.set_xlabel("Quality difference")
+    data = df.loc[df['Category'] == "meanQuality",cols]
+    toplot = [data["1"].to_numpy(), data["2"].to_numpy()]
+    quartile1, medians, quartile3 = np.percentile(toplot, [25, 50, 75], axis=1)
+    ax.violinplot(toplot)
+    #ax.vlines(toplot, quartile1, quartile3, color='k', linestyle='-', lw=5)
+    ax.set_xticks(np.arange(1, len(cols) + 1))
+    ax.set_xticklabels(cols)
+    ax.set_xlabel("Quality differences")
     
 def compare_gcs(ax, df, cols):
     ax.set_title("Comparative heatmap for GC percentages", loc = "left")
     columns = [str(x) for x in range(11)]
-    data = df.loc[df['Category'] == "GCs"].loc[:, cols]
-    data = data.apply(lambda x : x * 10)
-    data = data.astype(int)
-    mat = np.zeroes(shape=(11,11))
-    for x, y in zip(data.loc[:, 0], data.loc[:,1]):
+    gcs = df.loc[df['Category'] == "GCs", cols]
+    ats = df.loc[df['Category'] == "ATs", cols]
+    gcpercs = (gcs / (gcs + ats)) * 10
+    gcpercs = gcpercs.astype('int32')
+    mat = np.zeros(shape=(11,11))
+    for x, y in zip(gcpercs.loc[:, '1'], gcpercs.loc[:,'2']):
         mat[x, y] += 1
     ax.imshow(mat)
+    for i in range(11):
+        for j in range(11):
+            if i == j: 
+                continue
+            if mat[i, j] == 0:
+                continue
+            ax.text(j, i, "{}".format(int((mat[i, j]/ gcs.shape[0])) * 1000),ha="center", va="center", color="w") 
     ax.set_xticklabels(columns)
     ax.set_yticklabels(columns)
     ax.set_xlabel("File 1 GC")
@@ -155,12 +176,12 @@ def compare_gcs(ax, df, cols):
     
 def compare_lengths(ax, df, cols):
     ax.set_title("Comparative scatterplot for seq Lengths", loc="left")
-    data = df.loc[df['Category'] == "seqLength"].loc[:, cols]
-    data.assign(stdev = data.std(axis=1))
-    data.assign(colors = "green" if data.stdev >= 500 else "blue")
-    ax.scatter(data.iloc[:,0] / 1000 ** 3, data.iloc[:,1] / 1000 * 3, c=data.colors)
-    ax.set_xlabel("File 1 Gbp")
-    ax.set_ylabel("File 2 Gbp")
+    data = df.loc[df['Category'] == "seqLength", cols]
+    data["stdev"] = data.std(axis=1)
+    data["colors"] = ["green" if x >= 500 else "blue" for x in data["stdev"]]
+    ax.scatter(data.iloc[:,0] / 1000, data.iloc[:,1] / 1000, c=data["colors"])
+    ax.set_xlabel("File 1 Kbp")
+    ax.set_ylabel("File 2 Kbp")
 
 def plot_qualities(ax,df, col):
     ax.set_title("Histogram of Mean Qualities for {}".format(col), loc="left")
@@ -172,19 +193,19 @@ def plot_qualities(ax,df, col):
 
 def plot_nucleotides_per_length(ax, df, col):
     blens = {}
-    data = df.loc[df['Category'] == "seqLength"].loc[:,col]
-    for l in data.loc[:,col]:
+    data = df.loc[df['Category'] == "seqLength",col]
+    for l in data.tolist():
         bin_l = int(l / 100) * 100
         if bin_l in blens:
             blens[bin_l] += l
         else:
             blens[bin_l] = l
             
-    len_sum = data.loc[:,col].sum()
+    len_sum = data.sum()
     mean_sum = len_sum / 2.0
     n50 = len_sum
     l = 0
-    for k in sorted(data.loc[:,col], reverse=True):
+    for k in sorted(data.tolist(), reverse=True):
         l += k
         if l > mean_sum:
             break
@@ -207,7 +228,7 @@ def plot_gc_bins(ax, df, col, num_bins=20):
     ax.set_title("Histogram of GC percentage bins for file: {}".format(col), loc="left")
     ax.set_xlabel("GC Bins")
     ax.set_ylabel("Count")
-    ax.hist(gcpercs, num_bins)
+    ax.hist(gcpercs, num_bins, range=(0, 100))
   
 def plot_fastq_info(df, outbase):
     (fig, axis) = plt.subplots(ncols=3, nrows=3)
@@ -217,18 +238,24 @@ def plot_fastq_info(df, outbase):
     cols = ["1", "2"]
     
     # right side
+    print("compare_gcs")
     compare_gcs(axs.pop(), df, cols)
     
+    print("compare_quals")
     compare_quals(axs.pop(), df, cols)
     
+    print("compare_lengths")
     compare_lengths(axs.pop(), df, cols)
     
     # Middle and left
     for c in reversed(cols):
+        print("plot_gc_bins")
         plot_gc_bins(axs.pop(), df, c)
         
+        print("plot_qualities")
         plot_qualities(axs.pop(), df, c)
         
+        print("plot_nucleotides")
         plot_nucleotides_per_length(axs.pop(), df, c)
     
     
@@ -283,18 +310,19 @@ class fastq_comp:
     
     def _melt(self, cat, data):
         melted = []
-        cols = ["Category"]
+        columns = ["Category"]
         for x in range(self.cols + 1):
             melted.append([])
             if x > 0:
-                cols.append("{}".format(x))
+                columns.append("{}".format(x))
             
         for k, v in data.items():
             melted[0].append(cat)
             for x in range(1, self.cols + 1):
                 melted[x].append(v[x-1])
         
-        tdf = pd.DataFrame(melted, columns = cols)
+        rearrange = {columns[x] : melted[x] for x in range(len(columns))}
+        tdf = pd.DataFrame(rearrange)
         return tdf
         
 if __name__ == "__main__":
