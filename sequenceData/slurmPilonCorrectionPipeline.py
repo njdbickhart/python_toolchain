@@ -27,6 +27,9 @@ def parse_user_input():
                         help="[Optional] Slurm partition for job run",
                         required=False, type=str, default="general")
    
+    parser.add_argument('-t', '--time',
+                        help="[Optional] Time limit for jobs",
+                        required=False, type=str, default="None")
     parser.add_argument('-q', '--qos',
                         help="[Optional] Slurm partition for job run",
                         required=False, type=str, default="general")
@@ -63,7 +66,7 @@ def main(args):
                         curDir + "/" + args.output + "/errLog",
                         False,
                         modules,
-                        1, 3, 8000, "None", args.partition, args.qos)
+                        1, 3, 8000, args.time, args.partition, args.qos)
     
     # Main loop. Separate chr and values and queue up Pilon jobs
     if args.meta :
