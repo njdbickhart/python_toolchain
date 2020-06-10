@@ -1,4 +1,5 @@
 import os
+import subprocess as sp
 shell.executable("/usr/bin/bash")
 
 configfile : "default.json"
@@ -43,6 +44,9 @@ rule merge_bams:
 
 def get_scaffolds(file):
   array = list()
+  if not os.path.exists(file + ".fai"):
+      print("Fasta file needs to be indexed")
+      shell("module load samtools; samtools faidx {}".format(file))
   with open(file + ".fai", 'r') as input:
     for l in input:
       segs = l.rstrip().split()
@@ -54,7 +58,7 @@ rule freebayes:
     ref=config["fasta"],
     samples="mapped/merged.bam"
   output:
-    vars = expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"]))
+    vars = temp(expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"])))
   params:
     extra="-C 2 -0 -O -q 20 -z 0.10 -E 0 -X -u -p 2 -F 0.75",
     region=get_scaffolds(config["fasta"])
@@ -76,7 +80,6 @@ rule merge_freebayes:
     bcftools concat -o {output} -O v -d {input.calls}
     """
 
-
 rule frc_align:
   input:
     ref=config["fasta"],
@@ -96,5 +99,21 @@ rule lumpy:
     "calls/merged_lumpy.vcf"
   shell:
     """
+    module load lumpy/0.3.0
     lumpyexpress -B {input.samples} -o {output}
     """
+
+rule samtools_depth:
+    input:
+        samples="mapped/merged.bam"
+    output:
+        "calls/merged_depth.txt"
+    run:
+        sum = 0
+        with sp.Popen("samtools depth " + input.samples, shell=True, stdout=PIPE) as depth:
+            for l in depth:
+                s = l.rstrip().split()
+                if int(s[-1]) >= 3:
+                    sum += 1
+        with open(output, 'w') as final:
+            final.write(f'{sum}\n')
