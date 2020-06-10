@@ -39,7 +39,7 @@ def parse_user_input():
     return parser.parse_args()
 
 def main(args):
-    modules = ['pilon/1.22', 'samtools/1.4.1']
+    modules = ['pilon/1.23', 'samtools/1.4.1']
     
     curDir = os.getcwd()
     
@@ -77,13 +77,13 @@ def main(args):
         scount = 0
         ilimit = int(round((len(chrLens.items()) / 1000 / 10) + 0.5))
         print('Ilimit = {}'.format(ilimit))
-        worker.mem = 10000
+        worker.mem = 25000
         for k, l in chrLens.items():
             temp[k] = l
             if len(temp.keys()) >= 10:
                 targets = ','.join(temp.keys())
                 temp = {}
-                cmd = 'java -Xmx10G -jar $PILON_HOME/pilon-1.22.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix indels --targets {} --verbose --nostrays'.format(args.genome, args.frag, "meta." + str(count), args.output, targets)
+                cmd = 'java -Xmx25G -jar $PILON_HOME/pilon-1.22.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix indels --targets {} --verbose --nostrays'.format(args.genome, args.frag, "meta." + str(count), args.output, targets)
                 #worker.createGenericCmd(cmd, "pilon_" + str(count))
                 array.append(cmd)
                 count += 1
