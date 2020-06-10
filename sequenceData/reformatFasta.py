@@ -28,6 +28,7 @@ def arg_parse():
                         help="Verbose STDOUT details",
                         action='store_true'
                         )
+    return parser.parse_args(), parser
     
 def main(args, parser):
     lnum = args.lines
