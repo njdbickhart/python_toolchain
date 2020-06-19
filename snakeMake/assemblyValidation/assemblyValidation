@@ -111,7 +111,7 @@ rule samtools_depth:
     run:
         sum = 0
         with sp.Popen("samtools depth " + input.samples, shell=True, stdout=PIPE) as depth:
-            for l in depth:
+            for l in depth.stdout:
                 s = l.rstrip().split()
                 if int(s[-1]) >= 3:
                     sum += 1
