@@ -52,7 +52,7 @@ def main(args, parser):
     chrlist = []
     for k, v in results.items():
         for c in v.result():
-            chrlist.add(c)
+            chrlist.append(c)
             completed[c] = k
     
     # Sort the list by karyotype and then process
@@ -76,7 +76,7 @@ def samtoolsFaiTask(file):
         with open(f'{file}.fai', 'r') as input:
             for l in input:
                 s = l.rstrip().split()
-                chrs.add(s[0])
+                chrs.append(s[0])
     return chrs
   
 def karyotypeSort(key):
