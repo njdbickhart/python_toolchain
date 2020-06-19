@@ -91,10 +91,10 @@ def karyotypeSort(key):
                 v = 101
             else:
                 v = 102
-        return v
+        return int(v)
     elif d:
         v = d.group(1)
-        return v
+        return int(v)
     return 103
             
         
