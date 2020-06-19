@@ -26,6 +26,9 @@ def parse_user_input():
     parser.add_argument('-p', '--partition',
                         help="[Optional] Slurm partition for job run",
                         required=False, type=str, default="general")
+    parser.add_argument('-e', '--memory',
+                        help="[Optional] Job memory in megabytes",
+                        required=False, type=int, default=10000)
    
     parser.add_argument('-t', '--time',
                         help="[Optional] Time limit for jobs",
@@ -66,7 +69,7 @@ def main(args):
                         curDir + "/" + args.output + "/errLog",
                         False,
                         modules,
-                        1, 3, 8000, args.time, args.partition, args.qos)
+                        1, 3, args.memory, args.time, args.partition, args.qos)
     
     # Main loop. Separate chr and values and queue up Pilon jobs
     if args.meta :
@@ -77,13 +80,14 @@ def main(args):
         scount = 0
         ilimit = int(round((len(chrLens.items()) / 1000 / 10) + 0.5))
         print('Ilimit = {}'.format(ilimit))
-        worker.mem = 25000
+        worker.mem = args.memory
         for k, l in chrLens.items():
             temp[k] = l
             if len(temp.keys()) >= 10:
                 targets = ','.join(temp.keys())
                 temp = {}
-                cmd = 'java -Xmx25G -jar $PILON_HOME/pilon-1.22.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix indels --targets {} --verbose --nostrays'.format(args.genome, args.frag, "meta." + str(count), args.output, targets)
+                gmem = int(args.memory / 1000)
+                cmd = 'java -Xmx{}G -jar $PILON_HOME/pilon-1.23.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix indels --targets {} --verbose --nostrays'.format(str(gmem), args.genome, args.frag, "meta." + str(count), args.output, targets)
                 #worker.createGenericCmd(cmd, "pilon_" + str(count))
                 array.append(cmd)
                 count += 1
@@ -95,7 +99,7 @@ def main(args):
         if array or temp:
             if temp:
                 targets = ','.join(temp.keys())
-                cmd = 'java -Xmx10G -jar $PILON_HOME/pilon-1.22.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix indels --targets {} --verbose --nostrays'.format(args.genome, args.frag, "meta." + str(count), args.output, targets)
+                cmd = 'java -Xmx10G -jar $PILON_HOME/pilon-1.23.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix indels --targets {} --verbose --nostrays'.format(args.genome, args.frag, "meta." + str(count), args.output, targets)
             array.append(cmd)
             worker.createArrayCmd(array, "pilon_" + str(count))
     else:
@@ -104,7 +108,7 @@ def main(args):
             mem = 8000 if mem < 8000 else mem
             worker.mem = mem
         
-            cmd = 'java -Xmx{}M -jar $PILON_HOME/pilon-1.22.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix indels --targets {} --verbose --nostrays'.format(mem, args.genome, args.frag, k, args.output, k)
+            cmd = 'java -Xmx{}M -jar $PILON_HOME/pilon-1.23.jar --genome {} --frags {} --output {}.pilon --outdir {} --fix indels --targets {} --verbose --nostrays'.format(int(mem), args.genome, args.frag, k, args.output, k)
             worker.createGenericCmd(cmd, "pilon" + k)
     
     print('Queuing jobs...')    
