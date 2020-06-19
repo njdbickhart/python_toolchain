@@ -63,7 +63,7 @@ def main(args, parser):
             print(f'Working on chr: {c} from file {f}')
             with sp.Popen(f'samtools faidx {f} {c}', shell=True, stdout=sp.PIPE, bufsize=1, universal_newlines=True) as sf:
                 h = sf.stdout.readline().rstrip()
-                h = h.replace(pTag, '')
+                h = re.sub(pTag, '', h)
                 out.write(f'{h}\n')
                 for l in sf.stdout:
                     out.write(l)
