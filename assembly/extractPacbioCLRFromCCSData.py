@@ -45,7 +45,7 @@ def main(args, parser):
         outs[i] = open(f'{args.output}.{i}.fastq', 'w')
         
     with gzip.open(args.fastq, 'rt') as fqfh:
-        for name, seq, qual in fqfh:
+        for name, seq, qual in fastq_reader_fh(fqfh):
             s = name.rstrip().split('/')
             if s[1] in ccsreads:
                 if ccsreads[s[1]] != 0 and ccsreads[s[1]] <= args.interval:
