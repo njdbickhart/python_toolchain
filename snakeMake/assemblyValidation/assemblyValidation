@@ -52,9 +52,9 @@ def get_scaffolds(file):
         print("Fasta file needs to be indexed")
         shell("module load samtools; samtools faidx {}".format(file))
     with open(file + ".fai", 'r') as input:
-    for l in input:
-        segs = l.rstrip().split()
-        array.append(segs[0])
+        for l in input:
+            segs = l.rstrip().split()
+            array.append(segs[0])
     return array
 
 rule freebayes:
