@@ -1,0 +1,54 @@
+{
+  "__default__" :
+  {
+    "mem" : "5000",
+    "ntasks-per-node" : "1",
+    "nodes" : "1",
+    "partition" : "priority",
+    "qos" : "msn",
+    "stdout" : "logs/{rule}.{wildcards.sample}.stdout",
+    "jobname" : "{rule} [{wildcards.sample}]"
+  },
+
+  "align_reads":
+  {
+    "mem" : "15000",
+    "ntasks-per-node" : "{threads}"
+  },
+
+  "merge_bams":
+  {
+    "mem" : "30000",
+    "ntasks-per-node" : "{threads}",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+  "freebayes":
+  {
+    "mem" : "20000",
+    "ntasks-per-node" : "{threads}",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+  "frc_align":
+  {
+    "mem" : "15000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+  "lumpy":
+  {
+    "mem" : "15000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+  "samtools_depth":
+  {
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  }
+}

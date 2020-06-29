@@ -4,104 +4,109 @@ shell.executable("/usr/bin/bash")
 
 configfile : "default.json"
 
-os.makedirs(config['logdir'], exist_ok=True)
-for x in expand("{logdir}/{fasta}", logdir=config['logdir'], sample=config["fasta"]):
-    os.makedirs(x, exist_ok=True)
+os.makedirs("logs", exist_ok=True)
 
 rule all:
-
+    input:
+        "calls/merged_frc.txt",
+        "calls/merged_freebayes.vcf",
+        "calls/merged_lumpy.vcf",
+        "calls/merged_depth.txt",
+        "calls/meryl_output"
 
 rule align_reads:
-  input:
-    fq1 = lambda wildcards: config["samples"][wildcards.sample][0],
-    fq2 = lambda wildcards: config["samples"][wildcards.sample][1],
-    fasta = config["fasta"]
-  output:
-    temp("mapped/{sample}.bam")
-  log:
-    "{logdir}/{fasta}/{sample}_bwa.log"
-  threads: 8
-  shell:
-    """
-    module load bwa samtools/1.9
-    bwa mem -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | \
-    samtools sort -o {output} -T {sample}.temp -
-    samtools index {output}
-    """
+    input:
+        fq1 = lambda wildcards: config["samples"][wildcards.sample][0],
+        fq2 = lambda wildcards: config["samples"][wildcards.sample][1],
+        fasta = config["fasta"]
+    output:
+        temp("mapped/{sample}.bam")
+    log:
+        "logs/{sample}_bwa.log"
+    threads: 8
+    shell:
+        """
+        module load bwa samtools/1.9
+        bwa mem -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | \
+        samtools sort -o {output} -T {sample}.temp -
+        samtools index {output}
+        """
 
 rule merge_bams:
-  input:
-    expand("mapped/{sample}.bam", sample=config["samples"])
-  output:
-    "mapped/merged.bam"
-  threads: 5
-  shell:
-    """
-    module load samtools/1.9
-    samtools merge -@ {threads} {output} {input}
-    samtools index {output}
-    """
+    input:
+        expand("mapped/{sample}.bam", sample=config["samples"].keys())
+    output:
+        "mapped/merged.bam",
+        "mapped/merged.bam.bai"
+    threads: 5
+    shell:
+        """
+        module load samtools/1.9
+        samtools merge -@ {threads} {output} {input}
+        samtools index {output}
+        """
 
 def get_scaffolds(file):
-  array = list()
-  if not os.path.exists(file + ".fai"):
-      print("Fasta file needs to be indexed")
-      shell("module load samtools; samtools faidx {}".format(file))
-  with open(file + ".fai", 'r') as input:
+    array = list()
+    if not os.path.exists(file + ".fai"):
+        print("Fasta file needs to be indexed")
+        shell("module load samtools; samtools faidx {}".format(file))
+    with open(file + ".fai", 'r') as input:
     for l in input:
-      segs = l.rstrip().split()
-      array.append(segs[0])
-  return array
+        segs = l.rstrip().split()
+        array.append(segs[0])
+    return array
 
 rule freebayes:
-  input:
-    ref=config["fasta"],
-    samples="mapped/merged.bam"
-  output:
-    vars = temp(expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"])))
-  params:
-    extra="-C 2 -0 -O -q 20 -z 0.10 -E 0 -X -u -p 2 -F 0.75",
-    region=get_scaffolds(config["fasta"])
-  threads: 2
-  shell:
-    """
-    module load freebayes/1.2.0
-    freebayes {params.extra} -r {params.region} -f {input.ref} -v {output.vars} {input.samples}
-    """
+    input:
+        ref=config["fasta"],
+        samples="mapped/merged.bam",
+        indexes="mapped/merged.bam.bai"
+    output:
+        #vars = temp(expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"])))
+        "calls/merged_freebayes.vcf"
+    log:
+        "logs/freebayes.log"
+    params:
+        extra="-C 2 -0 -O -q 20 -z 0.10 -E 0 -X -u -p 2 -F 0.75",
+        chunksize=1000000
+    threads: 10
+    wrapper:
+        "0.61.0/bio/freebayes"
 
-rule merge_freebayes:
-  input:
-    calls = expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"]))
-  output:
-    "calls/merged_freebayes.vcf"
-  shell:
-    """
-    module load bcftools/1.9
-    bcftools concat -o {output} -O v -d {input.calls}
-    """
+# rule merge_freebayes:
+#     input:
+#         calls = expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"]))
+#     output:
+#         "calls/merged_freebayes.vcf"
+#     shell:
+#         """
+#         module load bcftools/1.9
+#         bcftools concat -o {output} -O v -d {input.calls}
+#         """
 
 rule frc_align:
-  input:
-    ref=config["fasta"],
-    samples="mapped/merged.bam"
-  output:
-    "calls/merged_frc.txt"
-  shell:
-    """"
-    module load frc_align
-    FRC --pe-sam {input.samples} --output {output}
-    """
+    input:
+        ref=config["fasta"],
+        samples="mapped/merged.bam"
+    output:
+        "calls/merged_frc.txt"
+    shell:
+        """"
+        module load frc_align
+        FRC --pe-sam {input.samples} --output {output}
+        """
 
 rule lumpy:
-  input:
-    samples="mapped/merged.bam"
-  output:
-    "calls/merged_lumpy.vcf"
-  shell:
-    """
-    module load lumpy/0.3.0
-    lumpyexpress -B {input.samples} -o {output}
-    """
+    input:
+        samples="mapped/merged.bam"
+    output:
+        "calls/merged_lumpy.vcf"
+    shell:
+        """
+        module load lumpy/0.3.0
+        lumpyexpress -B {input.samples} -o {output}
+        """
 
 rule samtools_depth:
     input:
@@ -117,3 +122,53 @@ rule samtools_depth:
                     sum += 1
         with open(output, 'w') as final:
             final.write(f'{sum}\n')
+
+def getFlatFastqList(wildcards, config):
+    data = list()
+    for i in range(2):
+        data.append(config["samples"][wildcards.sample][i])
+    return data
+
+rule meryl_hapmer:
+    input:
+        getFlatFastqList
+    output:
+        "mapped/{sample}_1.meryl",
+        "mapped/{sample}_2.meryl"
+    threads: 24
+    params:
+        k = 21,
+        extra = "cpus=24 memory=48g"
+    shell:
+        """
+        module load merqury/1.0
+        meryl k={params.k} {params.extra} count output {output[0]} {input[0]}
+        meryl k={params.k} {params.extra} count output {output[1]} {input[1]}
+        """
+
+rule meryl_merge:
+    input:
+        expand("mapped/{sample}_{lane}.meryl", sample=config["samples"].keys(), lane=["1", "2"])
+    output:
+        "mapped/meryl_db.meryl",
+    threads: 10
+    params:
+        extra = "cpus=10 memory=48g"
+    shell:
+        """
+        module load merqury/1.0
+        meryl union-sum output {output} {input}
+        """
+
+rule run_merqury:
+    input:
+        mdb = "mapped/meryl_db.meryl",
+        fasta = config["fasta"]
+    output:
+        "calls/meryl_output"
+    threads: 20
+    shell:
+        """
+        module load merqury/1.0
+        merqury.sh {input.mdb} {input.fasta} {output}
+        """

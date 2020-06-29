@@ -1,0 +1,9 @@
+{
+  "fasta" : "fasta",
+  "samples" : {
+    "YMPrep3" : [
+      "/path/to/read/one/read_R1.fastq",
+      "/path/to/read/two/read_R2.fastq"
+    ]
+  }
+}
