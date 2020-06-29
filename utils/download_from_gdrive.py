@@ -1,4 +1,4 @@
-#!/mnt/nfs/nfs2/bickhart-users/binaries/anaconda3/bin/python
+#!/usr/bin/env python3
 #SBATCH --mem=2000
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=1
