@@ -67,12 +67,14 @@ rule freebayes:
         "calls/merged_freebayes.vcf"
     log:
         "logs/freebayes.log"
+    conda:
+        "envs/freebays.yaml"
     params:
         extra="-C 2 -0 -O -q 20 -z 0.10 -E 0 -X -u -p 2 -F 0.75",
         chunksize=1000000
     threads: 10
-    wrapper:
-        "0.61.0/bio/freebayes"
+    script:
+        "scripts/freebayes_lift.py"
 
 # rule merge_freebayes:
 #     input:
@@ -131,7 +133,7 @@ def getFlatFastqList(wildcards, config):
 
 rule meryl_hapmer:
     input:
-        getFlatFastqList
+        lambda wildcards : getFlatFastqList(wildcards, config)
     output:
         "mapped/{sample}_1.meryl",
         "mapped/{sample}_2.meryl"
