@@ -316,7 +316,7 @@ if config.get("hic"):
 
     rule modify_bin3c:
         input:
-            expand("binning/bin3c/{assembly_group}/{enzyme}_{king}_clust/clustering.mcl", assembly_group=getAssemblyBaseName(config["assemblies"]), enzyme=config["hic"], king=KING)
+            expand("binning/bin3c/{{assembly_group}}/{enzyme}_{king}_clust/clustering.mcl", enzyme=config["hic"], king=KING)
         output:
             "binning/bin3c/{assembly_group}/bin3c.{king}.clusters.tab"
         run:
@@ -416,4 +416,4 @@ rule mag_generation:
 
 #def justIds(wildcards):
 #    checkpoint_output = checkpoints.mag_generation.get(**wildcards).output[0]
-#    return glob_wildcards(os.path.join(checkpoint_output, "{id}.fa")).id 
+#    return glob_wildcards(os.path.join(checkpoint_output, "{id}.fa")).id
