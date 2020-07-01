@@ -18,7 +18,7 @@ with open(sys.argv[1], 'r') as input, open(sys.argv[2], 'w') as output:
             if s[1] == "name":
                 for i in range(len(s)):
                     if s[i].startswith("superkingdom"):
-                        supkingcol = i
+                        supkingcol = i - 1
                         break
             continue
         s = l.rstrip().split("\t")
