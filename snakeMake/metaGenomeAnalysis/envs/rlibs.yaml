@@ -1,0 +1,9 @@
+channels:
+    - conda-forge
+    - bioconda
+    - defaults
+    - r
+dependencies:
+    - r-essentials
+    - ggridges
+    - gridExtra

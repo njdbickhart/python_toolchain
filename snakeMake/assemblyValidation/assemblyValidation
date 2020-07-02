@@ -5,6 +5,7 @@ shell.executable("/usr/bin/bash")
 configfile : "default.json"
 
 os.makedirs("logs", exist_ok=True)
+os.makedirs("mapped", exist_ok=True)
 
 rule all:
     input:
@@ -27,8 +28,7 @@ rule align_reads:
     shell:
         """
         module load bwa samtools/1.9
-        bwa mem -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | \
-        samtools sort -o {output} -T {wildcards.sample}.temp -
+        bwa mem -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | samtools sort -o {output}  - >> {log} 2>&1
         samtools index {output}
         """
 

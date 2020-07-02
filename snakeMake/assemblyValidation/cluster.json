@@ -50,5 +50,27 @@
   {
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
+  },
+
+  "meryl_hapmer":
+  {
+    "mem" : "50000",
+    "ntasks-per-node" : "{threads}"
+  },
+
+  "meryl_merge":
+  {
+    "mem" : "50000",
+    "ntasks-per-node" : "{threads}",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+  "run_merqury":
+  {
+    "mem" : "25000",
+    "ntasks-per-node" : "{threads}",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
   }
 }

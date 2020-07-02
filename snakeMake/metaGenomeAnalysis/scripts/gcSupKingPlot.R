@@ -5,7 +5,7 @@ library(ggplot2)
 library(gridExtra)
 library(dplyr)
 
-outfile <- "summary_taxonomic_plot.pdf"
+outfile <- "blobtools/summary_taxonomic_plot.pdf"
 # Should be alternating "names" and files
 # ie. "ASM1" "asm1.blobtools.table.tab"
 args = commandArgs(trailingOnly=TRUE)

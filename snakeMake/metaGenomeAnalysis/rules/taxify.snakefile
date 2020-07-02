@@ -1,3 +1,4 @@
+import re
 
 rule all_taxified:
     input:
@@ -96,8 +97,45 @@ rule blobtools_viewplot:
         {params.blobtools} view -i {input.blobdb} -o blobtools/table -r all
         """
 
+rule blobtab_condense:
+    input:
+        table = "blobtools/table.{assembly_group}.blobDB.table.txt"
+    output:
+        crop = "blobtools/table.{assembly_group}.lens.tab"
+    params:
+        script = workflow.basedir + "/scripts/trimBlobTable.py"
+    shell:
+        """
+        {params.script} {input.table} {output.crop}
+        """
+
+def interlace(input):
+    v = list()
+    for i in input.crops:
+        m = re.search(r'blobtools/table.(.+).lens.tab', i)
+        v.append(m.group(1))
+        v.append(i)
+    return ' '.join(v)
+
+rule blobview_plot:
+    input:
+        crops = expand("blobtools/table.{assembly_group}.lens.tab")
+    output:
+        plot = "blobtools/summary_taxonomic_plot.pdf"
+    conda:
+        "../envs/rlibs.yaml"
+    params:
+        interlaced = lambda wildcards, input : interlace(input),
+        script = workflow.basedir + "/scripts/gcSupKingPlot.R"
+    shell:
+        """
+        Rscript {params.script} {params.interlaced}
+        """
+
+
 rule blobtools_complete:
     input:
-        expand("blobtools/table.{assembly_group}.blobDB.table.txt", assembly_group=getAssemblyBaseName(config["assemblies"]))
+        expand("blobtools/table.{assembly_group}.blobDB.table.txt", assembly_group=getAssemblyBaseName(config["assemblies"])),
+        "blobtools/summary_taxonomic_plot.pdf"
     output:
         temp(touch("FinishedTaxify"))
