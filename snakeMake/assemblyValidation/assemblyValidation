@@ -42,8 +42,8 @@ rule merge_bams:
     shell:
         """
         module load samtools/1.9
-        samtools merge -@ {threads} {output} {input}
-        samtools index {output}
+        samtools merge -@ {threads} {output[0]} {input}
+        samtools index {output[0]}
         """
 
 def get_scaffolds(file):

@@ -362,8 +362,10 @@ rule das_tool:
         mv {params.output_prefix}_DASTool_scaffolds2bin.txt {output.cluster_attribution} &>> {log}
         """
 
+# TODO: DASTool creates uncontrollable prefixes for temp files. While I work this out, I'm making each version run sequentially for EUK and FULL
 rule das_tool_euk:
     input:
+        prevbins = expand("binning/{bins}/{{assembly_group}}/{bins}.full.clusters.tab", bins=BINS),
         binfiles = expand("binning/{bins}/{{assembly_group}}/{bins}.euk.clusters.tab", bins=BINS),
         reference = "assembly/{assembly_group}.fa"
     output:
