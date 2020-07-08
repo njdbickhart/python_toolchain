@@ -54,7 +54,7 @@
 
   "meryl_hapmer":
   {
-    "mem" : "50000",
+    "mem" : "52000",
     "ntasks-per-node" : "{threads}"
   },
 
