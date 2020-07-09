@@ -60,7 +60,7 @@
 
   "meryl_merge":
   {
-    "mem" : "50000",
+    "mem" : "52000",
     "ntasks-per-node" : "{threads}",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
