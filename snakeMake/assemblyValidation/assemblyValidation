@@ -11,7 +11,7 @@ os.makedirs("mapped", exist_ok=True)
 rule all:
     input:
         "calls/merged_frc.txt_Features.txt",
-        "calls/merged_frc.txt_FRC.txt"
+        "calls/merged_frc.txt_FRC.txt",
         "calls/merged_freebayes.vcf",
         "calls/merged_lumpy.vcf",
         "calls/merged_depth.txt",
