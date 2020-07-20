@@ -15,8 +15,8 @@ rule all:
         "calls/merged_freebayes.vcf",
         "calls/merged_lumpy.vcf",
         "calls/merged_depth.txt",
-        "calls/meryl_output",
-        "calls/qv_value.txt"
+        "calls/qv_value.txt",
+        expand("merqury/merqury.spectra-asm.{postfix}.pdf", postfix=["f1", "ln", "st"])
 
 rule align_reads:
     input:
@@ -191,10 +191,23 @@ rule run_merqury:
         mdb = "mapped/meryl_db.meryl",
         fasta = config["fasta"]
     output:
-        directory("calls/meryl_output")
+        dist_only = "merqury/merqury.dist_only.hist",
+        qv = "merqury/merqury.qv",
+        spectraasm = "merqury/merqury.spectra-asm.hist",
+        f1 = "merqury/merqury.spectra-asm.fl.pdf",
+        ln = "merqury/merqury.spectra-asm.ln.pdf",
+        st = "merqury/merqury.spectra-asm.st.pdf",
+        complete = "merqury/completeness.stats"
+    params:
+        outbase = "merqury",
+        pdfbase = "merqury.spectra-asm"
     threads: 20
     shell:
         """
         module load merqury/1.0
-        merqury.sh {input.mdb} {input.fasta} {output}
+        merqury.sh {input.mdb} {input.fasta} {params.outbase}
+        mkdir merqury
+        mv merqury.* ./merqury/
+        /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
+        mv merqury.*.pdf ./merqury/
         """
