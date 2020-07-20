@@ -36,8 +36,9 @@ def main(args, parser):
     with gzip.open(args.fasta, 'rt') as ccs:
         for l in ccs:
             if l.startswith('>'):
+                l = l.replace('>', '')
                 s = l.rstrip().split('/')
-                ccsreads[s[1]] = 0
+                ccsreads[f'{s[0]}/{s[1]}'] = 0
                 
     # Now to read the subread fastq and process reads that match the dictionary
     outs = dict()
@@ -46,11 +47,13 @@ def main(args, parser):
         
     with gzip.open(args.fastq, 'rt') as fqfh:
         for name, seq, qual in fastq_reader_fh(fqfh):
+            name = name.replace('@', '')
             s = name.rstrip().split('/')
-            if s[1] in ccsreads:
-                if ccsreads[s[1]] != 0 and ccsreads[s[1]] <= args.interval:
-                    outs[ccsreads[s[1]]].write(f'{name}\n{seq}\n+\n{qual}\n')
-                ccsreads[s[1]] += 1
+            ccsname = f'{s[0]}/{s[1]}'
+            if ccsname in ccsreads:
+                if ccsreads[ccsname] != 0 and ccsreads[ccsname] <= args.interval:
+                    outs[ccsreads[ccsname]].write(f'@{name}\n{seq}\n+\n{qual}\n')
+                ccsreads[ccsname] += 1
                 
     for k, v in outs.items():
         v.close()
