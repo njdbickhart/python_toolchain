@@ -16,7 +16,7 @@ rule all:
         "calls/merged_lumpy.vcf",
         "calls/merged_depth.txt",
         "calls/qv_value.txt",
-        expand("merqury/merqury.spectra-asm.{postfix}.pdf", postfix=["f1", "ln", "st"])
+        expand("merqury/merqury.spectra-asm.{postfix}.pdf", postfix=["fl", "ln", "st"])
 
 rule align_reads:
     input:
