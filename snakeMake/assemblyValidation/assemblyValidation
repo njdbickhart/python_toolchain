@@ -16,7 +16,7 @@ rule all:
         "calls/merged_lumpy.vcf",
         "calls/merged_depth.txt",
         "calls/qv_value.txt",
-        expand("merqury/merqury.spectra-asm.{postfix}.pdf", postfix=["fl", "ln", "st"])
+        expand("merqury/mer.spectra-asm.{postfix}.pdf", postfix=["fl", "ln", "st"])
 
 rule align_reads:
     input:
@@ -112,9 +112,11 @@ rule lumpy:
         "calls/merged_lumpy.vcf"
     conda:
         "envs/lumpy.yaml"
+    log:
+        "logs/lumpy.log"
     shell:
         """
-        lumpyexpress -B {input.samples} -o {output}
+        lumpyexpress -B {input.samples} -o {output} 2> {log}
         """
 
 rule samtools_depth:
@@ -191,23 +193,22 @@ rule run_merqury:
         mdb = "mapped/meryl_db.meryl",
         fasta = config["fasta"]
     output:
-        dist_only = "merqury/merqury.dist_only.hist",
-        qv = "merqury/merqury.qv",
-        spectraasm = "merqury/merqury.spectra-asm.hist",
-        f1 = "merqury/merqury.spectra-asm.fl.pdf",
-        ln = "merqury/merqury.spectra-asm.ln.pdf",
-        st = "merqury/merqury.spectra-asm.st.pdf",
+        dist_only = "merqury/mer.dist_only.hist",
+        qv = "merqury/mer.qv",
+        spectraasm = "merqury/mer.spectra-asm.hist",
+        f1 = "merqury/mer.spectra-asm.fl.pdf",
+        ln = "merqury/mer.spectra-asm.ln.pdf",
+        st = "merqury/mer.spectra-asm.st.pdf",
         complete = "merqury/completeness.stats"
     params:
-        outbase = "merqury",
-        pdfbase = "merqury.spectra-asm"
+        outbase = "mer",
+        pdfbase = "mer.spectra-asm"
     threads: 20
     shell:
         """
         module load merqury/1.0
         merqury.sh {input.mdb} {input.fasta} {params.outbase}
-        mkdir merqury
-        mv merqury.* ./merqury/
+        mv mer.* ./merqury/
         /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
-        mv merqury.*.pdf ./merqury/
+        mv mer.*.pdf ./merqury/
         """
