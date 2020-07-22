@@ -72,9 +72,9 @@
     "ntasks-per-node" : "{threads}",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
-  }
+  },
 
-  "qv_estimate":
+  "qv_estimate" :
   {
     "mem" : "15000",
     "stdout" : "logs/{rule}.stdout",
