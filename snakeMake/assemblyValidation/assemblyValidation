@@ -204,6 +204,20 @@ rule run_merqury:
         module load merqury/1.0
         merqury.sh {input.mdb} {input.fasta} {params.outbase}
         mv mer.* ./merqury/
+        mv completeness.stats ./merqury/completeness.stats
         /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
         mv mer.*.pdf ./merqury/
         """
+
+rule summary_table:
+    input:
+        merqv = "merqury/mer.qv",
+        complete = "merqury/completeness.stats",
+        snpqv = "calls/qv_value.txt",
+        bams="mapped/merged.bam",
+        features="calls/merged_frc.txt_Features.txt",
+        lumpy = "calls/merged_lumpy.vcf"
+    output:
+        table = "final/summary_table.tab"
+    script:
+        "scripts/summary_table.py"
