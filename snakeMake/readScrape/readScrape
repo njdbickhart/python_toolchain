@@ -175,3 +175,11 @@ rule genotype:
         associations = "genotypes/association_counts.tab"
     script:
         "scripts/genotypeNovSeq.py"
+
+# rule plot_contig_lengths
+
+# rule plot_contig_assoc_counts
+
+# rule associate_rd_signal
+
+# rule plot_genome_position
