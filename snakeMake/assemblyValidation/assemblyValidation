@@ -16,6 +16,7 @@ rule all:
         "calls/merged_lumpy.vcf",
         "calls/merged_depth.txt",
         "calls/qv_value.txt",
+        "final/summary_table.tab",
         expand("merqury/mer.spectra-asm.{postfix}.pdf", postfix=["fl", "ln", "st"])
 
 rule align_reads:
@@ -142,7 +143,7 @@ rule qv_estimate:
         "calls/qv_value.txt"
     shell:
         """
-        {workflow.basedir}/scripts/qv_estimate.sh {input.depth} {input.vcf} {output[0]}
+        bash {workflow.basedir}/scripts/qv_estimate.sh {input.depth} {input.vcf} {output[0]}
         """
 
 
