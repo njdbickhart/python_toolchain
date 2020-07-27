@@ -1,0 +1,8 @@
+name: depth
+channels:
+  - conda-forge
+  - anaconda
+  - bioconda
+  - defaults
+dependencies:
+  - pysam

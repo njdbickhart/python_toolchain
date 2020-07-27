@@ -79,5 +79,12 @@
     "mem" : "15000",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
+  },
+
+  "summary_table" :
+  {
+    "mem" : "10000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
   }
 }
