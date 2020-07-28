@@ -14,7 +14,8 @@ def getAssembly(wildcards):
 
 
 rule all:
-    "asm{iteration}/{assembly}.fa".format(iteration=max_iteration, assembly=ASM)
+    input:
+        "asm{iteration}/{assembly}.fa".format(iteration=max_iteration, assembly=ASM)
 
 rule bwa:
     input:
