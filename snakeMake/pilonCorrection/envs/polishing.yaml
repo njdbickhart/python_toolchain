@@ -1,0 +1,8 @@
+name: polishing-env
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - bwa == 0.7.17
+    - samtools == 1.10
+    - pilon == 1.23

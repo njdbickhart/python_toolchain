@@ -1,0 +1,108 @@
+import os
+
+os.makedirs("logs", exist_ok=True)
+configfile: "default.json"
+ASM, _ = glob_wildcards("asm1/{assembly}.fa")
+
+max_iteration = 2
+wildcard_constraints:
+    iteration = "\d+"
+
+def getAssembly(wildcards):
+    if int(wildcards.iteration) > 1:
+        return "asm{}/{}.fa".format(int(wildcards.iteration) - 1, wildcards.assembly)
+
+
+rule all:
+    "asm{iteration}/{assembly}.fa".format(iteration=max_iteration, assembly=ASM)
+
+rule bwa:
+    input:
+        assembly = getAssembly,
+        reads_r1 = config['illumina']['R1'],
+        reads_r2 = config['illumina']['R2']
+    output:
+        temp('asm{iteration}/{assembly}.bam')
+    benchmark:
+        'benchmarks/{assembly}_bwa_{iteration}.tsv'
+    log:
+        'logs/bwa_{assembly}_{iteration}.log'
+    conda:
+        'envs/polishing.yaml'
+    threads:
+        8
+    shell:
+        'bwa index {input.assembly} 2>> {log};'
+        'bwa mem -t {threads} {input.assembly} {input.reads_r1} {input.reads_r2}  2>> {log} | '
+        'samtools sort - > {output} 2>> {log};'
+        'samtools index -@ {threads} {output} 2>> {log};'
+
+checkpoint get_contigs:
+    input:
+        assembly = getAssembly
+    output:
+        directory('asm{iteration}/.ctgs/')
+    benchmark:
+        'benchmarks/{assembly}_ctgs_{iteration}.tsv'
+    log:
+        'logs/ctgs_{assembly}_{iteration}.log'
+    threads:
+        1
+    params:
+        output_dir = lambda wildcards, output: output[0].replace('/', '\\/')
+    shell:
+        'mkdir -p {output};'
+        'grep ">" {input} 2> {log} | sed "s/>/{params.output_dir}/g" 2>> {log} | xargs touch 2>> {log}'
+
+
+rule pilon_contig:
+    input:
+        assembly = pilon_input,
+        bam = 'asm{iteration}/{assembly}.bam',
+        contig = 'output/.ctgs/{contig}'
+    output:
+        temp('asm{iteration}/pilon/{contig}.fa')
+    benchmark:
+        'benchmarks/{assembly}_pilon_{iteration}.tsv'
+    log:
+        'logs/pilon_{assembly}_{iteration}.lo'
+    conda:
+        'envs/polishing.yaml'
+    threads:
+        2
+    resources:
+        memory = lambda wildcards, attempt: 16000 * attempt
+    params:
+        output_dir = 'asm{iteration}/pilon',
+        output_prefix = '{contig}',
+        max_mem = lambda wildcards, resources: f'{int(resources.memory / 1000)}G'
+    shell:
+        'module load pilon/1.23'
+        'java -Xmx{params.max_mem} -jar $PILON_HOME/pilon-1.23.jar --genome {input.assembly} --bam {input.bam} --output {params.output_prefix} --outdir {params.output_dir} '
+        '--changes --fix indels --threads {threads} --targets {wildcards.contig} 2> {log}'
+
+
+def pilon_all_contigs(wildcards):
+    '''
+    '''
+    pilon_contig_output = checkpoints.get_contigs.get(**wildcards).output[0]
+    iteration = wildcards.iteration
+    batch_list = expand('asm{iteration}/pilon/{contig}.fa',
+                        iteration=iteration,
+                        contig=glob_wildcards(f'asm{iteration}/.cgs/{{contig}}').contig)
+    return batch_list
+
+
+rule pilon_round:
+    input:
+        pilon_all_contigs
+    output:
+        'asm{iteration}/{assembly}.fa'
+    benchmark:
+        'benchmarks/{assembly}_gather_{iteration}.tsv'
+    threads:
+        1
+    log:
+        'logs/gather_{assembly}_{iteration}.log'
+    shell:
+        'cat {input} > {output} 2> {log}'

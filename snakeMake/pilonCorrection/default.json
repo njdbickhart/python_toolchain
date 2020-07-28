@@ -1,0 +1,6 @@
+{
+  "illumina" : {
+    "R1" : "/path/to/read/one.fq",
+    "R2" : "/path/to/read/two.fq"
+  }
+}
