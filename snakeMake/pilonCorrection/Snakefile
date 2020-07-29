@@ -2,20 +2,22 @@ import os
 
 os.makedirs("logs", exist_ok=True)
 configfile: "default.json"
-ASM, _ = glob_wildcards("asm1/{assembly}.fa")
+ASM, EXT = os.path.splitext(os.path.split("asm1/{assembly}.fa")[-1])
 
 max_iteration = 2
 wildcard_constraints:
     iteration = "\d+"
 
 def getAssembly(wildcards):
-    if int(wildcards.iteration) > 1:
-        return "asm{}/{}.fa".format(int(wildcards.iteration) - 1, wildcards.assembly)
+    if int(wildcards.iteration) == 1:
+        return "asm1/%s.fa" % (wildcards.assembly)
+    else:
+        return "output/pilon_%d.%s.fa" % (int(wildcards.iteration) - 1, wildcards.assembly)
 
 
 rule all:
     input:
-        "asm{iteration}/{assembly}.fa".format(iteration=max_iteration, assembly=ASM)
+        "output/pilon_%d.%s.fa" % (max_iteration, ASM)
 
 rule bwa:
     input:
@@ -23,7 +25,7 @@ rule bwa:
         reads_r1 = config['illumina']['R1'],
         reads_r2 = config['illumina']['R2']
     output:
-        temp('asm{iteration}/{assembly}.bam')
+        temp('output/.{iteration}/{assembly}.bam')
     benchmark:
         'benchmarks/{assembly}_bwa_{iteration}.tsv'
     log:
@@ -42,7 +44,7 @@ checkpoint get_contigs:
     input:
         assembly = getAssembly
     output:
-        directory('asm{iteration}/.ctgs/')
+        directory('output/.{iteration}_{assembly}_ctgs/')
     benchmark:
         'benchmarks/{assembly}_ctgs_{iteration}.tsv'
     log:
@@ -58,15 +60,15 @@ checkpoint get_contigs:
 
 rule pilon_contig:
     input:
-        assembly = pilon_input,
-        bam = 'asm{iteration}/{assembly}.bam',
-        contig = 'output/.ctgs/{contig}'
+        assembly = getAssembly,
+        bam = 'output/.{iteration}/{assembly}.bam',
+        contig = 'output/.{iteration}_{assembly}_ctgs/{contig}'
     output:
-        temp('asm{iteration}/pilon/{contig}.fa')
+        temp('output/.{iteration}_{assembly}/{contig}.fa')
     benchmark:
-        'benchmarks/{assembly}_pilon_{iteration}.tsv'
+        'benchmarks/{assembly}_pilon_{iteration}_{contig}.tsv'
     log:
-        'logs/pilon_{assembly}_{iteration}.lo'
+        'logs/pilon_{assembly}_{iteration}_{contig}.log'
     conda:
         'envs/polishing.yaml'
     threads:
@@ -74,7 +76,7 @@ rule pilon_contig:
     resources:
         memory = lambda wildcards, attempt: 16000 * attempt
     params:
-        output_dir = 'asm{iteration}/pilon',
+        output_dir = 'output/.{iteration}_{assembly}/',
         output_prefix = '{contig}',
         max_mem = lambda wildcards, resources: f'{int(resources.memory / 1000)}G'
     shell:
@@ -88,9 +90,11 @@ def pilon_all_contigs(wildcards):
     '''
     pilon_contig_output = checkpoints.get_contigs.get(**wildcards).output[0]
     iteration = wildcards.iteration
-    batch_list = expand('asm{iteration}/pilon/{contig}.fa',
+    assembly = wildcards.assembly
+    batch_list = expand('output/.{iteration}_{assembly}/{contig}.fa',
                         iteration=iteration,
-                        contig=glob_wildcards(f'asm{iteration}/.cgs/{{contig}}').contig)
+                        assembly=assembly,
+                        contig=glob_wildcards(f'output/.{iteration}_{assembly}_ctgs/{{contig}}').contig)
     return batch_list
 
 
@@ -98,7 +102,7 @@ rule pilon_round:
     input:
         pilon_all_contigs
     output:
-        'asm{iteration}/{assembly}.fa'
+        'output/pilon_{iteration}.{assembly}.fa'
     benchmark:
         'benchmarks/{assembly}_gather_{iteration}.tsv'
     threads:
