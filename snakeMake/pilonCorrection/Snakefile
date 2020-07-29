@@ -19,7 +19,7 @@ def getAssembly(wildcards):
 
 rule all:
     input:
-        "output/%s_pilon_%d.%s" % (ASM, max_iteration, EXT)
+        "output/%s_pilon_%d%s" % (ASM, max_iteration, EXT)
 
 rule bwa:
     input:
