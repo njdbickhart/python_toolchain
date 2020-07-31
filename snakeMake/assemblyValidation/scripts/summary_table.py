@@ -23,22 +23,22 @@ data = defaultdict(int)
 # Populate merqury entries
 with open(snakemake.input["merqv"], 'r') as qv:
     l = qv.readline()
-    s = l.trim().split()
+    s = l.rstrip().split()
     solid["merQV"] = s[3]
     solid["merErrorRate"] = s[4]
 
 
 with open(snakemake.input["complete"], 'r') as comp:
     l = comp.readline()
-    s = l.trim().split()
+    s = l.rstrip().split()
     solid["merCompleteness"] = s[4]
 
 print("loaded merqury stats")
 
 # Populate QV and mapped reads entries
 with open(snakemake.input["snpqv"], 'r') as qv:
-    l = comp.readline()
-    solid["baseQV"] = l.trim()
+    l = qv.readline()
+    solid["baseQV"] = l.rstrip()
 
 text = pysam.idxstats(snakemake.input["bams"])
 lines = text.split(sep="\n")
@@ -57,7 +57,7 @@ print("loaded QV and mapping stats")
 # Populate FRC entries
 with open(snakemake.input["features"], 'r') as frc:
     for l in frc:
-        s = l.trim().split()
+        s = l.rstrip().split()
         data[s[1]] += 1
 
 print("loaded FRC entries")
@@ -67,7 +67,7 @@ with open(snakemake.input["lumpy"], 'r') as lump:
     for l in lump:
         if l.startswith('#'):
             continue
-        s = l.trim().split()
+        s = l.rstrip().split()
         d = s[7].split(';')
         t = d[0].replace("SVTYPE=", "")
         data[t] += 1

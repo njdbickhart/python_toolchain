@@ -41,7 +41,7 @@ sum = 0
 
 list_chrs, list_sizes = get_chromosomes_names(bam)
 
-print("Found {} chromosomes to count".format(length(list_chrs)))
+print("Found {} chromosomes to count".format(len(list_chrs)))
 
 for chr, size in zip(list_chrs, list_sizes):
     sum += count_depth(chr, size, threshold, bam)
