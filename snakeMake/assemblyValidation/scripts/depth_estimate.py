@@ -1,16 +1,52 @@
+import os
+import sys
 import pysam
+import time
 
-sum = 0
-count = 0
+def get_chromosomes_names(input):
+
+    # opening the bam file with pysam
+    bamfile = pysam.AlignmentFile(input, 'rb')
+    # query all the names of  the chromosomes in a list
+    list_chromosomes = bamfile.references
+    list_length = bamfile.lengths
+    bamfile.close()
+    return list_chromosomes, list_length
+
+
+def count_depth(chr_name, size, threshold, input):
+    """
+    Count the depth of the read. For each genomic coordonate return the
+    number of reads
+    -----
+    Parameters :
+        chr : (str) name of the chromosome
+        threshold : (int) minimum value to count pileup
+    -----
+    Returns :
+        int : count of pileups above threshold
+    """
+    bp = 0
+    bamfile = pysam.AlignmentFile(input, 'rb')
+    for pileupcolumn in bamfile.pileup(chr_name):
+        depth = pileupcolumn.nsegments
+        if depth >= threshold:
+            bp += 1
+    return bp
 
 bam = snakemake.input["samples"]
-print("Starting depth esimate")
-for l in pysam.depth(bam):
-    s = l.rstrip().split()
-    if int(s[-1]) >= 3:
-        sum += 1
-    if count % 500000 == 0:
-        print(f'At line: {l}')
+threshold = snakemake.params["threshold"]
+print("Starting depth estimate")
+sum = 0
 
+list_chrs, list_sizes = get_chromosomes_names(bam)
+
+print("Found {} chromosomes to count".format(length(list_chrs)))
+
+for chr, size in zip(list_chrs, list_sizes):
+    sum += count_depth(chr, size, threshold, bam)
+    print(f'Finished with chr: {chr}')
+
+print(f'Total bases: {sum}')
 with open(snakemake.output["samdepth"], 'w') as final:
     final.write(f'{sum}\n')

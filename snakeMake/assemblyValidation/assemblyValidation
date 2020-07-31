@@ -129,6 +129,8 @@ rule samtools_depth:
         samdepth="calls/merged_depth.txt"
     conda:
         "envs/depth.yaml"
+    params:
+        threshold = 3
     script:
         "scripts/depth_estimate.py"
 
