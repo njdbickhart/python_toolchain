@@ -55,7 +55,7 @@ def chromosome_collections(df, y_positions, height,  **kwargs):
         del_width = True
         df['width'] = df['end'] - df['start']
     for chrom, group in df.groupby('chrom'):
-        print chrom
+        print(chrom)
         yrange = (y_positions[chrom], height)
         xranges = group[['start', 'width']].values
         yield BrokenBarHCollection(

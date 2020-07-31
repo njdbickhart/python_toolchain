@@ -38,7 +38,7 @@ print("loaded merqury stats")
 # Populate QV and mapped reads entries
 with open(snakemake.input["snpqv"], 'r') as qv:
     l = qv.readline()
-    solid["baseQV"] = l.rstrip()
+    solid["baseQV"] = "{:.2f}".format(float(l.rstrip()))
 
 text = pysam.idxstats(snakemake.input["bams"])
 lines = text.split(sep="\n")
