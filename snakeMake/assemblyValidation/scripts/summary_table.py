@@ -115,6 +115,7 @@ with open(snakemake.output["table"], 'w') as out:
 
     print("Done with QV")
     # Next FRC
+    out.write('|-{}|-{}|-{}|\n'.format(esep, csep, dsep))
     out.write('|{0: <{ecol}}|{1: >{ccol}}|{2: <{dcol}}|\n'.format("Features", "Value", "Description", ecol= ecol, ccol = ccol, dcol=dcol))
     out.write('|:{}|{}:|:{}|\n'.format(esep, csep, dsep))
 
@@ -128,8 +129,9 @@ with open(snakemake.output["table"], 'w') as out:
         for j in range(nsubs):
             out.write('|{0: <{ecol}}|{1: >{ccol}}|{2: <{dcol}}|\n'.format("", "", d[j+1], ecol= ecol, ccol = ccol, dcol=dcol))
 
-    print("Donw with FRC")
+    print("Done with FRC")
     # Finally SV calls
+    out.write('|-{}|-{}|-{}|\n'.format(esep, csep, dsep))
     out.write('|{0: <{ecol}}|{1: >{ccol}}|{2: <{dcol}}|\n'.format("SVs", "Value", "Description", ecol= ecol, ccol = ccol, dcol=dcol))
     out.write('|:{}|{}:|:{}|\n'.format(esep, csep, dsep))
 
