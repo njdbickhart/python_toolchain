@@ -78,7 +78,7 @@ rule pilon_contig:
     resources:
         memory = lambda wildcards, attempt: 16000 * attempt
     params:
-        output_dir = 'output/.{iteration}_{assembly}_{extension}/',
+        output_dir = 'output/.{iteration}_{assembly}/',
         output_prefix = '{contig}',
         max_mem = lambda wildcards, resources: f'{int(resources.memory / 1000)}G'
     shell:
