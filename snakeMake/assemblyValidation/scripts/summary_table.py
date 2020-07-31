@@ -69,7 +69,7 @@ with open(snakemake.input["lumpy"], 'r') as lump:
             continue
         s = l.rstrip().split()
         d = s[7].split(';')
-        t = d[0].replace("SVTYPE=", "")
+        t = d[0].replace("SVTYPE=", "SV")
         data[t] += 1
 
 print("loaded lumpy entries")
