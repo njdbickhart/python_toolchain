@@ -40,7 +40,7 @@ rule bwa:
         'bwa index {input.assembly} 2>> {log};'
         'bwa mem -t {threads} {input.assembly} {input.reads_r1} {input.reads_r2}  2>> {log} | '
         'samtools sort - > {output} 2>> {log};'
-        'samtools index -@ {threads} {output} 2>> {log};'
+        'samtools index {output} 2>> {log};'
 
 checkpoint get_contigs:
     input:
@@ -84,7 +84,7 @@ rule pilon_contig:
     shell:
         """
         module load pilon/1.23
-        java -Xmx{params.max_mem} -jar $PILON_HOME/pilon-1.23.jar --genome {input.assembly} --bam {input.bam} --output {params.output_prefix} --outdir {params.output_dir} --changes --fix indels --threads {threads} --targets {wildcards.contig} 2> {log}
+        java -Xmx{params.max_mem} -jar $PILON_HOME/pilon-1.23.jar --genome {input.assembly} --frags {input.bam} --output {params.output_prefix} --outdir {params.output_dir} --fix indels --threads {threads} --changes --targets {wildcards.contig} --verbose --nostrays 2> {log}
         """
 
 
