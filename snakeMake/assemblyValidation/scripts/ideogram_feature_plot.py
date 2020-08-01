@@ -1,3 +1,4 @@
+import matplotlib
 from matplotlib import pyplot as plt
 matplotlib.use('Agg')
 from matplotlib.collections import BrokenBarHCollection
