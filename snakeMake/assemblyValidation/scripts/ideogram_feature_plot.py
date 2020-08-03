@@ -4,7 +4,9 @@ matplotlib.use('Agg')
 from matplotlib.collections import BrokenBarHCollection
 from itertools import cycle
 from collections import defaultdict
+import argparse
 import pandas
+import numpy as np
 import pysam
 
 def parse_user_input():
@@ -95,7 +97,10 @@ if __name__ == "__main__":
 
     # Decide which chromosomes to use
     list_chromosomes, list_length = get_chromosomes_names(args.bam)
+    chr_assoc = {k : v for k, v in zip(list_chromosomes, list_length)}
+    list_chromosomes = [x for x, j in sorted(chr_assoc.items(), key=lambda item: item[1], reverse=True)]
     chromosome_list = list_chromosomes[:args.threshold]
+    list_length = [v for k, v in sorted(chr_assoc.items(), key=lambda item: item[1], reverse=True)]
     chromosome_size = list_length[:args.threshold]
 
     # Keep track of the y positions for ideograms and genes for each chromosome,
@@ -117,7 +122,7 @@ if __name__ == "__main__":
     colcycle = cycle([ '#bd2309', '#bbb12d', '#1480fa', '#14fa2f', '#000000',
               '#faf214', '#2edfea', '#ea2ec4', '#ea2e40', '#cdcdcd',
               '#577a4d', '#2e46c0', '#f59422', '#219774', '#8086d9' ])
-    ideo = pandas.dataframe({'chrom' : chromosome_list,
+    ideo = pandas.DataFrame({'chrom' : chromosome_list,
                             'start' : [0 for x in range(len(chromosome_list))],
                             'width' : chromosome_size,
                             'colors': [next(colcycle) for x in range(len(chromosome_list))]})
@@ -152,15 +157,41 @@ if __name__ == "__main__":
 
     # Same thing for genes
     gtable = defaultdict(list)
+    window = defaultdict(list)
+    for c, v in zip(chromosome_list, chromosome_size):
+        for i in range(int(v / 500000) + 1):
+            window[c].append(0)
     with open(args.file, 'r') as input:
         for l in input:
             s = l.rstrip().split()
-            gtable['chrom'].append(s[0])
-            gtable['start'].append(int(s[2]))
-            gtable['end'].append(int(s[3]))
-            gtable['colors'].append('#2243a8')
+            if s[0] not in chromosome_list:
+                continue
+            index = int(int(s[2]) / 500000)
+            window[s[0]][index] += 1
 
-    genes = pandas.dataframe(gtable)
+    # calculate quantiles for color mapping
+    density = []
+    for c, l in window.items():
+        density.extend(l)
+
+    qvals = np.quantile(density, (0.0, 0.25, 0.50, 0.75, 1.0))
+    print(f'Quartiles: {qvals}')
+    qcols = ['#EAF2F8','#EAF2F8', '#EAF2F8', '#E74C3C']
+    for c, l in window.items():
+        for j, v in enumerate(l):
+            gtable['chrom'].append(c)
+            gtable['start'].append(j * 500000)
+            gtable['end'].append((j * 500000) + 500000)
+            color = '#EAF2F8'
+            for i, q in enumerate(qvals):
+                if i == 0:
+                    continue
+                if v <= int(qvals[i]) and v >= int(qvals[i-1]):
+                    color = qcols[i-1]
+            gtable['colors'].append(color)
+
+    genes = pandas.DataFrame(gtable)
+    print(genes.head())
     # genes = pandas.read_table(
     #     'ucsc_genes.txt',
     #     names=['chrom', 'start', 'end', 'name'],
