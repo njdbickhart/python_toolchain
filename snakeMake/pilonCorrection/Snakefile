@@ -119,4 +119,4 @@ rule pilon_round:
     log:
         'logs/gather_{assembly}_{extension}_{iteration}.log'
     shell:
-        'find {params.contigdir} -maxdepth 1 -type f -name *.{wildcards.extension} -print0 | xargs -0 cat > {output} 2> {log}'
+        'bash {workflow.basedir}/scripts/concatenateInDir.sh {params.contigdir} {wildcards.extension} {output} 2> {log}'
