@@ -112,7 +112,9 @@ rule pilon_round:
         'benchmarks/{assembly}_{extension}_gather_{iteration}.tsv'
     threads:
         1
+    params:
+        contigdir = "output/.{iteration}_{assembly}/"
     log:
         'logs/gather_{assembly}_{extension}_{iteration}.log'
     shell:
-        'cat {input} > {output} 2> {log}'
+        'find {params.contigdir} -maxdepth 1 -type f -name *.{wildcards.extension} -print0 | xargs -0 cat > {output} 2> {log}'
