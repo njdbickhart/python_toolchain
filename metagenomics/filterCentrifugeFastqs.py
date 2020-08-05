@@ -14,9 +14,9 @@ class cententry:
         self.qlen = qlen
 
     def meetsCriteria(self, taxset):
-        if self.taxid in taxset:
+        if self.taxid not in taxset:
             return True
-        elif self.score < self.qlen:
+        elif self.score > self.qlen:
             return True # The score is a sum of hits weighted by length
         else:
             return False
