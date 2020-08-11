@@ -1,0 +1,8 @@
+name: busco
+channels:
+  - conda-forge
+  - anaconda
+  - bioconda
+  - defaults
+dependencies:
+  - busco

@@ -18,6 +18,7 @@ rule all:
         "calls/merged_lumpy.vcf",
         "calls/merged_depth.txt",
         "calls/qv_value.txt",
+        "calls/full_table_txome_busco.tsv",
         "final/summary_table.tab",
         expand("merqury/mer.spectra-asm.{postfix}.pdf", postfix=["fl", "ln", "st"])
 
@@ -208,6 +209,22 @@ rule run_merqury:
         /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
         mv mer.*.pdf ./merqury/
         """
+
+rule run_busco:
+    input:
+        config["fasta"]
+    output:
+        "calls/full_table_txome_busco.tsv",
+    log:
+        "logs/run_busco.log"
+    threads: 8
+    params:
+        mode="genome",
+        lineage_path=config["buscoLineage"],
+        # optional parameters
+        extra=""
+    script:
+        "scripts/busco_lift.py"
 
 rule summary_table:
     input:

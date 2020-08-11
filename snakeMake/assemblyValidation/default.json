@@ -1,5 +1,6 @@
 {
   "fasta" : "fasta",
+  "buscoLineage" : "eudicots_odb10",
   "samples" : {
     "YMPrep3" : [
       "/path/to/read/one/read_R1.fastq",
