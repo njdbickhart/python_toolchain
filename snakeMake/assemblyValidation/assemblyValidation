@@ -37,7 +37,7 @@ rule align_reads:
     shell:
         """
         module load bwa samtools/1.9
-        bwa mem -R '@RG\\tID:ASM\\tSM:ASM\\tPL:ILLUMINA' -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | samtools sort -o {output}  - >> {log} 2>&1
+        bwa mem -R '@RG\\tID:ASM\\tSM:{wildcards.sample}\\tPL:ILLUMINA' -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | samtools sort -o {output}  - >> {log} 2>&1
         samtools index {output}
         """
 
@@ -200,6 +200,8 @@ rule run_busco:
     log:
         "logs/run_busco.log"
     threads: 8
+    conda:
+        "envs/busco.yaml"
     params:
         mode="genome",
         lineage_path=config["buscoLineage"],
