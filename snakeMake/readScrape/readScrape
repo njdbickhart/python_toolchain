@@ -178,7 +178,15 @@ rule genotype:
 
 # rule plot_contig_lengths
 
-# rule plot_contig_assoc_counts
+rule plot_contig_assoc_counts:
+    input:
+        associations = "genotypes/association_counts.tab"
+    output:
+        lineplot = "plots/association_counts_lineplot.pdf"
+    params:
+        maxlines = 5
+    script:
+        "scripts/contigAssociationLinePlot.py"
 
 # rule associate_rd_signal
 

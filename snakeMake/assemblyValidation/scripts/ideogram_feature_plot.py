@@ -197,7 +197,7 @@ if __name__ == "__main__":
                         # The last quartile range
                         start = j * 500000
                         end = start + 500000
-                        bed.write(f'{c}\t{start}\t{end}\n')
+                        bed.write(f'{c}\t{start}\t{end}\t{v}\n')
                 gtable['colors'].append(color)
 
     genes = pandas.DataFrame(gtable)

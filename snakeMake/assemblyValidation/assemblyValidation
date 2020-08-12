@@ -239,3 +239,7 @@ rule ideogram_plot:
         ' -b {input.bams} -o {output.ideogram} -e {output.bed} -t {params.chrthresh}'
 
 #rule plot_frc
+
+#rule ngx_plot (see assemblathon2 manuscript)
+
+#rule variant_size_histos (see assemblytics)
