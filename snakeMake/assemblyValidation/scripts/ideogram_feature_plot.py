@@ -21,6 +21,10 @@ def parse_user_input():
                         help="Output png file for plot",
                         type=str, required=True
                         )
+    parser.add_argument('-e', '--bed',
+                        help="Output bed file of upper quantile regions",
+                        type=str, required=True
+                        )
     parser.add_argument('-b', '--bam',
                         help="Input indexed and sorted bam file",
                         type=str, required=True
@@ -174,21 +178,27 @@ if __name__ == "__main__":
     for c, l in window.items():
         density.extend(l)
 
-    qvals = np.quantile(density, (0.0, 0.25, 0.50, 0.75, 1.0))
+    qvals = np.quantile(density, (0.0, 0.25, 0.75, 0.95, 1.0))
     print(f'Quartiles: {qvals}')
-    qcols = ['#EAF2F8','#EAF2F8', '#EAF2F8', '#E74C3C']
-    for c, l in window.items():
-        for j, v in enumerate(l):
-            gtable['chrom'].append(c)
-            gtable['start'].append(j * 500000)
-            gtable['end'].append((j * 500000) + 500000)
-            color = '#EAF2F8'
-            for i, q in enumerate(qvals):
-                if i == 0:
-                    continue
-                if v <= int(qvals[i]) and v >= int(qvals[i-1]):
-                    color = qcols[i-1]
-            gtable['colors'].append(color)
+    qcols = ['#EAF2F8','#EAF2F8', '#E2E73C', '#E74C3C']
+    with open(args.bed, 'w') as bed:
+        for c, l in window.items():
+            for j, v in enumerate(l):
+                gtable['chrom'].append(c)
+                gtable['start'].append(j * 500000)
+                gtable['end'].append((j * 500000) + 500000)
+                color = '#EAF2F8'
+                for i, q in enumerate(qvals):
+                    if i == 0:
+                        continue
+                    if v <= int(qvals[i]) and v >= int(qvals[i-1]):
+                        color = qcols[i-1]
+                    if i == len(qvals) - 1:
+                        # The last quartile range
+                        start = j * 500000
+                        end = start + 500000
+                        bed.write(f'{c}\t{start}\t{end}\n')
+                gtable['colors'].append(color)
 
     genes = pandas.DataFrame(gtable)
     print(genes.head())

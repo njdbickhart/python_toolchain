@@ -20,6 +20,8 @@ rule all:
         "calls/qv_value.txt",
         "calls/full_table_txome_busco.tsv",
         "final/summary_table.tab",
+        "final/ideogram_errors.pdf",
+        "final/ideogram_upperq_error_windows.bed",
         expand("merqury/mer.spectra-asm.{postfix}.pdf", postfix=["fl", "ln", "st"])
 
 rule align_reads:
@@ -53,16 +55,6 @@ rule merge_bams:
         samtools index {output[0]}
         """
 
-def get_scaffolds(file):
-    array = list()
-    if not os.path.exists(file + ".fai"):
-        print("Fasta file needs to be indexed")
-        shell("module load samtools; samtools faidx {}".format(file))
-    with open(file + ".fai", 'r') as input:
-        for l in input:
-            segs = l.rstrip().split()
-            array.append(segs[0])
-    return array
 
 rule freebayes:
     input:
@@ -70,7 +62,6 @@ rule freebayes:
         samples="mapped/merged.bam",
         indexes="mapped/merged.bam.bai"
     output:
-        #vars = temp(expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"])))
         "calls/merged_freebayes.vcf"
     log:
         "logs/freebayes.log"
@@ -83,16 +74,7 @@ rule freebayes:
     script:
         "scripts/freebayes_lift.py"
 
-# rule merge_freebayes:
-#     input:
-#         calls = expand("calls/sub_{region}_freebayes.vcf", region=get_scaffolds(config["fasta"]))
-#     output:
-#         "calls/merged_freebayes.vcf"
-#     shell:
-#         """
-#         module load bcftools/1.9
-#         bcftools concat -o {output} -O v -d {input.calls}
-#         """
+
 
 rule frc_align:
     input:
@@ -238,5 +220,20 @@ rule summary_table:
         table = "final/summary_table.tab"
     script:
         "scripts/summary_table.py"
+
+rule ideogram_plot:
+    input:
+        features="calls/merged_frc.txt_Features.txt",
+        bams="mapped/merged.bam"
+    output:
+        ideogram="final/ideogram_errors.pdf",
+        bed="final/ideogram_upperq_error_windows.bed"
+    params:
+        chrthresh = 30
+    conda:
+        "envs/base.yaml"
+    shell:
+        'python {workflow.basedir}/scripts/ideogram_feature_plot.py -f {input.features}'
+        ' -b {input.bams} -o {output.ideogram} -e {output.bed} -t {params.chrthresh}'
 
 #rule plot_frc

@@ -41,7 +41,7 @@
 
   "lumpy":
   {
-    "mem" : "15000",
+    "mem" : "25000",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
   },
