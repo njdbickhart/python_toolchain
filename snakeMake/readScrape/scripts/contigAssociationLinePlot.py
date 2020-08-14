@@ -39,6 +39,9 @@ plotcols = list()
 for i in range(maxlines):
     plotcols.append('{}'.format(str(i + 1)))
 
+for k, v in data.items():
+    print(f'{k}\t{len(v)}')
+
 df = pandas.DataFrame(data)
 
 # Sort the dataframe by reverse order
