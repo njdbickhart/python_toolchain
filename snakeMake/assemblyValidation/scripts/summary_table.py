@@ -44,7 +44,7 @@ with open(snakemake.input["busco"], 'r') as b:
         if l.startswith('#'):
             continue
         elif l.startswith('C'):
-            m = re.match(r'C:(.+)%[S:.+%,D:.+%],F:(.+)%,M:(.+)%,n:.+'
+            m = re.match(r'C:(.+)%[S:.+%,D:.+%],F:(.+)%,M:(.+)%,n:.+', l)
             solid["COMPLETE"] = m.group(1)
             solid["FRAGMENT"] = m.group(2)
             solid["MISSING"] = m.group(3)
