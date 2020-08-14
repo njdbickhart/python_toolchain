@@ -7,4 +7,6 @@ dependencies:
     - pandas
     - pysam
     - matplotlib
-    - scipy 
+    - scipy
+    - samtools
+    - bwa

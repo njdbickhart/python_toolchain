@@ -17,7 +17,7 @@ assert lineage is not None, "please input the path to a lineage for busco assess
 
 # busco does not allow you to direct output location: handle this by moving output
 outdir = path.dirname(snakemake.output[0])
-out_name = "btemp"
+out_name = "btemp_" + snakemake.params.get("asm", "t")
 
 # note: --force allows snakemake to handle rewriting files as necessary
 # without needing to specify *all* busco outputs as snakemake outputs

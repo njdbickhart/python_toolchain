@@ -16,7 +16,7 @@ def get_chromosomes_names(input):
 
 def count_depth(chr_name, size, threshold, input):
     """
-    Count the depth of the read. For each genomic coordonate return the
+    Count the depth of the read. For each genomic coordinate return the
     number of reads
     -----
     Parameters :

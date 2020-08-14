@@ -1,5 +1,8 @@
 {
-  "fasta" : "fasta",
+  "assembly" : {
+    "asm1" : "fasta",
+    "asm2" : "fasta"
+  },
   "buscoLineage" : "eudicots_odb10",
   "samples" : {
     "YMPrep3" : [

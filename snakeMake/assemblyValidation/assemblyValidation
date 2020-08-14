@@ -12,45 +12,55 @@ os.makedirs("mapped", exist_ok=True)
 
 rule all:
     input:
-        "calls/merged_frc.txt_Features.txt",
-        "calls/merged_frc.txt_FRC.txt",
-        "calls/merged_freebayes.vcf",
-        "calls/merged_lumpy.vcf",
-        "calls/merged_depth.txt",
-        "calls/qv_value.txt",
-        "busco/busco_summary.txt",
         "final/summary_table.tab",
         "final/ideogram_errors.pdf",
         "final/ideogram_upperq_error_windows.bed",
         expand("merqury/mer.spectra-asm.{postfix}.pdf", postfix=["fl", "ln", "st"])
 
+rule bwa_index:
+    input:
+        fasta = lambda wildcards: config["assembly"][wildcards.asm]
+    output:
+        sa = lambda wildcards: config["assembly"][wildcards.asm] + ".sa"
+    conda:
+        "envs/base.yaml"
+    log:
+        "logs/{asm}/bwa_index.log"
+    shell:
+        """
+        bwa index {input.fasta}
+        """
+
 rule align_reads:
     input:
         fq1 = lambda wildcards: config["samples"][wildcards.sample][0],
         fq2 = lambda wildcards: config["samples"][wildcards.sample][1],
-        fasta = config["fasta"]
+        fasta = lambda wildcards: config["assembly"][wildcards.asm]
+        sa = lambda wildcards: config["assembly"][wildcards.asm] + ".sa"
     output:
-        temp("mapped/{sample}.bam")
+        temp("mapped/{asm}/{sample}.bam")
     log:
-        "logs/{sample}_bwa.log"
+        "logs/{asm}/{sample}_bwa.log"
     threads: 8
+    conda:
+        "envs/base.yaml"
     shell:
         """
-        module load bwa samtools/1.9
-        bwa mem -R '@RG\\tID:ASM\\tSM:{wildcards.sample}\\tPL:ILLUMINA' -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | samtools sort -o {output}  - >> {log} 2>&1
+        bwa mem -R '@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}\\tPL:ILLUMINA' -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | samtools sort -o {output}  - >> {log} 2>&1
         samtools index {output}
         """
 
 rule merge_bams:
     input:
-        expand("mapped/{sample}.bam", sample=config["samples"])
+        expand("mapped/{{asm}}/{sample}.bam", sample=config["samples"])
     output:
-        "mapped/merged.bam",
-        "mapped/merged.bam.bai"
-    threads: 5
+        "mapped/{asm}/merged.bam",
+        "mapped/{asm}/merged.bam.bai"
+    threads: 8
+    conda:
+        "envs/base.yaml"
     shell:
         """
-        module load samtools/1.9
         samtools merge -@ {threads} {output[0]} {input}
         samtools index {output[0]}
         """
@@ -58,13 +68,13 @@ rule merge_bams:
 
 rule freebayes:
     input:
-        ref=config["fasta"],
-        samples="mapped/merged.bam",
-        indexes="mapped/merged.bam.bai"
+        ref=lambda wildcards: config["assembly"][wildcards.asm],
+        samples="mapped/{asm}/merged.bam",
+        indexes="mapped/{asm}/merged.bam.bai"
     output:
-        "calls/merged_freebayes.vcf"
+        "calls/{asm}/merged_freebayes.vcf"
     log:
-        "logs/freebayes.log"
+        "logs/{asm}/freebayes.log"
     conda:
         "envs/freebayes.yaml"
     params:
@@ -78,13 +88,13 @@ rule freebayes:
 
 rule frc_align:
     input:
-        ref=config["fasta"],
-        samples="mapped/merged.bam"
+        ref=lambda wildcards: config["assembly"][wildcards.asm],
+        samples="mapped/{asm}/merged.bam"
     output:
-        features="calls/merged_frc.txt_Features.txt",
-        frc="calls/merged_frc.txt_FRC.txt"
+        features="calls/{asm}/merged_frc.txt_Features.txt",
+        frc="calls/{asm}/merged_frc.txt_FRC.txt"
     params:
-        outprefix="calls/merged_frc.txt"
+        outprefix="calls/{asm}/merged_frc.txt"
     shell:
         """
         module load frc_align
@@ -93,13 +103,13 @@ rule frc_align:
 
 rule lumpy:
     input:
-        samples="mapped/merged.bam"
+        samples="mapped/{asm}/merged.bam"
     output:
-        "calls/merged_lumpy.vcf"
+        "calls/{asm}/merged_lumpy.vcf"
     conda:
         "envs/lumpy.yaml"
     log:
-        "logs/lumpy.log"
+        "logs/{asm}/lumpy.log"
     shell:
         """
         lumpyexpress -B {input.samples} -o {output} -v 2> {log}
@@ -107,9 +117,9 @@ rule lumpy:
 
 rule samtools_depth:
     input:
-        samples="mapped/merged.bam"
+        samples="mapped/{asm}/merged.bam"
     output:
-        samdepth="calls/merged_depth.txt"
+        samdepth="calls/{asm}/merged_depth.txt"
     conda:
         "envs/depth.yaml"
     params:
@@ -119,10 +129,10 @@ rule samtools_depth:
 
 rule qv_estimate:
     input:
-        vcf="calls/merged_freebayes.vcf",
-        depth="calls/merged_depth.txt"
+        vcf="calls/{asm}/merged_freebayes.vcf",
+        depth="calls/{asm}/merged_depth.txt"
     output:
-        "calls/qv_value.txt"
+        "calls/{asm}/qv_value.txt"
     shell:
         """
         bash {workflow.basedir}/scripts/qv_estimate.sh {input.depth} {input.vcf} {output[0]}
@@ -169,15 +179,15 @@ rule meryl_merge:
 rule run_merqury:
     input:
         mdb = "mapped/meryl_db.meryl",
-        fasta = config["fasta"]
+        fasta = lambda wildcards: config["assembly"][wildcards.asm]
     output:
-        dist_only = "merqury/mer.dist_only.hist",
-        qv = "merqury/mer.qv",
-        spectraasm = "merqury/mer.spectra-asm.hist",
-        f1 = "merqury/mer.spectra-asm.fl.pdf",
-        ln = "merqury/mer.spectra-asm.ln.pdf",
-        st = "merqury/mer.spectra-asm.st.pdf",
-        complete = "merqury/completeness.stats"
+        dist_only = "merqury/{asm}/mer.dist_only.hist",
+        qv = "merqury/{asm}/mer.qv",
+        spectraasm = "merqury/{asm}/mer.spectra-asm.hist",
+        f1 = "merqury/{asm}/mer.spectra-asm.fl.pdf",
+        ln = "merqury/{asm}/mer.spectra-asm.ln.pdf",
+        st = "merqury/{asm}/mer.spectra-asm.st.pdf",
+        complete = "merqury/{asm}/completeness.stats"
     params:
         outbase = "mer",
         pdfbase = "mer.spectra-asm"
@@ -194,17 +204,18 @@ rule run_merqury:
 
 rule run_busco:
     input:
-        config["fasta"]
+        lambda wildcards: config["assembly"][wildcards.asm]
     output:
-        "busco/busco_summary.txt",
+        "busco/{asm}/busco_summary.txt",
     log:
-        "logs/run_busco.log"
-    threads: 8
+        "logs/{asm}/run_busco.log"
+    threads: 20
     conda:
         "envs/busco.yaml"
     params:
         mode="genome",
         lineage_path=config["buscoLineage"],
+        asm = wildcards.asm,
         # optional parameters
         extra=""
     script:
@@ -212,13 +223,13 @@ rule run_busco:
 
 rule summary_table:
     input:
-        merqv = "merqury/mer.qv",
-        complete = "merqury/completeness.stats",
-        busco = "busco/busco_summary.txt",
-        snpqv = "calls/qv_value.txt",
-        bams="mapped/merged.bam",
-        features="calls/merged_frc.txt_Features.txt",
-        lumpy = "calls/merged_lumpy.vcf"
+        merqv = expand("merqury/{asm}/mer.qv", asm=config["assembly"].keys()),
+        complete = expand("merqury/{asm}/completeness.stats", asm=config["assembly"].keys()),
+        busco = expand("busco/{asm}/busco_summary.txt", asm=config["assembly"].keys()),
+        snpqv = expand("calls/{asm}/qv_value.txt", asm=config["assembly"].keys()),
+        bams=expand("mapped/{asm}/merged.bam", asm=config["assembly"].keys()),
+        features=expand("calls/{asm}/merged_frc.txt_Features.txt", asm=config["assembly"].keys()),
+        lumpy = expand("calls/{asm}/merged_lumpy.vcf", asm=config["assembly"].keys())
     output:
         table = "final/summary_table.tab"
     script:
@@ -226,11 +237,11 @@ rule summary_table:
 
 rule ideogram_plot:
     input:
-        features="calls/merged_frc.txt_Features.txt",
-        bams="mapped/merged.bam"
+        features="calls/{asm}/merged_frc.txt_Features.txt",
+        bams="mapped/{asm}/merged.bam"
     output:
-        ideogram="final/ideogram_errors.pdf",
-        bed="final/ideogram_upperq_error_windows.bed"
+        ideogram="final/ideogram_errors.{asm}.pdf",
+        bed="final/ideogram_upperq_error_windows.{asm}.bed"
     params:
         chrthresh = 30
     conda:
