@@ -17,10 +17,7 @@ assert lineage is not None, "please input the path to a lineage for busco assess
 
 # busco does not allow you to direct output location: handle this by moving output
 outdir = path.dirname(snakemake.output[0])
-if "/" in outdir:
-    out_name = path.basename(outdir)
-else:
-    out_name = outdir
+out_name = "btemp"
 
 # note: --force allows snakemake to handle rewriting files as necessary
 # without needing to specify *all* busco outputs as snakemake outputs
@@ -30,8 +27,6 @@ shell(
     " {extra} {log}"
 )
 
-busco_outname = "run_" + out_name
-
 # move to intended location
-shell("cp -r {busco_outname}/* {outdir}")
-shell("rm -rf {busco_outname}")
+shell("cp {out_name}/short_summary*.txt {outdir}/busco_summary.txt")
+shell("rm -rf {out_name}")

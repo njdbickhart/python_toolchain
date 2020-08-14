@@ -196,7 +196,7 @@ rule run_busco:
     input:
         config["fasta"]
     output:
-        "calls/full_table_txome_busco.tsv",
+        "busco/busco_summary.txt",
     log:
         "logs/run_busco.log"
     threads: 8
@@ -214,6 +214,7 @@ rule summary_table:
     input:
         merqv = "merqury/mer.qv",
         complete = "merqury/completeness.stats",
+        busco = "busco/busco_summary.txt",
         snpqv = "calls/qv_value.txt",
         bams="mapped/merged.bam",
         features="calls/merged_frc.txt_Features.txt",

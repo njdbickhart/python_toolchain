@@ -15,7 +15,9 @@ descriptions = {"merQV" : "kmer-based Quality", "merErrorRate" : "kmer-based err
 "STRECH_PE" : "Regions with high Comp/Expansion (CE) statistics", "COMPR_PE" : "Regions with low Comp/Expansion (CE) statistics",
 "HIGH_OUTIE_PE" : "Regions with high counts of improperly paired reads",
 "HIGH_SINGLE_PE" : "Regions with high counts of single unmapped reads", "SVDEL" : "Number of deletion SVs",
-"SVDUP" : "Number of Duplication SVs", "SVBND" : "Number of Complex SVs"}
+"SVDUP" : "Number of Duplication SVs", "SVBND" : "Number of Complex SVs",
+"COMPLETE" : "Percent of complete BUSCOs", "FRAGMENT" : "Percent of fragmented BUSCOs",
+"MISSING" : "Percent of missing BUSCOs"}
 
 solid = dict()
 data = defaultdict(int)
@@ -34,6 +36,20 @@ with open(snakemake.input["complete"], 'r') as comp:
     solid["merCompleteness"] = s[4]
 
 print("loaded merqury stats")
+
+# Populate busco stats
+with open(snakemake.input["busco"], 'r') as b:
+    for l in b:
+        l = l.strip()
+        if l.startswith('#'):
+            continue
+        elif l.startswith('C'):
+            m = re.match(r'C:(.+)%[S:.+%,D:.+%],F:(.+)%,M:(.+)%,n:.+'
+            solid["COMPLETE"] = m.group(1)
+            solid["FRAGMENT"] = m.group(2)
+            solid["MISSING"] = m.group(3)
+            break
+
 
 # Populate QV and mapped reads entries
 with open(snakemake.input["snpqv"], 'r') as qv:
@@ -105,7 +121,7 @@ with open(snakemake.output["table"], 'w') as out:
     out.write('|{0: <{ecol}}|{1: >{ccol}}|{2: <{dcol}}|\n'.format("Q Scores", "Value", "Description", ecol= ecol, ccol = ccol, dcol=dcol))
     out.write('|:{}|{}:|:{}|\n'.format(esep, csep, dsep))
 
-    for i in ["merQV", "merErrorRate", "merCompleteness", "baseQV", "unmap%"]:
+    for i in ["merQV", "merErrorRate", "merCompleteness", "baseQV", "unmap%", "COMPLETE", "FRAGMENT", "MISSING"]:
         nsubs = elines[i]
         d = descriptions[i].split('\n')
         out.write('|{0: <{ecol}}|{1: >{ccol}}|{2: <{dcol}}|\n'.format(i, str(solid[i]), d[0], ecol= ecol, ccol = ccol, dcol=dcol))
