@@ -35,7 +35,7 @@ rule align_reads:
     input:
         fq1 = lambda wildcards: config["samples"][wildcards.sample][0],
         fq2 = lambda wildcards: config["samples"][wildcards.sample][1],
-        fasta = lambda wildcards: config["assembly"][wildcards.asm]
+        fasta = lambda wildcards: config["assembly"][wildcards.asm],
         sa = lambda wildcards: config["assembly"][wildcards.asm] + ".sa"
     output:
         temp("mapped/{asm}/{sample}.bam")
