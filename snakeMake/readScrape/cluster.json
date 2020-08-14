@@ -4,7 +4,7 @@
     "mem" : "5000",
     "ntasks-per-node" : "1",
     "nodes" : "1",
-    "partition" : "msn",
+    "partition" : "priority",
     "stdout" : "logs/{rule}.{wildcards.sample}.stdout",
     "jobname" : "{rule} [{wildcards.sample}]"
   },

@@ -13,9 +13,9 @@ os.makedirs("mapped", exist_ok=True)
 rule all:
     input:
         "final/summary_table.tab",
-        "final/ideogram_errors.pdf",
-        "final/ideogram_upperq_error_windows.bed",
-        expand("merqury/mer.spectra-asm.{postfix}.pdf", postfix=["fl", "ln", "st"])
+        expand("final/ideogram_errors.{asm}.pdf", asm = config["assembly"].keys()),
+        expand("final/ideogram_upperq_error_windows.{asm}.bed", asm = config["assembly"].keys()),
+        expand("merqury/{asm}/mer.spectra-asm.{postfix}.pdf", asm = config["assembly"].keys(), postfix=["fl", "ln", "st"])
 
 rule bwa_index:
     input:
@@ -250,7 +250,17 @@ rule ideogram_plot:
         'python {workflow.basedir}/scripts/ideogram_feature_plot.py -f {input.features}'
         ' -b {input.bams} -o {output.ideogram} -e {output.bed} -t {params.chrthresh}'
 
-#rule plot_frc
+# Begin comparative plots
+if len(config["assembly"].keys()) > 1:
+    rule plot_frc:
+        input:
+            expand("calls/{asm}/merged_frc.txt_FRC.txt", asm=config["assembly"].keys())
+        output:
+            plot = "final/combined_frc_plot.pdf"
+        conda:
+            "envs/base.yaml"
+        script:
+            "scripts/asm_frc_plot.py"
 
 #rule ngx_plot (see assemblathon2 manuscript)
 

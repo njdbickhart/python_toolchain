@@ -9,10 +9,14 @@ os.makedirs(config['logdir'], exist_ok=True)
 for x in expand("{logdir}/{sample}", logdir=config['logdir'], sample=config["samples"]):
     os.makedirs(x, exist_ok=True)
 
-localrules: tabulate_spades, pre_c
+localrules: tabulate_spades, pre_c, plot_contig_assoc_counts
 
 rule all:
-    input: "assembly/summaryStatsOfSamples.tab", "genotypes/genotype_summary.tab", expand("genotypes/{sample}.genotype.tab", sample=config["samples"])
+    input:
+        "assembly/summaryStatsOfSamples.tab",
+        "genotypes/genotype_summary.tab",
+        expand("genotypes/{sample}.genotype.tab", sample=config["samples"]),
+        "plots/association_counts_lineplot.pdf"
 
 rule extract_reads:
     input:
