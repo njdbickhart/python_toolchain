@@ -18,7 +18,7 @@ rule all:
         "calls/merged_lumpy.vcf",
         "calls/merged_depth.txt",
         "calls/qv_value.txt",
-        "calls/full_table_txome_busco.tsv",
+        "busco/busco_summary.txt",
         "final/summary_table.tab",
         "final/ideogram_errors.pdf",
         "final/ideogram_upperq_error_windows.bed",
