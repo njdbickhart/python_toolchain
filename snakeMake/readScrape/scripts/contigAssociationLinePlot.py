@@ -56,7 +56,11 @@ ax = fig.add_subplot(111)
 for i, v in enumerate(plotcols):
     ax.plot('name', v, data=df, marker='', color=colors[i], linewidth=2)
 
-ax.set_xticklabels([])
+# calculate how many contigs to plot on x xaxis
+cval = int(len(data["name"]) / 25)
+
+ax.set_xticklabels([str(x) if x % cval == 0 else "" for x in range(len(data["name"]))])
 ax.axis('tight')
 ax.legend(loc='upper right')
+ax.set_yscale('log')
 plt.savefig(outputplot)
