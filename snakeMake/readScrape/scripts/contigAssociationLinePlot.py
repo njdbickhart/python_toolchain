@@ -25,11 +25,11 @@ with open(inputfile, 'r') as input:
                 data['{}'.format(maxlines)][-1] += int(bsegs[1])
             else:
                 data['{}'.format(str(i+1))].append(int(bsegs[1]))
-                lastcount += 1
-        if lastcount < maxlines - 1:
+            lastcount += 1
+        if lastcount < maxlines:
             # fill in empty values
             for i in range(maxlines - lastcount):
-                data['{}'.format(str(i+1))].append(0)
+                data['{}'.format(str(i+lastcount+1))].append(0)
 
 # Generate  a list of column headers for plotting
 colors = [ '#bd2309', '#bbb12d', '#1480fa', '#14fa2f', '#000000',
