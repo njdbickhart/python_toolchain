@@ -17,26 +17,12 @@ rule all:
         expand("final/ideogram_upperq_error_windows.{asm}.bed", asm = config["assembly"].keys()),
         expand("merqury/{asm}/mer.spectra-asm.{postfix}.pdf", asm = config["assembly"].keys(), postfix=["fl", "ln", "st"])
 
-rule bwa_index:
-    input:
-        fasta = lambda wildcards: config["assembly"][wildcards.asm]
-    output:
-        sa = lambda wildcards: config["assembly"][wildcards.asm] + ".sa"
-    conda:
-        "envs/base.yaml"
-    log:
-        "logs/{asm}/bwa_index.log"
-    shell:
-        """
-        bwa index {input.fasta}
-        """
 
 rule align_reads:
     input:
         fq1 = lambda wildcards: config["samples"][wildcards.sample][0],
         fq2 = lambda wildcards: config["samples"][wildcards.sample][1],
-        fasta = lambda wildcards: config["assembly"][wildcards.asm],
-        sa = lambda wildcards: config["assembly"][wildcards.asm] + ".sa"
+        fasta = lambda wildcards: config["assembly"][wildcards.asm]
     output:
         temp("mapped/{asm}/{sample}.bam")
     log:
