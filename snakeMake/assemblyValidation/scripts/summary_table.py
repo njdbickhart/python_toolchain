@@ -24,13 +24,13 @@ descriptions = {"CtgNum" : "Number of contigs", "TotBases" : "Assembly length in
 
 solid = defaultdict(list)
 data = defaultdict(list)
-asms = snakemake.wildcards["asm"]
+asms = snakemake.params["asms"]
 print(asms)
 
 # Populate stats entries
 for i in snakemake.input["stats"]:
     print(f'stats v:{i}')
-    with open(i 'r') as sts:
+    with open(i, 'r') as sts:
         h = sts.readline()
         l = sts.readline()
         s = l.rstrip().split()

@@ -247,6 +247,8 @@ rule summary_table:
         lumpy = expand("calls/{asm}/merged_lumpy.vcf", asm=config["assembly"].keys())
     output:
         table = "final/summary_table.tab"
+    params:
+        asms=list(config["assembly"].keys())
     script:
         "scripts/summary_table.py"
 

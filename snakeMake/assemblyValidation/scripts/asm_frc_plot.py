@@ -1,7 +1,7 @@
 import matplotlib
 from matplotlib import pyplot as plt
 matplotlib.use('Agg')
-from matplotlib.collections import BrokenBarHCollection
+from matplotlib import cm
 from itertools import cycle
 from collections import defaultdict
 import pandas
@@ -33,8 +33,10 @@ df = pandas.DataFrame(data)
 
 # Plot the FRC data
 fig, ax = plt.subplots()
+i = 0
 for k, g in df.groupby(['asm']):
-    ax = g.plot(ax=ax, kind='line', x='x', y='y', c=k, label=k)
+    ax = g.plot(ax=ax, kind='line', x='x', y='y', c=colors[i], label=k)
+    i += 1
 
 plt.legend(loc='best')
 plt.savefig(snakemake.output["plot"])

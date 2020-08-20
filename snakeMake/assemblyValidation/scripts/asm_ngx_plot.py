@@ -35,15 +35,22 @@ for k, g in df.groupby(['asm']):
         asmsize = g['len'].sum()
     temp = [0.0]
     for i in range(1,len(g)):
-        temp.append(NGX[i-1] + (g.at[i, 'len'] / asmsize * 100))
+        temp.append(temp[i-1] + (g.iat[i, 1] / asmsize * 100))
     NGX.extend(temp)
 
-df.assign(NGX = NGX)
+df = df.assign(NGX = NGX)
 
+colors = [ '#bd2309', '#bbb12d', '#1480fa', '#14fa2f', '#000000',
+          '#faf214', '#2edfea', '#ea2ec4', '#ea2e40', '#cdcdcd',
+          '#577a4d', '#2e46c0', '#f59422', '#219774', '#8086d9' ]
+
+print(df.head())
 # Plot the lines
 fig, ax = plt.subplots()
+i = 0
 for k, g in df.groupby(['asm']):
-    ax = g.plot(ax=ax, kind='line', x='NGX', y='len', c=k, label=k)
+    ax = g.plot(ax=ax, kind='line', x='NGX', y='len', c=colors[i], label=k)
+    i += 1
 
 ax.vlines(x=50.0, ymin=0, ymax=largestctg, linestyles='dashed')
 plt.legend(loc='best')
