@@ -277,6 +277,8 @@ if len(config["assembly"].keys()) > 1:
             plot = "final/combined_frc_plot.pdf"
         conda:
             "envs/base.yaml"
+        params:
+            asms=config["assembly"].keys()
         script:
             "scripts/asm_frc_plot.py"
 
@@ -287,6 +289,8 @@ if len(config["assembly"].keys()) > 1:
             plot = "final/combined_ngx_plot.pdf"
         conda:
             "envs/base.yaml"
+        params:
+            asms=config["assembly"].keys()
         script:
             "scripts/asm_ngx_plot.py"
 

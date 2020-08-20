@@ -8,7 +8,7 @@ import pandas
 import numpy as np
 
 
-asms = snakemake.wildcards["asm"]
+asms = snakemake.params["asms"]
 print(asms)
 
 alist = snakemake.input
