@@ -101,5 +101,28 @@
     "mem" : "25000",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
+  },
+
+  "assembly_stats" :
+  {
+    "mem" : "25000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+
+  "plot_frc" :
+  {
+    "mem" : "25000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+
+  "ngx_plot" :
+  {
+    "mem" : "25000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
   }
 }

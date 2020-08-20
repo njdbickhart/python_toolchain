@@ -19,7 +19,7 @@ rule all:
         finalSummary,
         expand("final/ideogram_errors.{asm}.pdf", asm = config["assembly"].keys()),
         expand("final/ideogram_upperq_error_windows.{asm}.bed", asm = config["assembly"].keys()),
-        expand("merqury/{asm}/mer.spectra-asm.{postfix}.pdf", asm = config["assembly"].keys(), postfix=["fl", "ln", "st"])
+        expand("merqury/{asm}/{asm}.spectra-asm.{postfix}.pdf", asm = config["assembly"].keys(), postfix=["fl", "ln", "st"])
 
 
 rule align_reads:
@@ -219,7 +219,7 @@ rule run_busco:
     params:
         mode="genome",
         lineage_path=config["buscoLineage"],
-        asm = wildcards.asm,
+        asm = lambda wildcards: wildcards.asm,
         # optional parameters
         extra=""
     script:
@@ -238,8 +238,8 @@ rule assembly_stats:
 rule summary_table:
     input:
         stats = expand("mapped/{asm}/stats.tab", asm=config["assembly"].keys()),
-        merqv = expand("merqury/{asm}/mer.qv", asm=config["assembly"].keys()),
-        complete = expand("merqury/{asm}/completeness.stats", asm=config["assembly"].keys()),
+        merqv = expand("merqury/{asm}/{asm}.qv", asm=config["assembly"].keys()),
+        complete = expand("merqury/{asm}/{asm}.completeness.stats", asm=config["assembly"].keys()),
         busco = expand("busco/{asm}/busco_summary.txt", asm=config["assembly"].keys()),
         snpqv = expand("calls/{asm}/qv_value.txt", asm=config["assembly"].keys()),
         bams=expand("mapped/{asm}/merged.bam", asm=config["assembly"].keys()),
