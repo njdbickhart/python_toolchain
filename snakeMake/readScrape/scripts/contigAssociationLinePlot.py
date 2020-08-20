@@ -50,16 +50,20 @@ df = df.sort_values(by=plotcols, ascending=[False for x in plotcols])
 print(df.head())
 
 # Now plot that linegraph!
-fig = plt.figure(figsize=(6,8))
-ax = fig.add_subplot(111)
+#fig = plt.figure(figsize=(6,8))
+#ax = fig.add_subplot(111)
 
-for i, v in enumerate(plotcols):
-    ax.plot('name', v, data=df, marker='', color=colors[i], linewidth=2)
+#for i, v in enumerate(plotcols):
+    #ax.plot('name', v, data=df, marker='', color=colors[i], linewidth=2)
+df.plot(kind='bar', stacked=True, colors=colors, figsize=(6,8))
 
 # calculate how many contigs to plot on x xaxis
 cval = int(len(data["name"]) / 25)
 
-ax.set_xticklabels([str(x) if x % cval == 0 else "" for x in range(len(data["name"]))])
-ax.axis('tight')
-ax.legend(loc='upper right')
+#ax.set_xticklabels([str(x) if x % cval == 0 else "" for x in range(len(data["name"]))])
+#ax.axis('tight')
+#ax.legend(loc='upper right')
+plt.set_xticklabels([str(x) if x % cval == 0 else "" for x in range(len(data["name"]))])
+plt.tight_layout()
+plt.legend(Loc='upper right')
 plt.savefig(outputplot)

@@ -2,12 +2,15 @@ from collections import defaultdict
 import pysam
 import re
 
-entries = ["merQV", "merErrorRate", "merCompleteness", "baseQV",
+entries = ["CtgNum", "TotBases", "ContigN50",
+"merQV", "merErrorRate", "merCompleteness", "baseQV",
 "unmap%", "LOW_COV_PE", "LOW_NORM_COV_PE", "HIGH_SPAN_PE", "HIGH_COV_PE",
 "HIGH_NORM_COV_PE", "STRECH_PE", "COMPR_PE", "HIGH_OUTIE_PE",
 "HIGH_SINGLE_PE", "SVDEL", "SVDUP", "SVBND"]
 
-descriptions = {"merQV" : "kmer-based Quality", "merErrorRate" : "kmer-based error rate",
+descriptions = {"CtgNum" : "Number of contigs", "TotBases" : "Assembly length in Mbp",
+"ContigN50" : "Half the length of asm is in ctgs of this size",
+"merQV" : "kmer-based Quality", "merErrorRate" : "kmer-based error rate",
 "merCompleteness" : "Proportion of complete assembly based on kmers", "baseQV" : "SNP and INDEL Quality value",
 "unmap%" : "Percentage of short-reads unmapped", "LOW_COV_PE" : "Low read COV areas",
 "LOW_NORM_COV_PE" : "Low COV of normal PE reads", "HIGH_SPAN_PE" : "Regions with high numbers of inter-contig PE reads",
@@ -23,6 +26,17 @@ solid = defaultdict(list)
 data = defaultdict(list)
 asms = snakemake.wildcards["asm"]
 print(asms)
+
+# Populate stats entries
+for i in snakemake.input["stats"]:
+    print(f'stats v:{i}')
+    with open(i 'r') as sts:
+        h = sts.readline()
+        l = sts.readline()
+        s = l.rstrip().split()
+        solid["CtgNum"].append(s[0])
+        solid["TotBases"].append("{:.2f}".format(int(s[0]) / 1000000))
+        solid["ContigN50"].append(s[5])
 
 # Populate merqury entries
 for i in snakemake.input["merqv"]:
@@ -161,7 +175,7 @@ with open(snakemake.output["table"], 'w') as out:
     out.write('|{0: <{ecol}}{1}{2: <{dcol}}|\n'.format("Q Scores", formatVarWidth(asms, ccol), "Description", ecol= ecol, dcol=dcol))
     out.write(alignstr)
 
-    for i in ["merQV", "merErrorRate", "merCompleteness", "baseQV", "unmap%", "COMPLETE", "FRAGMENT", "MISSING"]:
+    for i in ["CtgNum", "TotBases", "ContigN50", "merQV", "merErrorRate", "merCompleteness", "baseQV", "unmap%", "COMPLETE", "FRAGMENT", "MISSING"]:
         nsubs = elines[i]
         d = descriptions[i].split('\n')
         out.write('|{0: <{ecol}}{1}{2: <{dcol}}|\n'.format(i, formatVarWidth(solid[i], ccol), d[0], ecol= ecol, dcol=dcol))

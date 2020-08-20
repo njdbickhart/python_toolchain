@@ -10,9 +10,13 @@ configfile : "default.json"
 os.makedirs("logs", exist_ok=True)
 os.makedirs("mapped", exist_ok=True)
 
+finalSummary = ["final/summary_table.tab"]
+if len(config["assembly"].keys()) > 1:
+    finalSummary.extend(["final/combined_frc_plot.pdf", "final/combined_ngx_plot.pdf"])
+
 rule all:
     input:
-        "final/summary_table.tab",
+        finalSummary,
         expand("final/ideogram_errors.{asm}.pdf", asm = config["assembly"].keys()),
         expand("final/ideogram_upperq_error_windows.{asm}.bed", asm = config["assembly"].keys()),
         expand("merqury/{asm}/mer.spectra-asm.{postfix}.pdf", asm = config["assembly"].keys(), postfix=["fl", "ln", "st"])
@@ -167,29 +171,43 @@ rule run_merqury:
         mdb = "mapped/meryl_db.meryl",
         fasta = lambda wildcards: config["assembly"][wildcards.asm]
     output:
-        dist_only = "merqury/{asm}/mer.dist_only.hist",
-        qv = "merqury/{asm}/mer.qv",
-        spectraasm = "merqury/{asm}/mer.spectra-asm.hist",
-        f1 = "merqury/{asm}/mer.spectra-asm.fl.pdf",
-        ln = "merqury/{asm}/mer.spectra-asm.ln.pdf",
-        st = "merqury/{asm}/mer.spectra-asm.st.pdf",
-        complete = "merqury/{asm}/completeness.stats"
+        dist_only = "merqury/{asm}/{asm}.dist_only.hist",
+        qv = "merqury/{asm}/{asm}.qv",
+        spectraasm = "merqury/{asm}/{asm}.spectra-asm.hist",
+        f1 = "merqury/{asm}/{asm}.spectra-asm.fl.pdf",
+        ln = "merqury/{asm}/{asm}.spectra-asm.ln.pdf",
+        st = "merqury/{asm}/{asm}.spectra-asm.st.pdf",
+        complete = "merqury/{asm}/{asm}.completeness.stats"
     params:
-        outbase = "mer",
-        pdfbase = "mer.spectra-asm"
+        outbase = "{asm}",
+        pdfbase = "{asm}.spectra-asm"
     threads: 20
     shell:
         """
         module load merqury/1.0
-        merqury.sh {input.mdb} {input.fasta} {params.outbase}
-        mv mer.* ./merqury/
-        mv completeness.stats ./merqury/completeness.stats
+        bash {workflow.basedir}/scripts/spectra-cn.revised.sh {input.mdb} {input.fasta} {params.outbase}
+        mv {params.outbase}.* ./merqury/{params.outbase}/
         /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
-        mv mer.*.pdf ./merqury/
+        mv {params.pdfbase}.*.pdf ./merqury/{params.outbase}/
+        """
+
+rule download_busco:
+    output:
+        directory("busco_downloads/lineages/{}".format(config["buscoLineage"]))
+    log:
+        "logs/download_busco.log"
+    conda:
+        "envs/busco.yaml"
+    params:
+        lineage = config["buscoLineage"]
+    shell:
+        """
+        python {workflow.basedir}/scripts/downloadBuscoLineage.py {params.lineage}
         """
 
 rule run_busco:
     input:
+        "busco_downloads/lineages/{}".format(config["buscoLineage"]),
         lambda wildcards: config["assembly"][wildcards.asm]
     output:
         "busco/{asm}/busco_summary.txt",
@@ -207,8 +225,19 @@ rule run_busco:
     script:
         "scripts/busco_lift.py"
 
+rule assembly_stats:
+    input:
+        lambda wildcards: config["assembly"][wildcards.asm]
+    output:
+        "mapped/{asm}/stats.tab"
+    conda:
+        "envs/base.yaml"
+    script:
+        "scripts/calcFastaSumStats.py"
+
 rule summary_table:
     input:
+        stats = expand("mapped/{asm}/stats.tab", asm=config["assembly"].keys()),
         merqv = expand("merqury/{asm}/mer.qv", asm=config["assembly"].keys()),
         complete = expand("merqury/{asm}/completeness.stats", asm=config["assembly"].keys()),
         busco = expand("busco/{asm}/busco_summary.txt", asm=config["assembly"].keys()),
@@ -236,6 +265,9 @@ rule ideogram_plot:
         'python {workflow.basedir}/scripts/ideogram_feature_plot.py -f {input.features}'
         ' -b {input.bams} -o {output.ideogram} -e {output.bed} -t {params.chrthresh}'
 
+def getAssemblyList(wildcards):
+    return [v for k, v in config["assembly"].items()]
+
 # Begin comparative plots
 if len(config["assembly"].keys()) > 1:
     rule plot_frc:
@@ -248,6 +280,14 @@ if len(config["assembly"].keys()) > 1:
         script:
             "scripts/asm_frc_plot.py"
 
-#rule ngx_plot (see assemblathon2 manuscript)
+    rule ngx_plot:
+        input:
+            asms = getAssemblyList
+        output:
+            plot = "final/combined_ngx_plot.pdf"
+        conda:
+            "envs/base.yaml"
+        script:
+            "scripts/asm_ngx_plot.py"
 
 #rule variant_size_histos (see assemblytics)

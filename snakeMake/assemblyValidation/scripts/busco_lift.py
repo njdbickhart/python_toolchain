@@ -22,7 +22,7 @@ out_name = "btemp_" + snakemake.params.get("asm", "t")
 # note: --force allows snakemake to handle rewriting files as necessary
 # without needing to specify *all* busco outputs as snakemake outputs
 shell(
-    "busco --in {snakemake.input} --out {out_name} --force "
+    "busco --in {snakemake.input[1]} --out {out_name} --force "
     " --cpu {snakemake.threads} --mode {mode} --lineage {lineage} "
     " {extra} {log}"
 )
