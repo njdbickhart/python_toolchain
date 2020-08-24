@@ -70,7 +70,7 @@
   {
     "mem" : "25000",
     "ntasks-per-node" : "{threads}",
-    "stdout" : "logs/{rule}.stdout",
+    "stdout" : "logs/{rule}.{asm}.stdout",
     "jobname" : "{rule}"
   },
 

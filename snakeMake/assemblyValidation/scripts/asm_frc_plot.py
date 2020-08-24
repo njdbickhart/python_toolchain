@@ -35,7 +35,8 @@ df = pandas.DataFrame(data)
 fig, ax = plt.subplots()
 i = 0
 for k, g in df.groupby(['asm']):
-    ax = g.plot(ax=ax, kind='line', x='x', y='y', c=colors[i], label=k)
+    #ax = g.plot(ax=ax, kind='line', x='x', y='y', c=colors[i], label=k)
+    ax = g.plot(ax=ax, marker='', x='x', y='y', c=colors[i], linewidth=1, label=k)
     i += 1
 
 plt.legend(loc='best')

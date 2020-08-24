@@ -3,7 +3,7 @@
 echo "Usage: spectra-cn.sh <read.meryl> <asm1.fasta> [asm2.fasta] out-prefix"
 echo -e "\t<read.meryl>\t: Generated with meryl count from i.e. illumina wgs reads"
 echo -e "\t<asm1.fasta>\t: haplotype 1 assembly. gzipped or not"
-echo -e "\t[asm2.fasta]\t: haplotype 2 assembly. gzipped or not"
+echo -e "\t<ASM prefix>\t: A prefix to ensure that the temp files are unique"
 echo -e "\t<out-prefix>: output prefix. Required."
 echo -e "\t\tWhen only <asm1.fasta> is given, results will be generated in haploid mode."
 echo -e "\t\tWhen <asm2.fasta> is given, results will be generated for each asm1 asm2 haploid assembly and asm1+asm2 diploid assembly."
@@ -19,18 +19,15 @@ source $MERQURY/util/util.sh
 
 read=`link $1`
 asm1_fa=`link $2`
+asm=$3
 name=$4
 
 k=`meryl print $read | head -n 2 | tail -n 1 | awk '{print length($1)}'`
 echo "Detected k-mer size $k"
 echo
 
-if [ -z $name ]; then
-	name=$3
-	asm2_fa=""
-else
-	asm2_fa=`link $3`
-fi
+asm2_fa=""
+
 
 if [ -s $name ]; then
         echo "$name already exists. Provide a different name."
@@ -38,15 +35,7 @@ if [ -s $name ]; then
 fi
 
 
-has_module=$(check_module)
-if [[ $has_module -gt 0 ]]; then
-	echo "No modules available.."
-else
-	module load R
-fi
-
-
-asm1=`echo $asm1_fa | sed 's/.fasta$//g' | sed 's/.fa$//g' | sed 's/.fasta.gz$//g' | sed 's/.fa.gz$//g'`
+asm1=$asm
 
 echo "# Get solid k-mers"
 
@@ -63,7 +52,7 @@ echo "=== Generate spectra-cn plots per assemblies and get QV, k-mer completenes
 echo
 for asm_fa in $asm1_fa $asm2_fa	# will generate only for asm1_fa if asm2_fa is empty
 do
-	asm=`echo $asm_fa | sed 's/.fasta$//g' | sed 's/.fa$//g' | sed 's/.fasta.gz$//g' | sed 's/.fa.gz$//g'`
+	#asm=`echo $asm_fa | sed 's/.fasta$//g' | sed 's/.fa$//g' | sed 's/.fasta.gz$//g' | sed 's/.fa.gz$//g'`
 
 	if [ ! -e $asm.meryl ]; then
 	    echo "# Generate meryl db for $asm"
@@ -84,23 +73,23 @@ do
 		echo -e "Copies\tkmer_multiplicity\tCount" > $hist
 
 		echo "# Read only"
-		meryl difference output read.k$k.$asm.0.meryl $read $asm.meryl
-		meryl histogram read.k$k.$asm.0.meryl | awk '{print "read-only\t"$0}' >> $hist
+		meryl difference output $name.read.k$k.$asm.0.meryl $read $asm.meryl
+		meryl histogram $name.read.k$k.$asm.0.meryl | awk '{print "read-only\t"$0}' >> $hist
 
 		echo "# Copy 1 ~ 4"
 		for i in $(seq 1 4)
 		do
 		    echo "Copy = $i .."
-		    meryl intersect output read.k$k.$asm.$i.meryl $read [ equal-to $i ${asm}.meryl ]
-		    meryl histogram read.k$k.$asm.$i.meryl | awk -v cn=$i '{print cn"\t"$0}' >> $hist
-		    rm -r read.k$k.$asm.$i.meryl
+		    meryl intersect output $name.read.k$k.$asm.$i.meryl $read [ equal-to $i ${asm}.meryl ]
+		    meryl histogram $name.read.k$k.$asm.$i.meryl | awk -v cn=$i '{print cn"\t"$0}' >> $hist
+		    rm -r $name.read.k$k.$asm.$i.meryl
 		    echo
 		done
 
 		echo "Copy >4 .."
-		meryl intersect output read.k$k.$asm.gt$i.meryl $read [ greater-than $i ${asm}.meryl ]
-		meryl histogram read.k$k.$asm.gt$i.meryl | awk -v cn=">$i" '{print cn"\t"$0}' >> $hist
-		rm -r read.k$k.$asm.gt$i.meryl
+		meryl intersect output $name.read.k$k.$asm.gt$i.meryl $read [ greater-than $i ${asm}.meryl ]
+		meryl histogram $name.read.k$k.$asm.gt$i.meryl | awk -v cn=">$i" '{print cn"\t"$0}' >> $hist
+		rm -r $name.read.k$k.$asm.gt$i.meryl
 		echo
 	fi
 

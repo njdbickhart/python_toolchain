@@ -49,7 +49,8 @@ print(df.head())
 fig, ax = plt.subplots()
 i = 0
 for k, g in df.groupby(['asm']):
-    ax = g.plot(ax=ax, kind='line', x='NGX', y='len', c=colors[i], label=k)
+    #ax = g.plot(ax=ax, kind='line', x='NGX', y='len', c=colors[i], label=k)
+    ax = g.plot(ax=ax, marker='', x='NGX', y='len', c=colors[i], linewidth=1, label=k)
     i += 1
 
 ax.vlines(x=50.0, ymin=0, ymax=largestctg, linestyles='dashed')

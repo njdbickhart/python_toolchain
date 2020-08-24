@@ -185,7 +185,7 @@ rule run_merqury:
     shell:
         """
         module load merqury/1.0
-        bash {workflow.basedir}/scripts/spectra-cn.revised.sh {input.mdb} {input.fasta} {params.outbase}
+        bash {workflow.basedir}/scripts/spectra-cn.revised.sh {input.mdb} {input.fasta} {params.outbase} {params.outbase}
         mv {params.outbase}.* ./merqury/{params.outbase}/
         /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
         mv {params.pdfbase}.*.pdf ./merqury/{params.outbase}/
