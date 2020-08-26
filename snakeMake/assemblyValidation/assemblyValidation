@@ -325,7 +325,7 @@ if len(config["assembly"].keys()) > 1:
             8
         shell:
             """
-            minimap2 -x asm10 {input.first} {input.second} > {output}
+            minimap2 -x asm10 -t {threads} {input.first} {input.second} > {output}
             """
 
     rule dotplot:

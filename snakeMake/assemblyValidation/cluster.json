@@ -124,5 +124,20 @@
     "mem" : "25000",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
+  },
+
+  "minimap_align" :
+  {
+    "mem" : "35000",
+    "ntasks-per-node" : "{threads}",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+  "dotplot" :
+  {
+    "mem" : "25000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
   }
 }
