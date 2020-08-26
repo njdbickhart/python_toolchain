@@ -1,0 +1,12 @@
+name: dotplotly
+channels:
+  - conda-forge
+  - anaconda
+  - bioconda
+  - defaults
+  - r
+dependencies:
+  - plotly
+  - minimap2
+  - r
+  - ggplot2

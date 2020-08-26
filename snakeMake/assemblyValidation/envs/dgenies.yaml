@@ -1,0 +1,9 @@
+name: dgenies
+channels:
+  - conda-forge
+  - anaconda
+  - bioconda
+  - defaults
+dependencies:
+  - degenies
+  - minimap2
