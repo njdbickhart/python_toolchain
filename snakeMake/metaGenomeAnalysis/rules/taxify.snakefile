@@ -119,7 +119,7 @@ def interlace(input):
 
 rule blobview_plot:
     input:
-        crops = expand("blobtools/table.{assembly_group}.lens.tab")
+        crops = expand("blobtools/table.{assembly_group}.lens.tab", assembly_group=getAssemblyBaseName(config["assemblies"]))
     output:
         plot = "blobtools/summary_taxonomic_plot.pdf"
     conda:
