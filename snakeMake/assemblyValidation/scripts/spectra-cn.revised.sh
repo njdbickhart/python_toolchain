@@ -38,15 +38,35 @@ fi
 asm1=$asm
 
 echo "# Get solid k-mers"
+### Taken from filt.sh to avoid file collisions
+db=$read
+db=${db/.meryl}
 
-if [ ! -s ${read/.meryl/.filt} ]; then
-	$MERQURY/build/filt.sh $read
-else
-	echo "*** Found ${read/.meryl/.filt}. ***"
-	echo
-fi
-filt=`cat ${read/.meryl/.filt}`
-read_solid=$asm.${read/.meryl/}.gt$filt.meryl
+echo "Generate $db.hist"
+meryl histogram $db.meryl > $asm.$db.hist
+
+echo "
+java -jar -Xmx1g $MERQURY/eval/kmerHistToPloidyDepth.jar $asm.$db.hist
+"
+java -jar -Xmx1g $MERQURY/eval/kmerHistToPloidyDepth.jar $asm.$db.hist > $asm.$db.hist.ploidy
+
+cat $asm.$db.hist.ploidy
+
+filt=`sed -n 2p $asm.$db.hist.ploidy | awk '{print $NF}'`
+
+echo "
+Filter out kmers <= $filt"
+
+echo "
+meryl greater-than $filt output $asm.$db.gt$filt.meryl $db.meryl
+"
+meryl greater-than $filt output $asm.$db.gt$filt.meryl $db.meryl
+echo $filt > $asm.$db.filt
+
+###
+
+#filt=`cat ${read/.meryl/.filt}`
+read_solid=$asm.$db.gt$filt.meryl
 
 echo "=== Generate spectra-cn plots per assemblies and get QV, k-mer completeness ==="
 echo
@@ -117,7 +137,7 @@ asm_fa=$asm1_fa
 	echo
 
 	echo "# Per seq QV statistics"
-	meryl-lookup -existence -sequence $asm_fa -mers $asm.0.meryl/ | \
+	meryl-lookup -existence -sequence $asm_fa -mers $name.$asm.0.meryl/ | \
 	awk -v k=$k '{print $1"\t"$NF"\t"$(NF-2)"\t"(-10*log(1-(1-$NF/$(NF-2))^(1/k))/log(10))"\t"(1-(1-$NF/$(NF-2))^(1/k))}' > $name.$asm.qv
 	echo
 
