@@ -5,5 +5,5 @@ channels:
     - r
 dependencies:
     - r-essentials
-    - ggridges
-    - gridExtra
+    - r-ggridges
+    - r-gridExtra
