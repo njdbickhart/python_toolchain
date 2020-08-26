@@ -310,7 +310,7 @@ if len(config["assembly"].keys()) > 1:
             temp("fastas/{asm}.fa")
         shell:
             """
-            ln -s {output} {input}
+            ln -s {input} {output}
             """
 
     rule minimap_align:

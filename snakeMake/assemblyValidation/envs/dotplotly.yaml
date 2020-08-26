@@ -9,4 +9,4 @@ dependencies:
   - plotly
   - minimap2
   - r
-  - ggplot2
+  - r-ggplot2
