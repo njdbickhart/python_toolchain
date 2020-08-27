@@ -340,7 +340,7 @@ if len(config["assembly"].keys()) > 1:
             prefix = lambda wildcards : wildcards.C
         shell:
             """
-            Rscript {workflow.basedir}/scripts/pafDotPlotly.R -i {input} -o {params.prefix} -v -l -x
+            Rscript {workflow.basedir}/scripts/pafDotPlotly.R -i {input} -o {params.prefix} -v -l -x -s
             """
 
 
