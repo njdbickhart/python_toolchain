@@ -102,14 +102,14 @@ asm_fa=$asm1_fa
 		    echo "Copy = $i .."
 		    meryl intersect output $name.read.k$k.$asm.$i.meryl $read [ equal-to $i ${asm}.meryl ]
 		    meryl histogram $name.read.k$k.$asm.$i.meryl | awk -v cn=$i '{print cn"\t"$0}' >> $hist
-		    rm -r $name.read.k$k.$asm.$i.meryl
+		    #rm -r $name.read.k$k.$asm.$i.meryl
 		    echo
 		done
 
 		echo "Copy >4 .."
 		meryl intersect output $name.read.k$k.$asm.gt$i.meryl $read [ greater-than $i ${asm}.meryl ]
 		meryl histogram $name.read.k$k.$asm.gt$i.meryl | awk -v cn=">$i" '{print cn"\t"$0}' >> $hist
-		rm -r $name.read.k$k.$asm.gt$i.meryl
+		#rm -r $name.read.k$k.$asm.gt$i.meryl
 		echo
 	fi
 
@@ -146,7 +146,7 @@ asm_fa=$asm1_fa
         TOTAL=`meryl statistics $read_solid | head -n3 | tail -n1 | awk '{print $2}'`
         ASM=`meryl statistics $asm.solid.meryl | head -n3 | tail -n1 | awk '{print $2}'`
         echo -e "${asm}\tall\t${ASM}\t${TOTAL}" | awk '{print $0"\t"((100*$3)/$4)}' >> $name.completeness.stats
-	rm -r $asm.solid.meryl
+	#rm -r $asm.solid.meryl
 	echo
 
 	echo "# Generate ${asm}_only.tdf"
@@ -196,7 +196,7 @@ if [[ "$asm2_fa" = "" ]]; then
 	echo
 
 	echo "# Clean up"
-	rm -r ${asm1}.0.meryl read.k$k.$asm1.0.meryl read.k$k.$asm1.meryl $read_solid
+	#rm -r ${asm1}.0.meryl read.k$k.$asm1.0.meryl read.k$k.$asm1.meryl $read_solid
 	echo "Done!"
 
 	exit 0

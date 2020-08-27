@@ -302,16 +302,17 @@ if len(config["assembly"].keys()) > 1:
             "scripts/asm_ngx_plot.py"
 
     localrules: organize
+    os.makedirs("fastas", exist_ok=True)
 
     rule organize:
         input:
             lambda wildcards: config["assembly"][wildcards.asm]
         output:
             temp("fastas/{asm}.fa")
-        shell:
-            """
-            ln -s {input} {output}
-            """
+        run:
+            cmd = ["ln", "-s", input[0], output[0]]
+            print(cmd)
+            sp.call(cmd)
 
     rule minimap_align:
         input:
