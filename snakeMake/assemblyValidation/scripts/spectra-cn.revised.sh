@@ -146,7 +146,7 @@ asm_fa=$asm1_fa
         TOTAL=`meryl statistics $read_solid | head -n3 | tail -n1 | awk '{print $2}'`
         ASM=`meryl statistics $asm.solid.meryl | head -n3 | tail -n1 | awk '{print $2}'`
         echo -e "${asm}\tall\t${ASM}\t${TOTAL}" | awk '{print $0"\t"((100*$3)/$4)}' >> $name.completeness.stats
-	#rm -r $asm.solid.meryl
+	rm -r $asm.solid.meryl
 	echo
 
 	echo "# Generate ${asm}_only.tdf"
@@ -177,22 +177,22 @@ if [[ "$asm2_fa" = "" ]]; then
 		echo "*** Found $hist ***"
 	else
 		echo "# $asm1 only"
-		meryl intersect output read.k$k.$asm1.meryl $read ${asm1}.meryl
+		meryl intersect output $name.read.k$k.$asm1.meryl $read ${asm1}.meryl
 
 		echo "# Write output"
 		echo -e "Assembly\tkmer_multiplicity\tCount" > $hist
-		meryl histogram read.k$k.$asm1.0.meryl | awk '{print "read-only\t"$0}' >> $hist
-		meryl histogram read.k$k.$asm1.meryl | awk -v hap="${asm1}" '{print hap"\t"$0}' >> $hist
+		meryl histogram $name.read.k$k.$asm1.0.meryl | awk '{print "read-only\t"$0}' >> $hist
+		meryl histogram $name.read.k$k.$asm1.meryl | awk -v hap="${asm1}" '{print hap"\t"$0}' >> $hist
 
 		echo "# Get asm only for spectra-asm"
-		ASM1_ONLY=`meryl statistics ${asm1}.0.meryl | head -n3 | tail -n1 | awk '{print $2}'`
+		ASM1_ONLY=`meryl statistics $name.${asm1}.0.meryl | head -n3 | tail -n1 | awk '{print $2}'`
 		echo -e "${asm1}\t0\t$ASM1_ONLY" > $hist_asm_dist_only
 	fi
 
 	echo "#	Plot $hist"
 	echo "\
-	Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.spectra-asm -z $hist_asm_dist_only"
-	Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.spectra-asm -z $hist_asm_dist_only
+	Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.spectra-asm -z $hist_asm_dist_only --pdf"
+	Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.spectra-asm -z $hist_asm_dist_only --pdf
 	echo
 
 	echo "# Clean up"

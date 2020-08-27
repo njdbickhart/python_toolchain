@@ -341,6 +341,7 @@ if len(config["assembly"].keys()) > 1:
         shell:
             """
             Rscript {workflow.basedir}/scripts/pafDotPlotly.R -i {input} -o {params.prefix} -v -l -x -s
+            mv {params.prefix}.png {output}
             """
 
 
