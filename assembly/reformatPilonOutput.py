@@ -74,11 +74,13 @@ def main(args, parser):
             f = completed[c]
             print(f'Working on chr: {c} from file {f}')
             with sp.Popen(f'samtools faidx {f} {c}', shell=True, stdout=sp.PIPE, bufsize=1, universal_newlines=True) as sf:
-                h = sf.stdout.readline().rstrip()
-                h = re.sub(pTag, '', h)
-                out.write(f'{h}\n')
-                for l in sf.stdout:
-                    out.write(l)
+                for h in sf.stdout:
+                    h = h.rstrip()
+                    if h.startswith('>'):
+                        h = re.sub(pTag, '', h)
+                        out.write(f'{h}\n')
+                    else:
+                        out.write(f'{h}\n')
 
 
 def samtoolsFaiTask(file):
