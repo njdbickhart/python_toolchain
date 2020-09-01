@@ -10,6 +10,13 @@
     "jobname" : "{rule} [{wildcards.sample}]"
   },
 
+  "bwa_index":
+  {
+    "mem" : "15000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
   "align_reads":
   {
     "mem" : "15000",
@@ -61,6 +68,14 @@
   "meryl_merge":
   {
     "mem" : "52000",
+    "ntasks-per-node" : "{threads}",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+  "run_sample_merqury":
+  {
+    "mem" : "25000",
     "ntasks-per-node" : "{threads}",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
