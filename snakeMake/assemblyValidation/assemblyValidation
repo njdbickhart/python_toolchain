@@ -218,7 +218,7 @@ rule meryl_merge:
 
 rule run_sample_merqury:
     input:
-        mdb = expand("mapped/{sample}_{{lane}}.meryl", sample=config["samples"]),
+        mdb = expand("mapped/{{sample}}_{lane}.meryl", lane=[1,2]),
         fasta = lambda wildcards: config["assembly"][wildcards.asm]
     output:
         merged = temp("mapped/{sample}_merged.{asm}.meryl"),
