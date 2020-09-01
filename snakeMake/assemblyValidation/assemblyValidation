@@ -221,7 +221,7 @@ rule run_sample_merqury:
         mdb = expand("mapped/{sample}_{{lane}}.meryl", sample=config["samples"]),
         fasta = lambda wildcards: config["assembly"][wildcards.asm]
     output:
-        merged = temp("mapped/{sample}_merged.meryl"),
+        merged = temp("mapped/{sample}_merged.{asm}.meryl"),
         dist_only = "merqury/{asm}/{sample}.dist_only.hist",
         qv = "merqury/{asm}/{sample}.qv",
         spectraasm = "merqury/{asm}/{sample}.spectra-asm.hist",
