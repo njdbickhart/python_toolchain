@@ -2,8 +2,38 @@
 # github.com/marianattestad/assemblytics
 import os
 import argparse
+from collections import defaultdict
 
+def parse_user_input():
+    parser = argparse.ArgumentParser(
+            description = "Generate between paf alignment statistics"
+            )
+    parser.add_argument('-f', '--file',
+                        help="A single PAF alignment file between two assemblies.",
+                        type=str, required=True
+                        )
+    parser.add_argument('-m', '--minimum',
+                        help="Minimum event size to filter",
+                        type=int, default=100
+                        )
+    parser.add_argument('-a', '--maximum',
+                        help="Maximum event size to filter",
+                        type=int, default=100000
+                        )
+    parser.add_argument('-n', '--narrow',
+                        help="How close alignments need to be to call dels",
+                        type=int, default=50
+                        )
+    parser.add_argument('-q', '--qdist',
+                        help="How far alignments need to be from each other before we discard",
+                        type=int, default=100000
+                        )
+    parser.add_argument('-o', '--output',
+                        help="Output file Basename",
+                        type=str, required=True
+                        )
 
+    return parser.parse_args(), parser
 
 class pafLine:
 
@@ -27,6 +57,53 @@ class pafLine:
         self.qidx = 0
         self.qrc = True if segs[4] == '-' else False
 
+    def getqlen(self):
+        return self.qend - self.qstart
+
+    def getrlen(self):
+        return self.rend - self.rstart
+
+class pafComp:
+
+    def __init__(self, prev, curr):
+        self.prev = prev
+        self.curr = curr 
+        self.rdist = 0
+        self.qdist = 0
+        self.svtype = ""
+
+def main(args, parser):
+    # Load data
+    pdata = defaultdict(lambda: defaultdict(list))
+    qids = set()
+    rids = set()
+    with open(args.file, 'r') as paf:
+        for l in paf:
+            temp = pafLine(l)
+            pdata[temp.qid][temp.rid].append(temp)
+            qids.add(temp.qid)
+            rids.add(temp.rid)
+
+    # start organization by query sequence
+    for q in sorted(qids):
+        working = []
+        for r in sorted(rids):
+            if r in pdata[q]:
+                working.extend(pdata[q][r])
+
+        working.sort(key=lambda x: x.qstart)
+
+        if len(working) > 1:
+            for i in range(1,len(working)):
+                prev = working[i-1]
+                curr = working[i]
+
+
+
+
+if __name__ == "__main__":
+    args, parser = arg_parse()
+    main(args, parser)
 
 use strict;
 my @chromosome_filter_choices =  ("all-chromosomes","primary-chromosomes");

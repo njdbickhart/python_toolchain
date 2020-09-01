@@ -133,7 +133,7 @@ asm_fa=$asm1_fa
         TOTAL=`meryl statistics ${asm}.meryl  | head -n4 | tail -n1 | awk '{print $2}'`
         ERROR=`echo "$ASM_ONLY $TOTAL" | awk -v k=$k '{print (1-(1-$1/$2)^(1/k))}'`
         QV=`echo "$ASM_ONLY $TOTAL" | awk -v k=$k '{print (-10*log(1-(1-$1/$2)^(1/k))/log(10))}'`
-        echo -e "$asm\t$ASM_ONLY\t$TOTAL\t$QV\t$ERROR" >> $name.qv
+        echo -e "$asm\t$ASM_ONLY\t$TOTAL\t$QV\t$ERROR" >> merqury/$asm/$name.qv
 	echo
 
 	echo "# Per seq QV statistics"
@@ -145,7 +145,7 @@ asm_fa=$asm1_fa
 	meryl intersect output $asm.solid.meryl $asm.meryl $read_solid
         TOTAL=`meryl statistics $read_solid | head -n3 | tail -n1 | awk '{print $2}'`
         ASM=`meryl statistics $asm.solid.meryl | head -n3 | tail -n1 | awk '{print $2}'`
-        echo -e "${asm}\tall\t${ASM}\t${TOTAL}" | awk '{print $0"\t"((100*$3)/$4)}' >> $name.completeness.stats
+        echo -e "${asm}\tall\t${ASM}\t${TOTAL}" | awk '{print $0"\t"((100*$3)/$4)}' >> merqury/$asm/$name.completeness.stats
 	rm -r $asm.solid.meryl
 	echo
 
@@ -167,11 +167,11 @@ asm_fa=$asm1_fa
 	echo
 
 
-hist_asm_dist_only=$name.dist_only.hist
+hist_asm_dist_only=merqury/$asm/$name.dist_only.hist
 if [[ "$asm2_fa" = "" ]]; then
 	echo "No asm2_fa given. Done."
 
-	hist=$name.spectra-asm.hist
+	hist=merqury/$asm/$name.spectra-asm.hist
 
 	if [[ -s $hist ]]; then
 		echo "*** Found $hist ***"
@@ -196,7 +196,7 @@ if [[ "$asm2_fa" = "" ]]; then
 	echo
 
 	echo "# Clean up"
-	#rm -r ${asm1}.0.meryl read.k$k.$asm1.0.meryl read.k$k.$asm1.meryl $read_solid
+	rm -r ${asm1}.0.meryl read.k$k.$asm1.0.meryl read.k$k.$asm1.meryl $read_solid
 	echo "Done!"
 
 	exit 0

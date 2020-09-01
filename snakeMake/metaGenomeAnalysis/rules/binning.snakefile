@@ -127,6 +127,7 @@ rule eukrep:
     shell:
         """
         EukRep -i {input} -o {output} --prokarya {params.prok} --min {params.min_contig} > {log} 2>&1
+        rm {params.prok}
         """
 
 rule metabat_binning_euk:

@@ -8,8 +8,16 @@ shell.executable("/usr/bin/bash")
 
 configfile : "default.json"
 
+wildcard_constraints:
+    lane = "(1|2)"
+
+localrules: organize
+
+os.makedirs("fastas", exist_ok=True)
 os.makedirs("logs", exist_ok=True)
 os.makedirs("mapped", exist_ok=True)
+
+
 
 finalSummary = ["final/summary_table.tab"]
 pcombis = []
@@ -27,11 +35,48 @@ rule all:
         expand("merqury/{asm}/{asm}.spectra-asm.{postfix}.pdf", asm = config["assembly"].keys(), postfix=["fl", "ln", "st"])
 
 
+
+rule organize:
+    input:
+        lambda wildcards: config["assembly"][wildcards.asm]
+    output:
+        temp("fastas/{asm}.fa")
+    run:
+        cmd = ["ln", "-s", input[0], output[0]]
+        print(cmd)
+        sp.call(cmd)
+
+rule bwa_index:
+    input:
+        "fastas/{asm}.fa"
+    output:
+        "fastas/{asm}.fa.amb",
+        "fastas/{asm}.fa.ann",
+        "fastas/{asm}.fa.bwt",
+        "fastas/{asm}.fa.pac",
+        "fastas/{asm}.fa.sa",
+        "fastas/{asm}.fa.fai"
+    log:
+        "logs/{asm}/{asm}.indexing.log"
+    conda:
+        "envs/base.yaml"
+    shell:
+        """
+        bwa index {input} 2> {log}
+        samtools faidx {input} 2> {log}
+        """
+
 rule align_reads:
     input:
         fq1 = lambda wildcards: config["samples"][wildcards.sample][0],
         fq2 = lambda wildcards: config["samples"][wildcards.sample][1],
-        fasta = lambda wildcards: config["assembly"][wildcards.asm]
+        fasta = "fastas/{asm}.fa",
+        amb = "fastas/{asm}.fa.amb",
+        ann = "fastas/{asm}.fa.ann",
+        bwt = "fastas/{asm}.fa.bwt",
+        pac = "fastas/{asm}.fa.pac",
+        sa = "fastas/{asm}.fa.sa",
+        fai = "fastas/{asm}.fa.fai"
     output:
         temp("mapped/{asm}/{sample}.bam")
     log:
@@ -127,7 +172,7 @@ rule qv_estimate:
         vcf="calls/{asm}/merged_freebayes.vcf",
         depth="calls/{asm}/merged_depth.txt"
     output:
-        "calls/{asm}/qv_value.txt"
+        "calls/{asm}/{asm}.qv_value.txt"
     shell:
         """
         bash {workflow.basedir}/scripts/qv_estimate.sh {input.depth} {input.vcf} {output[0]}
@@ -169,6 +214,34 @@ rule meryl_merge:
         """
         module load merqury/1.0
         meryl union-sum output {output} {input}
+        """
+
+rule run_sample_merqury:
+    input:
+        mdb = expand("mapped/{sample}_{{lane}}.meryl", sample=config["samples"]),
+        fasta = lambda wildcards: config["assembly"][wildcards.asm]
+    output:
+        merged = temp("mapped/{sample}_merged.meryl"),
+        dist_only = "merqury/{asm}/{sample}.dist_only.hist",
+        qv = "merqury/{asm}/{sample}.qv",
+        spectraasm = "merqury/{asm}/{sample}.spectra-asm.hist",
+        f1 = "merqury/{asm}/{sample}.spectra-asm.fl.pdf",
+        ln = "merqury/{asm}/{sample}.spectra-asm.ln.pdf",
+        st = "merqury/{asm}/{sample}.spectra-asm.st.pdf",
+        complete = "merqury/{asm}/{sample}.completeness.stats"
+    params:
+        outbase = "{sample}",
+        asmbase = "{asm}",
+        pdfbase = "{sample}.spectra-asm"
+    threads:
+        20
+    shell:
+        """
+        module load merqury/1.0
+        bash {workflow.basedir}/scripts/spectra-cn.revised.sh {input.mdb} {input.fasta} {params.asmbase} {params.outbase}
+        mv {params.outbase}.* ./merqury/{params.asmbase}/
+        /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
+        mv {params.pdfbase}.*.pdf ./merqury/{params.asmbase}/
         """
 
 rule run_merqury:
@@ -213,7 +286,7 @@ rule download_busco:
 rule run_busco:
     input:
         "busco_downloads/lineages/{}".format(config["buscoLineage"]),
-        lambda wildcards: config["assembly"][wildcards.asm]
+        "fastas/{asm}.fa"
     output:
         "busco/{asm}/busco_summary.txt",
     log:
@@ -232,7 +305,7 @@ rule run_busco:
 
 rule assembly_stats:
     input:
-        lambda wildcards: config["assembly"][wildcards.asm]
+        "fastas/{asm}.fa"
     output:
         "mapped/{asm}/stats.tab"
     conda:
@@ -246,7 +319,7 @@ rule summary_table:
         merqv = expand("merqury/{asm}/{asm}.qv", asm=config["assembly"].keys()),
         complete = expand("merqury/{asm}/{asm}.completeness.stats", asm=config["assembly"].keys()),
         busco = expand("busco/{asm}/busco_summary.txt", asm=config["assembly"].keys()),
-        snpqv = expand("calls/{asm}/qv_value.txt", asm=config["assembly"].keys()),
+        snpqv = expand("calls/{asm}/{asm}.qv_value.txt", asm=config["assembly"].keys()),
         bams=expand("mapped/{asm}/merged.bam", asm=config["assembly"].keys()),
         features=expand("calls/{asm}/merged_frc.txt_Features.txt", asm=config["assembly"].keys()),
         lumpy = expand("calls/{asm}/merged_lumpy.vcf", asm=config["assembly"].keys())
@@ -301,18 +374,7 @@ if len(config["assembly"].keys()) > 1:
         script:
             "scripts/asm_ngx_plot.py"
 
-    localrules: organize
-    os.makedirs("fastas", exist_ok=True)
 
-    rule organize:
-        input:
-            lambda wildcards: config["assembly"][wildcards.asm]
-        output:
-            temp("fastas/{asm}.fa")
-        run:
-            cmd = ["ln", "-s", input[0], output[0]]
-            print(cmd)
-            sp.call(cmd)
 
     rule minimap_align:
         input:
@@ -345,4 +407,4 @@ if len(config["assembly"].keys()) > 1:
             """
 
 
-#rule variant_size_histos (see assemblytics)
+    #rule variant_size_histos:
