@@ -364,7 +364,8 @@ if len(config["assembly"].keys()) > 1:
 
     rule ngx_plot:
         input:
-            asms = getAssemblyList
+            asms = expand("fastas/{asm}.fa", asm=config["assembly"].keys()),
+            fais = expand("fastas/{asm}.fa.fai", asm=config["assembly"].keys())
         output:
             plot = "final/combined_ngx_plot.pdf"
         conda:
