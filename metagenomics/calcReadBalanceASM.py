@@ -49,7 +49,8 @@ class shortRead:
         
     def _calcAvgRLen(self, bam):
         rlens = []
-        for i in bam.head(100000):
+        b = pysam.AlignmentFile(bam, "rb")
+        for i in b.head(100000):
             l = i.infer_read_length()
             if isinstance(l, int):
                 rlens.append(l)
