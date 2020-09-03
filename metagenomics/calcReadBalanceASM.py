@@ -17,10 +17,7 @@ def arg_parse():
     parser = argparse.ArgumentParser(
             description = "A script to compare read depth profiles for long and short reads on metagenomes"
             )
-    parser.add_argument('-f', '--fasta', 
-                        help="Input metagenome assembly file",
-                        required=True, type=str
-                        )
+
     parser.add_argument('-o', '--output',
                         help="Output tab delimited table file",
                         required=True, type=str,
@@ -131,6 +128,9 @@ def main(args, parser):
     
     lworker = longRead(args.paf, args.longreads)
     (lrnum, lrbases, lalgns, lalgnr) = lworker.calcBases()
+    
+    print(f'shortreads:\t{srnum}\t{srbases}')
+    print(f'longreads:\t{lrnum}\t{lrbases}')
     
     with open(args.output, 'w') as out:
         out.write("contig\tsreads\tsbases\tsrprop\tsbprop\tlreads\tlbases\tlrprop\tlbprop\n")
