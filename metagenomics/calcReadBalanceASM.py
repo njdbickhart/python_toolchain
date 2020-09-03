@@ -39,7 +39,8 @@ def arg_parse():
 class shortRead:
     
     def __init__(self, blist):
-        self.blist = [pysam.AlignmentFile(b, "rb") for b in blist]
+        #self.blist = [pysam.AlignmentFile(b, "rb") for b in blist]
+        self.blist = blist
         self.rnum = 0
         self.rbases = 0
         self.ctglens = dict()
