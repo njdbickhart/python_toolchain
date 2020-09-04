@@ -85,6 +85,7 @@ class shortRead:
         
         # Next, calculate total reads for all bams, total bases and bases mapped
         for i, b in enumerate(self.blist):
+            print(f'Estimating bases for {b} with avg read {bamRlens[i]}')
             self._pullStats(b, bamRlens[i])
             
         # Return total reads, total bases, ctglen dict, aligned bases dict and aligned read dict
@@ -103,13 +104,21 @@ class longRead:
     def calcBases(self):
         # First, collect total number of reads and bases from fastas
         for i in self.flist:
-            with open(i, 'r') as fasta:
-                for name, seq in fastaReader(fasta):
-                    self.rbases += len(seq)
+            if not os.path.exists(i + '.fai'):
+                print(f'Fasta file: {i} is not samtools indexed! Aborting')
+                sys.exit(-1)
+            with open(i + '.fai', 'r') as fasta:
+                for l in fasta:
+                    seg = l.rstrip().split()
+                    if len(seg) < 2:
+                        continue
+                    self.rbases += int(seg[1])
                     self.rnum += 1
-                    
+        
+        print(f'Estimated {self.rnum} reads and {self.rbases} bases from long-read fastas')
         # Next calculate total reads for all paf alignments and bases mapped
         for p in self.plist:
+            print(f'Working on paf: {p}')
             with open(p, 'r') as paf:
                 for l in paf:
                     s = l.rstrip().split()
@@ -129,11 +138,12 @@ def main(args, parser):
         
     sworker = shortRead(args.bam)
     (srnum, srbases, ctglens, salgns, salgnr) = sworker.calcBases()
+    print(f'shortreads:\t{srnum}\t{srbases}')
     
     lworker = longRead(args.paf, args.longreads)
     (lrnum, lrbases, lalgns, lalgnr) = lworker.calcBases()
     
-    print(f'shortreads:\t{srnum}\t{srbases}')
+    
     print(f'longreads:\t{lrnum}\t{lrbases}')
     
     with open(args.output, 'w') as out:
@@ -150,6 +160,8 @@ def main(args, parser):
             lbprop = "{0:.3f}".format(lbases / lrbases)
             
             out.write(f'{ctg}\t{sreads}\t{sbases}\t{srprop}\t{sbprop}\t{lreads}\t{lbases}\t{lrprop}\t{lbprop}\n')
+            
+    print("Done!")
 
 if __name__ == "__main__":
     args, parser = arg_parse()

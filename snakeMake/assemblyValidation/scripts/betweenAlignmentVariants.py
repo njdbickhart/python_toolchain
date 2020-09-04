@@ -193,5 +193,5 @@ def main(args, parser):
     print(f'Identified {svcounter} between alignment SVs')
 
 if __name__ == "__main__":
-    args, parser = arg_parse()
+    args, parser = parse_user_input()
     main(args, parser)
