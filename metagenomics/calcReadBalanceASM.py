@@ -61,10 +61,12 @@ class shortRead:
         text = pysam.idxstats(bam)
         lines = text.split(sep="\n")
         for i in lines:
-            segs = i.split()
-            if len(segs) < 4 or segs[0] == "*":
+            segs = i.rstrip().split()
+            if len(segs) < 4:
+                continue 
+            elif segs[0] == "*":
                 if segs[0] == "*":
-                    self.rum += int(segs[3])
+                    self.rnum += int(segs[3])
                     self.rbases += int(int(segs[3]) * rl)
                 continue
             clen = int(segs[1])
