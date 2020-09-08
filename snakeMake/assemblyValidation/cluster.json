@@ -112,7 +112,7 @@
 
   "run_busco" :
   {
-    "mem" : "25000",
+    "mem" : "75000",
     "ntasks-per-node" : "{threads}",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"

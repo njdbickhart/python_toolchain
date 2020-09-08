@@ -19,7 +19,9 @@ descriptions = {"CtgNum" : "Number of contigs", "TotBases" : "Assembly length in
 "HIGH_OUTIE_PE" : "Regions with high counts of improperly paired reads",
 "HIGH_SINGLE_PE" : "Regions with high counts of single unmapped reads", "SVDEL" : "Number of deletion SVs",
 "SVDUP" : "Number of Duplication SVs", "SVBND" : "Number of Complex SVs",
-"COMPLETE" : "Percent of complete BUSCOs", "FRAGMENT" : "Percent of fragmented BUSCOs",
+"COMPLETESC" : "Percent of complete, single-copy BUSCOs",
+"COMPLETEDUP" : "Percent of complete, duplicated BUSCOs",
+"FRAGMENT" : "Percent of fragmented BUSCOs",
 "MISSING" : "Percent of missing BUSCOs"}
 
 solid = defaultdict(list)
@@ -65,10 +67,11 @@ for i in snakemake.input["busco"]:
             if l.startswith('#'):
                 continue
             elif l.startswith('C'):
-                m = re.match(r'C:(.+)%[S:.+%,D:.+%],F:(.+)%,M:(.+)%,n:.+', l)
-                solid["COMPLETE"].append(m.group(1))
-                solid["FRAGMENT"].append(m.group(2))
-                solid["MISSING"].append(m.group(3))
+                m = re.match(r'C:.+%\[S:(.+)%,D:(.+)%\],F:(.+)%,M:(.+)%,n:.+', l)
+                solid["COMPLETESC"].append(m.group(1))
+                solid["COMPLETEDUP"].append(m.group(2))
+                solid["FRAGMENT"].append(m.group(3))
+                solid["MISSING"].append(m.group(4))
                 break
 
 
@@ -175,7 +178,7 @@ with open(snakemake.output["table"], 'w') as out:
     out.write('|{0: <{ecol}}{1}{2: <{dcol}}|\n'.format("Q Scores", formatVarWidth(asms, ccol), "Description", ecol= ecol, dcol=dcol))
     out.write(alignstr)
 
-    for i in ["CtgNum", "TotBases", "ContigN50", "merQV", "merErrorRate", "merCompleteness", "baseQV", "unmap%", "COMPLETE", "FRAGMENT", "MISSING"]:
+    for i in ["CtgNum", "TotBases", "ContigN50", "merQV", "merErrorRate", "merCompleteness", "baseQV", "unmap%", "COMPLETESC", "COMPLETEDUP", "FRAGMENT", "MISSING"]:
         nsubs = elines[i]
         d = descriptions[i].split('\n')
         out.write('|{0: <{ecol}}{1}{2: <{dcol}}|\n'.format(i, formatVarWidth(solid[i], ccol), d[0], ecol= ecol, dcol=dcol))
