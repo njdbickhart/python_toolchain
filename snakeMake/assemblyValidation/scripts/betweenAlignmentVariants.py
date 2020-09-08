@@ -108,7 +108,7 @@ class pafComp:
             self.typeguess = "Interchromosomal"
             self.rdist = 0
         else:
-            if self.svtype == "FR" or self.stype == "RF":
+            if self.svtype == "FR" or self.svtype == "RF":
                 self.typeguess = "Inversion"
                 abs_event_size = self.rdist
             elif self.qdist > self.rdist:
@@ -143,7 +143,7 @@ class pafComp:
         ref_start = min(self.positions)
         ref_end = max(self.positions)
         ref_end = ref_start + 1 if ref_end == ref_start else ref_end
-        return f'{self.rid}\t{ref_start}\t{ref_end}\taqc_sv{counter}\t{self.abs_size}\t+\t{self.typeguess}\t{self.rdist}\t{self.qdist}\t-\tbetween\n'
+        return f'{self.prev.rid}\t{ref_start}\t{ref_end}\taqc_sv{counter}\t{self.abs_size}\t+\t{self.typeguess}\t{self.rdist}\t{self.qdist}\t-\tbetween\n'
 
 
 def main(args, parser):
