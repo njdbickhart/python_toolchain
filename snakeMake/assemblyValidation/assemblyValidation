@@ -430,7 +430,7 @@ if len(config["assembly"].keys()) > 1:
         output:
             "final/vars{C}.log_all_sizes.pdf",
             "final/vars{C}.75-1000.pdf",
-            "final/vars{C}.1000-500000.pdf
+            "final/vars{C}.1000-500000.pdf"
         params:
             prefix = lambda wildcards : "vars" + wildcards.C,
             min = 75,
@@ -440,5 +440,5 @@ if len(config["assembly"].keys()) > 1:
             "envs/dotplotly.yaml"
         shell:
             """
-            Rscript {workflow.basedir}/scripts/asm_variant_histo.R -i {input} -o {params.prefix} -q {params.min} -m {params.max} {params.extra}
+            Rscript {workflow.basedir}/scripts/asm_variant_histos.R -i {input} -o {params.prefix} -q {params.min} -m {params.max} {params.extra}
             """

@@ -4,7 +4,8 @@
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(plotly))
-suppressPackageStartupMessages(library(tidyverse)
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(RColorBrewer))
 
 option_list <- list(
   make_option(c("-i","--input"), type="character", default=NULL,
@@ -76,7 +77,7 @@ for (i in seq(1,length(var_size_cutoffs)-1)) {
         }
 
         if (nrow(filtered_bed)>0) {
-            if (opts$to_png) {
+            if (opt$to_png) {
                 if (opt$verbose){ print("Printing png...")}
                 png(paste(opt$output_prefix,".", min_var, "-",max_var, ".png", sep=""),1000,1000,res=200)
             } else {
@@ -111,11 +112,29 @@ for (i in seq(1,length(var_size_cutoffs)-1)) {
 
 }
 
+# Prep data for log-scaled plot
+alt <- bed
+
+alt[alt$type=="Deletion",]$size <- -1*alt[alt$type=="Deletion",]$size
+alt[alt$type=="Repeat contraction",]$size <- -1*alt[alt$type=="Repeat contraction",]$size
+alt[alt$type=="Tandem contraction",]$size <- -1*alt[alt$type=="Tandem contraction",]$size
+
+alt$Type <- "None"
+if (nrow(alt[alt$type %in% c("Insertion","Deletion"),]) > 0) {
+    alt[alt$type %in% c("Insertion","Deletion"),]$Type <- "Indel"    
+}
+if (nrow(alt[alt$type %in% c("Tandem expansion","Tandem contraction"),]) > 0) {
+    alt[alt$type %in% c("Tandem expansion","Tandem contraction"),]$Type <- "Tandem"    
+}
+if (nrow(alt[alt$type %in% c("Repeat expansion","Repeat contraction"),]) > 0) {
+    alt[alt$type %in% c("Repeat expansion","Repeat contraction"),]$Type <- "Repeat"    
+}
+
 if(opt$verbose){
   print("Now printing log scale plot")
 }
 # Save log-scaled plot to PNG
-if (opts$to_png) {
+if (opt$to_png) {
   if (opt$verbose){ print("Printing large png...")}
     png(paste(opt$output_prefix,".log_all_sizes.png", sep=""),width=2000,height=1000,res=200)
 } else {
