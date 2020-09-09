@@ -26,6 +26,7 @@ if len(config["assembly"].keys()) > 1:
     # Adding iterations of dotplots
     pcombis = [c[0] + "_" + c[1] for c in list(itertools.combinations(config["assembly"].keys(), 2))]
     finalSummary.extend(expand("final/plot{C}.png", C=pcombis))
+    finalSummary.extend(expand("final/vars{C}.log_all_sizes.pdf", C=pcombis))
 
 rule all:
     input:
@@ -407,5 +408,37 @@ if len(config["assembly"].keys()) > 1:
             mv {params.prefix}.png {output}
             """
 
+    rule variant_sizes:
+        input:
+            "mapped/map{C}.paf"
+        output:
+            "calls/vars{C}.paf"
+        conda:
+            "envs/base.yaml"
+        params:
+            max = 1000000,
+            qdist = 1000000,
+            narrow = 50
+        shell:
+            """
+            python {workflow.basedir}/scripts/betweenAlignmentVariants.py -a {params.max} -q {params.qdist} -n {params.narrow} -f {input} -o {output}
+            """
 
-    #rule variant_size_histos:
+    rule variant_size_histos:
+        input:
+            "calls/vars{C}.paf"
+        output:
+            "final/vars{C}.log_all_sizes.pdf",
+            "final/vars{C}.75-1000.pdf",
+            "final/vars{C}.1000-500000.pdf
+        params:
+            prefix = lambda wildcards : "vars" + wildcards.C,
+            min = 75,
+            max = 500000,
+            extra = "-v"
+        conda:
+            "envs/dotplotly.yaml"
+        shell:
+            """
+            Rscript {workflow.basedir}/scripts/asm_variant_histo.R -i {input} -o {params.prefix} -q {params.min} -m {params.max} {params.extra}
+            """

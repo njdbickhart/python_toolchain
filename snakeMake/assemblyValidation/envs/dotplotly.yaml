@@ -12,3 +12,4 @@ dependencies:
   - r-ggplot2
   - r-plotly
   - r-optparse
+  - r-tidyverse

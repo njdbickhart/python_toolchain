@@ -161,5 +161,19 @@
     "mem" : "25000",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
+  },
+
+  "variant_sizes" :
+  {
+    "mem" : "10000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+  "variant_size_histos" :
+  {
+    "mem" : "10000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
   }
 }

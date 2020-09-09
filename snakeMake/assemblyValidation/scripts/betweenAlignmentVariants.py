@@ -29,7 +29,7 @@ def parse_user_input():
                         type=int, default=100000
                         )
     parser.add_argument('-o', '--output',
-                        help="Output file Basename",
+                        help="Output file Name",
                         type=str, required=True
                         )
 
@@ -162,6 +162,7 @@ def main(args, parser):
     # start organization by query sequence
     with open(args.output, 'w') as out:
         svcounter = 0
+        out.write("chrom\tstart\tstop\tname\tsize\tstrand\ttype\tref.dist\tquery.dist\tcontig_position\tmethod.found\n")
         for q in sorted(qids):
             working = []
             for r in sorted(rids):
