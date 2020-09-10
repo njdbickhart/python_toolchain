@@ -126,6 +126,8 @@ for i in snakemake.input["lumpy"]:
             s = l.rstrip().split()
             d = s[7].split(';')
             t = d[0].replace("SVTYPE=", "SV")
+            if t not in minLump:
+                continue
             data[t][-1] += 1
 
 print("loaded lumpy entries")
