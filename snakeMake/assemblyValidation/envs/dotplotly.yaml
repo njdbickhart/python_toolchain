@@ -13,3 +13,4 @@ dependencies:
   - r-plotly
   - r-optparse
   - r-tidyverse
+  - r-plyr

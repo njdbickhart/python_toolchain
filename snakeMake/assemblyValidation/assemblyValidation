@@ -346,6 +346,16 @@ rule ideogram_plot:
         'python {workflow.basedir}/scripts/ideogram_feature_plot.py -f {input.features}'
         ' -b {input.bams} -o {output.ideogram} -e {output.bed} -t {params.chrthresh}'
 
+rule move_kplots:
+    input:
+        st = "merqury/{asm}/{asm}.spectra-asm.st.pdf"
+    output:
+        final = "final/{asm}.spectra-asm.st.pdf"
+    shell:
+        """
+        cp {input.st} {output.final}
+        """
+
 def getAssemblyList(wildcards):
     return [v for k, v in config["assembly"].items()]
 
