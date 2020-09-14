@@ -37,7 +37,7 @@ for i in snakemake.input["stats"]:
         l = sts.readline()
         s = l.rstrip().split()
         solid["CtgNum"].append(s[0])
-        solid["TotBases"].append("{:.2f}".format(int(s[0]) / 1000000))
+        solid["TotBases"].append("{:.2f}".format(int(s[1]) / 1000000))
         solid["ContigN50"].append(s[5])
 
 # Populate merqury entries
@@ -173,7 +173,7 @@ csepfull = "|" + "|".join([csep + ":" for x in asms]) + "|"
 chyphenfull = "|" + "|".join([csep + "-" for x in asms]) + "|"
 
 alignstr = '|:{}{}:{}|\n'.format(esep, csepfull, dsep)
-sepstr = '|-{}{}-{}|\n'.format(esep, chyphenfull, dsep)
+sepstr = '--{}{}-{}-\n'.format(esep, chyphenfull, dsep)
 
 with open(snakemake.output["table"], 'w') as out:
     # First QV Scores
