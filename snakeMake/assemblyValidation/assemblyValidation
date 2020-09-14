@@ -11,7 +11,7 @@ configfile : "default.json"
 wildcard_constraints:
     lane = "(1|2)"
 
-localrules: organize
+localrules: organize, move_kplots
 
 os.makedirs("fastas", exist_ok=True)
 os.makedirs("logs", exist_ok=True)
