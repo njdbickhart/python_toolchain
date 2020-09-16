@@ -104,9 +104,11 @@ rule blobtab_condense:
         crop = "blobtools/table.{assembly_group}.lens.tab"
     params:
         script = workflow.basedir + "/scripts/trimBlobTable.py"
+    conda:
+        "../envs/blobtools.yaml"
     shell:
         """
-        {params.script} {input.table} {output.crop}
+        python {params.script} {input.table} {output.crop}
         """
 
 def interlace(input):
