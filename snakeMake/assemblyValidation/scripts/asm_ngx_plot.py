@@ -10,7 +10,7 @@ import numpy as np
 asms = snakemake.params["asms"]
 print(asms)
 
-alist = snakemake.input
+alist = snakemake.input["asms"]
 print(alist)
 
 data = defaultdict(list)

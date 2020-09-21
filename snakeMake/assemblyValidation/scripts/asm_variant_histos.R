@@ -46,7 +46,7 @@ bed <- read.csv(opt$input_filename, sep="\t", quote='', header=TRUE)
 
 names(bed)[1:11] <- c("chrom","start","stop","name","size","strand","type","ref.dist","query.dist","contig_position","method.found")
 
-bed$type <- recode(bed$type, c("Repeat_expansion"="Repeat expansion", "Repeat_contraction"="Repeat contraction", "Tandem_expansion"="Tandem expansion", "Tandem_contraction"="Tandem contraction"))
+bed$type <- recode(bed$type, "Repeat_expansion"="Repeat expansion", "Repeat_contraction"="Repeat contraction", "Tandem_expansion"="Tandem expansion", "Tandem_contraction"="Tandem contraction")
 
 types.allowed <- c("Insertion","Deletion","Repeat expansion","Repeat contraction","Tandem expansion","Tandem contraction")
 bed$type <- factor(bed$type, levels = types.allowed)
