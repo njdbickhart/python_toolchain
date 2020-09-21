@@ -46,7 +46,7 @@ bed <- read.csv(opt$input_filename, sep="\t", quote='', header=TRUE)
 
 names(bed)[1:11] <- c("chrom","start","stop","name","size","strand","type","ref.dist","query.dist","contig_position","method.found")
 
-bed$type <- revalue(bed$type, c("Repeat_expansion"="Repeat expansion", "Repeat_contraction"="Repeat contraction", "Tandem_expansion"="Tandem expansion", "Tandem_contraction"="Tandem contraction"))
+bed$type <- recode(bed$type, c("Repeat_expansion"="Repeat expansion", "Repeat_contraction"="Repeat contraction", "Tandem_expansion"="Tandem expansion", "Tandem_contraction"="Tandem contraction"))
 
 types.allowed <- c("Insertion","Deletion","Repeat expansion","Repeat contraction","Tandem expansion","Tandem contraction")
 bed$type <- factor(bed$type, levels = types.allowed)
@@ -73,16 +73,16 @@ for (i in seq(1,length(var_size_cutoffs)-1)) {
             binwidth <- 1
         }
         if (opt$verbose){
-            print(summary(filtered_bed))
+            summary(filtered_bed)
         }
 
         if (nrow(filtered_bed)>0) {
             if (opt$to_png) {
                 if (opt$verbose){ print("Printing png...")}
-                png(paste(opt$output_prefix,".", min_var, "-",max_var, ".png", sep=""),1000,1000,res=200)
+                png(paste(opt$output_prefix,".", format(min_var, scientific=FALSE), "-",format(max_var, scientific=FALSE), ".png", sep=""),1000,1000,res=200)
             } else {
                 if (opt$verbose){ print("Printing pdf...")}
-                pdf(paste(opt$output_prefix,".", min_var, "-",max_var, ".pdf", sep=""))
+                pdf(paste(opt$output_prefix,".", format(min_var, scientific=FALSE), "-",format(max_var, scientific=FALSE), ".pdf", sep=""))
             }
 
             print(ggplot(filtered_bed,aes(x=size, fill=type)) +
@@ -115,19 +115,18 @@ for (i in seq(1,length(var_size_cutoffs)-1)) {
 # Prep data for log-scaled plot
 alt <- bed
 
-alt[alt$type=="Deletion",]$size <- -1*alt[alt$type=="Deletion",]$size
-alt[alt$type=="Repeat contraction",]$size <- -1*alt[alt$type=="Repeat contraction",]$size
-alt[alt$type=="Tandem contraction",]$size <- -1*alt[alt$type=="Tandem contraction",]$size
-
 alt$Type <- "None"
 if (nrow(alt[alt$type %in% c("Insertion","Deletion"),]) > 0) {
-    alt[alt$type %in% c("Insertion","Deletion"),]$Type <- "Indel"    
+    alt[alt$type=="Deletion",]$size <- -1*alt[alt$type=="Deletion",]$size
+    alt[alt$type %in% c("Insertion","Deletion"),]$Type <- "Indel"
 }
 if (nrow(alt[alt$type %in% c("Tandem expansion","Tandem contraction"),]) > 0) {
-    alt[alt$type %in% c("Tandem expansion","Tandem contraction"),]$Type <- "Tandem"    
+    alt[alt$type=="Tandem contraction",]$size <- -1*alt[alt$type=="Tandem contraction",]$size
+    alt[alt$type %in% c("Tandem expansion","Tandem contraction"),]$Type <- "Tandem"
 }
 if (nrow(alt[alt$type %in% c("Repeat expansion","Repeat contraction"),]) > 0) {
-    alt[alt$type %in% c("Repeat expansion","Repeat contraction"),]$Type <- "Repeat"    
+    alt[alt$type=="Repeat contraction",]$size <- -1*alt[alt$type=="Repeat contraction",]$size
+    alt[alt$type %in% c("Repeat expansion","Repeat contraction"),]$Type <- "Repeat"
 }
 
 if(opt$verbose){

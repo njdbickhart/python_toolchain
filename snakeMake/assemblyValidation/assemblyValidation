@@ -451,4 +451,5 @@ if len(config["assembly"].keys()) > 1:
         shell:
             """
             Rscript {workflow.basedir}/scripts/asm_variant_histos.R -i {input} -o {params.prefix} -q {params.min} -m {params.max} {params.extra}
+            mv {params.prefix}*.pdf final/
             """
