@@ -24,7 +24,7 @@ def parse_user_input():
     parser = argparse.ArgumentParser(
             description = "Generate summary information and PDF plots of Fastq Stats. Version:" + version
             )
-    parser.add_argument('-f', '--file', 
+    parser.add_argument('-f', '--file',
                         help="A single fastq file (can be gzipped). If specified at the same time as 'b', this is preferentially run.",
                         type=str, default=None
                         )
@@ -40,7 +40,7 @@ def parse_user_input():
                         help="Output file Basename",
                         type=str, required=True
                         )
-    
+
     return parser.parse_args()
 
 def main(args):
@@ -56,15 +56,15 @@ def main(args):
                 files.extend(glob.glob('{}/{}'.format(args.base, exts)))
 
     data = fastq_info()
-    
-    for filename in files:	
+
+    for filename in files:
         data = get_fastq_info(filename, data)
         if args.separate:
             prefix = filename.split('.')
             df = data.get_pddf()
             print_plot(df, args.output, prefix[0])
             data = fastq_info()
-    
+
     if not args.separate:
         df = data.get_pddf()
         print_plot(df, args.output)
@@ -77,20 +77,21 @@ def smartFile(filename : str, mode : str = 'r'):
     else:
         fh = open(filename, mode)
     return fh
-    
+
 def print_plot(df, outbase, outsuffix = "total"):
-    df.to_csv(outbase + "_" + outsuffix + "_stats.tab")
+    df.to_csv(outbase + "_" + outsuffix + "_raw.tab")
+    df.describe().to_csv(outbase + "_" + outsuffix + "_stats.tab")
     plt = plot_fastq_info(df, outbase)
     plt.savefig(outbase + "_" + outsuffix + "_plots.png")
-            
+
 def get_fastq_info(filename, fqinfo):
     infile = smartFile(filename, 'r')
 
     for head, seq, qual in fastq_reader_fh(infile):
         fqinfo.seq_lengths.append(len(seq))
-        
+
         fqinfo.mean_qualities.append(round(np.mean(bytearray(qual, "ascii")) - 33, 2))
-        
+
         fqinfo.kmers_start.append(seq[0:4])
         fqinfo.kmers_end.append(seq[-4:])
 
@@ -101,7 +102,7 @@ def get_fastq_info(filename, fqinfo):
         fqinfo.nts_T.append(ntc['T'])
         fqinfo.nts_C.append(ntc['C'])
         fqinfo.nts_U.append(ntc['U'])
-        
+
     infile.close()
 
     return fqinfo
@@ -126,14 +127,14 @@ def fastq_reader_fh(infile):
     else:
       yield name, seq, qual
       return
-  
+
 def xlabel_pos_right(ax):
     label = ax.xaxis.get_label()
     x_lab_pos, y_lab_pos = label.get_position()
     label.set_position([1.0, y_lab_pos])
     label.set_horizontalalignment('right')
     ax.xaxis.set_label(label)
-    
+
 def plot_nt_content(ax, df):
     ax.set_title("Nucleotide Content", loc="left")
     ax.set_xlabel("NT")
@@ -168,14 +169,14 @@ def plot_length_percentile(ax, df, percentile=80):
     ax.set_yscale('log', nonposy='clip')
     xlabel_pos_right(ax)
     ax.hist(df.seq_length, num_bins, range=(0,cutoff))
-    
+
 def plot_gc_bins(ax, df, num_bins=20):
     gcpercs = ((df['nt_G'] + df['nt_C']) / (df['seq_length'])) * 100
     ax.set_title("Histogram of GC percentage bins", loc="left")
     ax.set_xlabel("GC Bins")
     ax.set_ylabel("Count")
     ax.hist(gcpercs, num_bins)
-   
+
 def plot_kmer_start(ax, df):
     df.kmers_start.value_counts().head(n=40).plot.bar(ax=ax)
     ax.set_title("Start of Sequence k-mer Content (k=4) top 40", loc="left")
@@ -188,7 +189,7 @@ def plot_kmer_end(ax, df):
     ax.set_title("End of Sequence k-mer Content (k=4) top 40", loc="left")
     ax.set_xlabel("K-mer")
     ax.set_ylabel("Count")
-    xlabel_pos_right(ax)	
+    xlabel_pos_right(ax)
 
 def plot_qualities(ax,df):
     ax.set_title("Histogram of Mean Qualities", loc="left")
@@ -205,7 +206,7 @@ def plot_nucleotides_per_length(ax, df):
             blens[bin_l] += l
         else:
             blens[bin_l] = l
-            
+
     len_sum = df["seq_length"].sum()
     mean_sum = len_sum / 2.0
     n50 = len_sum
@@ -225,39 +226,39 @@ def plot_nucleotides_per_length(ax, df):
     ax.bar(list(blens.keys()), lens / float(1000 ** 3), width=100) #, s=point_size) #, range=(0,20000))
     ax.axvline(x=n50, color="red")
     xlabel_pos_right(ax)
-  
+
 def plot_fastq_info(df, outbase):
     (fig, axis) = plt.subplots(ncols=2, nrows=4)
     axs = axis.flatten().tolist()
     axs.reverse()
-    
+
     # right side
     plot_length_binned(axs.pop(), df, 1000)
-    
+
     plot_length_percentile(axs.pop(), df, 80)
-    
+
     plot_qualities(axs.pop(), df)
-    
+
     plot_nucleotides_per_length(axs.pop(), df)
-    
+
     # left side
     plot_kmer_start(axs.pop(), df)
-    
+
     plot_kmer_end(axs.pop(), df)
-    
+
     plot_nt_content(axs.pop(), df)
-    
+
     plot_gc_bins(axs.pop(), df, 20)
-    
-    
+
+
     plt.subplots_adjust(left=0.2, wspace=1.0, top=2.8)
     plt.suptitle(outbase + " (" + str(len(df)) + " reads, " + str(round(df.seq_length.sum() / (1000.0**3), 2)) + " Gbp)")
     fig.set_size_inches(21,12)
     fig.tight_layout()
     plt.subplots_adjust(top=0.9)
     return plt
-    
-    
+
+
 class fastq_info:
 
     def __init__(self):
@@ -283,7 +284,7 @@ class fastq_info:
                             "nt_U": self.nts_U})
         return df.sort_values(by=['seq_length'])
 
-        
+
 if __name__ == "__main__":
     args = parse_user_input()
     main(args)
