@@ -292,7 +292,7 @@ rule run_busco:
         "busco/{asm}/busco_summary.txt",
     log:
         "logs/{asm}/run_busco.log"
-    threads: 40
+    threads: 70
     conda:
         "envs/busco.yaml"
     params:
