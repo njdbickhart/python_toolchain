@@ -217,33 +217,45 @@ rule meryl_merge:
         meryl union-sum output {output} {input}
         """
 
-#rule run_sample_merqury:
-#    input:
-#        mdb = expand("mapped/{{sample}}_{lane}.meryl", lane=[1,2]),
-#        fasta = lambda wildcards: config["assembly"][wildcards.asm]
-#    output:
-#        merged = temp("mapped/{sample}_merged.{asm}.meryl"),
-#        dist_only = "merqury/{asm}/{sample}.dist_only.hist",
-#        qv = "merqury/{asm}/{sample}.qv",
-#        spectraasm = "merqury/{asm}/{sample}.spectra-asm.hist",
-#        f1 = "merqury/{asm}/{sample}.spectra-asm.fl.pdf",
-#        ln = "merqury/{asm}/{sample}.spectra-asm.ln.pdf",
-#        st = "merqury/{asm}/{sample}.spectra-asm.st.pdf",
-#        complete = "merqury/{asm}/{sample}.completeness.stats"
-#    params:
-#        outbase = "{sample}",
-#        asmbase = "{asm}",
-#        pdfbase = "{sample}.spectra-asm"
-#    threads:
-#        20
-#    shell:
-#        """
-#        module load merqury/1.0
-#        bash {workflow.basedir}/scripts/spectra-cn.revised.sh {input.mdb} {input.fasta} {params.asmbase} {params.outbase}
-#        mv {params.outbase}.* ./merqury/{params.asmbase}/
-#        /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
-#        mv {params.pdfbase}.*.pdf ./merqury/{params.asmbase}/
-#        """
+rule meryl_merge_sample:
+    input:
+        expand("mapped/{{sample}}_{lane}.meryl", lane=["1", "2"])
+    output:
+        directory("mapped/{sample}_db.meryl")
+    threads: 10
+    params:
+        extra = "cpus=10 memory=48g"
+    shell:
+        """
+        module load merqury/1.0
+        meryl union-sum output {output} {input}
+        """
+
+rule run_sample_merqury:
+    input:
+        mdb = "mapped/{sample}_db.meryl",
+        fasta = lambda wildcards: config["assembly"][wildcards.asm]
+    output:
+        dist_only = "merqury/{asm}/{sample}.dist_only.hist",
+        qv = "merqury/{asm}/{sample}.qv",
+        spectraasm = "merqury/{asm}/{sample}.spectra-asm.hist",
+        f1 = "merqury/{asm}/{sample}.spectra-asm.fl.pdf",
+        ln = "merqury/{asm}/{sample}.spectra-asm.ln.pdf",
+        st = "merqury/{asm}/{sample}.spectra-asm.st.pdf",
+        complete = "merqury/{asm}/{sample}.completeness.stats"
+    params:
+        outbase = "{sample}",
+        asmbase = "{asm}",
+        pdfbase = "{sample}.spectra-asm"
+    threads: 20
+    shell:
+        """
+        module load merqury/1.0
+        bash {workflow.basedir}/scripts/spectra-cn.revised.sh {input.mdb} {input.fasta} {params.asmbase} {params.outbase}
+        mv {params.outbase}.* ./merqury/{params.asmbase}/
+        /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
+        mv {params.pdfbase}.*.pdf ./merqury/{params.asmbase}/
+        """
 
 rule run_merqury:
     input:
