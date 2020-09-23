@@ -221,7 +221,7 @@ rule meryl_merge_sample:
     input:
         expand("mapped/{{sample}}_{lane}.meryl", lane=["1", "2"])
     output:
-        directory("mapped/{sample}_db.meryl")
+        directory("mapped/per{sample}_db.meryl")
     threads: 10
     params:
         extra = "cpus=10 memory=48g"
@@ -233,20 +233,20 @@ rule meryl_merge_sample:
 
 rule run_sample_merqury:
     input:
-        mdb = "mapped/{sample}_db.meryl",
+        mdb = "mapped/per{sample}_db.meryl",
         fasta = lambda wildcards: config["assembly"][wildcards.asm]
     output:
-        dist_only = "merqury/{asm}/{sample}.dist_only.hist",
-        qv = "merqury/{asm}/{sample}.qv",
-        spectraasm = "merqury/{asm}/{sample}.spectra-asm.hist",
-        f1 = "merqury/{asm}/{sample}.spectra-asm.fl.pdf",
-        ln = "merqury/{asm}/{sample}.spectra-asm.ln.pdf",
-        st = "merqury/{asm}/{sample}.spectra-asm.st.pdf",
-        complete = "merqury/{asm}/{sample}.completeness.stats"
+        dist_only = "merqury/{asm}/per{sample}.dist_only.hist",
+        qv = "merqury/{asm}/per{sample}.qv",
+        spectraasm = "merqury/{asm}/per{sample}.spectra-asm.hist",
+        f1 = "merqury/{asm}/per{sample}.spectra-asm.fl.pdf",
+        ln = "merqury/{asm}/per{sample}.spectra-asm.ln.pdf",
+        st = "merqury/{asm}/per{sample}.spectra-asm.st.pdf",
+        complete = "merqury/{asm}/per{sample}.completeness.stats"
     params:
-        outbase = "{sample}",
+        outbase = "per{sample}",
         asmbase = "{asm}",
-        pdfbase = "{sample}.spectra-asm"
+        pdfbase = "per{sample}.spectra-asm"
     threads: 20
     shell:
         """
