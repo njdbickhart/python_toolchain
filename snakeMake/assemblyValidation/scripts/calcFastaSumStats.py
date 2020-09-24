@@ -20,6 +20,8 @@ with open(snakemake.output[0], 'w') as out:
             lsegs = l.split()
             sizes.append(int(lsegs[1]))
 
+    sizes.sort(reverse=True)
+
     # Calculate stats and print
     count = len(sizes)
     sum = np.sum(sizes) if count > 0 else 0
