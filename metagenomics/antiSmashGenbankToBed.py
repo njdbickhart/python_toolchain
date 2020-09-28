@@ -6,14 +6,16 @@ Created on Wed Sep 23 07:44:19 2020
 """
 
 import argparse
+import os
 from Bio import SeqIO
+import glob
 
 def arg_parse():
     parser = argparse.ArgumentParser(
             description = "A conversion tool to change from an AntiSmash genbank to bed file formats"
             )
-    parser.add_argument('-g', '--genbank', 
-                        help="Input genbank file",
+    parser.add_argument('-f', '--folder', 
+                        help="Input folder with genbank files from Antismash (not the largest one!)",
                         required=True, type=str
                         )
     parser.add_argument('-o', '--output',
@@ -27,17 +29,21 @@ def main(args, parser):
     counter = 0
 
     with open(args.output, 'w') as out:
-        for record in SeqIO.parse(open(args.genbank, 'rU'), "genbank"):
-            for feature in record.features:
-                counter += 1
-                if counter % 1000 == 0:
-                    print(f'Processed: {counter} features...')
-                if feature.type == 'gene' or feature.type == 'CDS':
-                    if "gene_kind" in feature.qualifiers:
+        for f in glob.glob('{}/*.gbk'.format(args.folder)):
+            fname = '.'.join(os.path.basename(f).split('.')[:-1])
+            for record in SeqIO.parse(open(f, 'rU'), "genbank"):
+                for feature in record.features:
+                    counter += 1
+                    if counter % 1000 == 0:
+                        print(f'Processed: {counter} features...')
+                    if feature.type == 'gene' or feature.type == 'CDS':
+                        name = "Unknown"
+                        if "gene_kind" in feature.qualifiers:
+                            name = feature.qualifiers["gene_kind"][0]
+                            
                         start = feature.location.start.position
                         end = feature.location.end.position
-                        chrom = ""
-                        name = feature.qualifiers["gene_kind"][0]
+                        chrom = ""                        
                         orient = ""
                         val = ""
                         if "NRPS_PKS" in feature.qualifiers:
@@ -62,7 +68,7 @@ def main(args, parser):
                         else:
                             chrom = feature.type
                         
-                        out.write(f'{chrom}\t{start}\t{end}\t{name}\t{val}\t{orient}\n')
+                        out.write(f'{chrom}\t{start}\t{end}\t{name}\t{val}\t{orient}\t{fname}\n')
 
 if __name__ == "__main__":
     args, parser = arg_parse()
