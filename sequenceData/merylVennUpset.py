@@ -98,10 +98,12 @@ class merylWrapper:
             
         # Plot things out
         dataset = upsetplot.from_memberships(array, data=data)
+        print(dataset)
         
-        upsetplot.UpSet(dataset, sort_by='cardinality')
+        upset = upsetplot.UpSet(dataset, sort_by='cardinality', show_percentages=True)
+        upset.plot()
         
-        plt.savefig(output + ".png")       
+        plt.savefig(output + ".pdf")       
 
 
 if __name__ == "__main__":
