@@ -8,6 +8,7 @@ Created on Wed Sep 30 10:35:25 2020
 import argparse
 import sys
 from collections import defaultdict
+import os
 from os.path import basename
 import subprocess as sp
 import upsetplot
@@ -60,20 +61,28 @@ class merylWrapper:
     def run(self, output):
         dcount = 0
         dbstr = " ".join(self.dbs)
-        with sp.Popen(f'{self.meryl} print venn {dbstr}', shell=True, stdout=sp.PIPE, bufsize=1, universal_newlines=True) as sf:
-            for h in sf.stdout:
-                s = h.split()
-                self.counter[s[1]] += 1
-                dcount += 1
-                if dcount % 10000000 == 0:
-                    print(f'Progress: {dcount}')
-                
-        # print out raw data
-        with open(output + ".raw.tab", 'w') as out:
-            for w in sorted(self.counter, key=self.counter.get, reverse=True):
-                out.write(f'{w}\t{self.counter[w]}\n')
-                
-        print("Created raw output file")
+        
+        if os.path.exists(output + ".raw.tab"):
+            print("Starting from previous task")
+            with open(output + ".raw.tab", 'r') as input:
+                for l in input:
+                    s = l.rstrip().split()
+                    self.counter[s[0]] = int(s[1])
+        else:
+            with sp.Popen(f'{self.meryl} print venn {dbstr}', shell=True, stdout=sp.PIPE, bufsize=1, universal_newlines=True) as sf:
+                for h in sf.stdout:
+                    s = h.split()
+                    self.counter[s[1]] += 1
+                    dcount += 1
+                    if dcount % 10000000 == 0:
+                        print(f'Progress: {dcount}')
+                    
+            # print out raw data
+            with open(output + ".raw.tab", 'w') as out:
+                for w in sorted(self.counter, key=self.counter.get, reverse=True):
+                    out.write(f'{w}\t{self.counter[w]}\n')
+                    
+            print("Created raw output file")
         
         # Prepare membership df
         array = list()
@@ -92,7 +101,7 @@ class merylWrapper:
         
         upsetplot.UpSet(dataset, sort_by='cardinality')
         
-        plt.savefig(output + ".pdf")       
+        plt.savefig(output + ".png")       
 
 
 if __name__ == "__main__":
