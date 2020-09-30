@@ -65,7 +65,7 @@ class merylWrapper:
                 s = h.split()
                 self.counter[s[1]] += 1
                 dcount += 1
-                if dcount % 10000000:
+                if dcount % 10000000 == 0:
                     print(f'Progress: {dcount}')
                 
         # print out raw data
