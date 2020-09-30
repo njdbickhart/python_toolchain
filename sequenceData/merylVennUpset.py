@@ -81,7 +81,7 @@ class merylWrapper:
         for k, v in self.counter.items():
             tlist = list()
             for i, e in enumerate(self.dbs):
-                if (k & (1 << i)):
+                if (int(k) & (1 << int(i))):
                     # The bit is set, add the file name
                     tlist.append(basename(e).split('.')[0])
             array.append(tlist)

@@ -32,11 +32,13 @@ def count_depth(chr_name, size, threshold, input):
         depth = pileupcolumn.nsegments
         if depth >= threshold:
             bp += 1
+    bamfile.close()
     return bp
+
 
 bam = snakemake.input["samples"]
 threshold = snakemake.params["threshold"]
-print("Starting depth estimate")
+print(f'Starting depth estimate for bam: {bam} at threshold {threshold}')
 sum = 0
 
 list_chrs, list_sizes = get_chromosomes_names(bam)
@@ -45,7 +47,7 @@ print("Found {} chromosomes to count".format(len(list_chrs)))
 
 for chr, size in zip(list_chrs, list_sizes):
     sum += count_depth(chr, size, threshold, bam)
-    print(f'Finished with chr: {chr}')
+    print(f'Finished with chr: {chr}. {size} {sum}')
 
 print(f'Total bases: {sum}')
 with open(snakemake.output["samdepth"], 'w') as final:
