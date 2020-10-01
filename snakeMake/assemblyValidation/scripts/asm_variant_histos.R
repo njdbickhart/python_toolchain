@@ -114,6 +114,8 @@ for (i in seq(1,length(var_size_cutoffs)-1)) {
 
 # Prep data for log-scaled plot
 alt <- bed
+# Next part is required to subset rows for the Type column
+alt <- alt[!is.na(alt$type),]
 
 alt$Type <- "None"
 if (nrow(alt[alt$type %in% c("Insertion","Deletion"),]) > 0) {
