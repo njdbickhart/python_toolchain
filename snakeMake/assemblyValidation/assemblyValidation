@@ -25,15 +25,15 @@ if len(config["assembly"].keys()) > 1:
     finalSummary.extend(["final/combined_frc_plot.pdf", "final/combined_ngx_plot.pdf"])
     # Adding iterations of dotplots
     pcombis = [c[0] + "_" + c[1] for c in list(itertools.combinations(config["assembly"].keys(), 2))]
-    finalSummary.extend(expand("final/plot{C}.png", C=pcombis))
-    finalSummary.extend(expand("final/vars{C}.log_all_sizes.pdf", C=pcombis))
+    finalSummary.extend(expand("final/{C}/plot{C}.png", C=pcombis))
+    finalSummary.extend(expand("final/{C}/vars{C}.log_all_sizes.pdf", C=pcombis))
 
 rule all:
     input:
         finalSummary,
         expand("final/ideogram_errors.{asm}.pdf", asm = config["assembly"].keys()),
         expand("final/ideogram_upperq_error_windows.{asm}.bed", asm = config["assembly"].keys()),
-        expand("merqury/{asm}/{asm}.spectra-asm.{postfix}.pdf", asm = config["assembly"].keys(), postfix=["fl", "ln", "st"])
+        expand("final/{asm}.spectra-asm.st.pdf", asm = config["assembly"].keys())
 
 
 
@@ -419,7 +419,7 @@ if len(config["assembly"].keys()) > 1:
         input:
             "mapped/map{C}.paf"
         output:
-            "final/plot{C}.png"
+            "final/{C}/plot{C}.png"
         conda:
             "envs/dotplotly.yaml"
         params:
@@ -450,9 +450,9 @@ if len(config["assembly"].keys()) > 1:
         input:
             "calls/vars{C}.paf"
         output:
-            "final/vars{C}.log_all_sizes.pdf",
-            "final/vars{C}.75-1000.pdf",
-            "final/vars{C}.1000-500000.pdf"
+            "final/{C}/vars{C}.log_all_sizes.pdf",
+            "final/{C}/vars{C}.75-1000.pdf",
+            "final/{C}/vars{C}.1000-500000.pdf"
         params:
             prefix = lambda wildcards : "vars" + wildcards.C,
             min = 75,
