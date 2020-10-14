@@ -7,7 +7,7 @@ import jinja2
 import markdown
 import re
 
-sepline = re.compile(r'^-+\n$')
+sepline = re.compile(r'-+')
 
 TEMPLATE = """<!DOCTYPE html>
 <html>
@@ -28,6 +28,16 @@ TEMPLATE = """<!DOCTYPE html>
         h6 code {
             font-size: inherit;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 2 px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
     </style>
 </head>
 <body>
@@ -41,7 +51,7 @@ TEMPLATE = """<!DOCTYPE html>
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
-            description = "Compare multiple genome assemblies with short-read alignment data" + version
+            description = "Create a summary webpage for the pipeline"
             )
     parser.add_argument('-f', '--final',
                         help="The location of the final folder of the pipeline",
@@ -74,13 +84,13 @@ def main(args, parser):
 
     # Create the main index html
     mdlines = indexMd(args.fasta, args.assembly, args.combos, args.final)
-    createHtml(mdlines, args.output + ".html")
+    createHtml(''.join(mdlines), args.output + ".html")
 
     # Now create sub htmls for comparison plots
     for c in args.combos:
         asms = c.split('_')
-        mdlines = compMd(c, asms, args.outbase, args.final)
-        createHtml(mdlines, f'{args.final}/sum{combo}.html')
+        mdlines = compMd(c, asms, args.output, args.final)
+        createHtml(''.join(mdlines), f'{args.final}/sum{c}.html')
 
     # We should be done!
     print("Finished!")
@@ -89,18 +99,18 @@ def compMd(combo, assemblies, outbase, finalfolder):
     fname = f'{finalfolder}/sum{combo}.html'
 
     mdlines = list()
-    mdlines.extend(f'## Assembly comparison: {assemblies[0]} vs {assemblies[1]}',
+    mdlines.extend([f'## Assembly comparison: {assemblies[0]} vs {assemblies[1]}',
                     f'In all cases, {assemblies[1]} is the query and {assemblies[0]} is the target or reference',
                     '## Assembly alignment dotplot',
                     'This is a comparative alignment of the assemblies colored by the average percent identity of each alignment. If the assemblies are the same, you would expect a straight diagonal line with near max percent identity alignments.',
                     f'![Comparison of minimap2 alignments of each assembly to the other]({combo}/plot{combo}.png)',
                     '## All assembly alignment variants',
                     f'These are all of the discernable alignment variants identified in this assembly comparison, plotted on a log scale. Insertions and expansions indicate an increase in assembly size in {assemblies[1]} compared to {assemblies[0]}. Vice versa for deletions and contractions.',
-                    f'![Identified minimap2 alignment variants found within the assembly]({combo}/vars{combo}.log_all_sizes.pdf)',
+                    f'<embed src="{combo}/vars{combo}.log_all_sizes.pdf" type="application/pdf" width="100%" height="600px" />',
                     '## Subsets of assembly alignment variants',
                     f'These plots show distributions of variants by size. These variant sites are the same as in the larger plot above, but scaled for easier viewing. This can be of interest when identifying differences in repeat structure between assemblies.',
-                    f'![Minimap2 alignment variants between 75 and 1000 bp]({combo}/vars{combo}.75-1000.pdf) ![Minimap2 alignment variants between 1000 and 500 kb]({combo}/vars{combo}.1000-500000.pdf)',
-                    f'[Return to previous summary page](../{outbase}.html)'
+                    f'<embed src="{combo}/vars{combo}.75-1000.pdf" type="application/pdf" width="100%" height="600px" />\n<embed src="{combo}/vars{combo}.1000-500000.pdf" type="application/pdf" width="100%" height="600px" />',
+                    f'[Return to previous summary page](../{outbase}.html)'])
 
     # Same hack to add new lines. No excuse this time
     for i, l in enumerate(mdlines):
@@ -130,7 +140,7 @@ def indexMd(fastas, assemblies, combos, finalfolder):
 
     mdlines.extend(['#### NG(X) plot',
                     'This is a measure of assembly continuity. The dotted line is the 50% mark of the anticipated assembly length. The higher the assembly\'s line is at this point, the more continuous the assembly',
-                    f'![Comparison of assembly continuity. Higher to the left is better]({finalfolder}/combined_ngx_plot.pdf)',
+                    f'<embed src="{finalfolder}/combined_ngx_plot.pdf" type="application/pdf" width="100%" height="600 px" />',
                     '#### Busco score plots',
                     '> To be added later',
                     '#### Assembly Quality Statistics',
@@ -147,9 +157,12 @@ def indexMd(fastas, assemblies, combos, finalfolder):
             if re.match(sepline, l):
                 tablines.append('')
             else:
+                #l, _ = re.subn(r'^|', '', l)
+                #l, _ = re.subn(r'|\n$', '\n', l)
+                #l, _ = re.subn(':', '-', l)
                 tablines[-1] += l
 
-    mdlines.append(tablines[0])
+    mdlines.append(testHtml(tablines[0]))
 
     mdlines.extend(['---',
                     '<a name="asmfeat"></a>',
@@ -157,16 +170,16 @@ def indexMd(fastas, assemblies, combos, finalfolder):
                     'These statistics represent smaller scale variants detected from the alignment of reads to the assembly.',
                     '#### Feature Response Curves',
                     'The following plot shows sorted lengths of the assemblies with the fewest errors. A "better" assembly "peaks" further to the left and top of the plot. These metrics do not always correlate with assembly continuity, so an assembly with a higher N50 might not perform as well in these metrics if it has more errors.',
-                    f'![Feature Response Plots. Higher to the left is better]({finalfolder}/combined_frc_plot.pdf)',
+                    f'<embed src="{finalfolder}/combined_frc_plot.pdf" type="application/pdf" width="100%" height="600px" />',
                     '#### Feature Statistics',
                     'These are the errors plotted in the above Feature Response Curve image. All errors are defined in more detail by the [FRC_align](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0052210) program. The fewer the number of errors detected, the better.'])
 
-    mdlines.append(tablines[1])
+    mdlines.append(testHtml(tablines[1]))
 
     mdlines.extend(['#### Structural Variant Statistics',
                     'These structural variants represent larger (> 500 bp) potential misassemblies in the assembly. While having more of these variants is a sign of relatively poor quality, there may be a higher than expected count of these variants if the comparison read dataset is from a different individual than the reference individual used in the assembly. Alternatively, high heterozygosity in the sequenced individual can also inflate these statistics.'])
 
-    mdlines.append(tablines[2])
+    mdlines.append(testHtml(tablines[2]))
 
     # Assembly kmer comparison plots
     mdlines.extend(['---',
@@ -176,7 +189,7 @@ def indexMd(fastas, assemblies, combos, finalfolder):
 
     for a in assemblies:
         mdlines.append(f'#### {a} kmer spectra plot')
-        mdlines.append(f'![Kmer spectrum plot of {a} assembly]({finalfolder}/{a}.spectra-asm.st.pdf)')
+        mdlines.append(f'<embed src="{finalfolder}/{a}.spectra-asm.st.pdf" type="application/pdf" width="100%" height="600px" />')
 
     # Assembly error windows
     mdlines.extend(['---',
@@ -186,12 +199,12 @@ def indexMd(fastas, assemblies, combos, finalfolder):
 
     for a in assemblies:
         mdlines.append(f'#### {a} ASM feature density on largest contigs')
-        mdlines.append(f'![Ideogram plot of {a} assembly. Error windows are on the bottom of each Ideogram bar.]({finalfolder}/ideogram_errors.{a}.pdf)')
+        mdlines.append(f'<embed src="{finalfolder}/ideogram_errors.{a}.pdf" type="application/pdf" width="100%" height="600px" />')
 
     mdlines.extend(['---',
                     '<a name="asmcomp"></a>',
                     '## Assembly comparisons',
-                    'The following links are to pairwise comparisons of each assembly to the other. These can be informative when comparing one assembly to a reference genome of the same organism. There may also be some value in comparing assemblies between different species or breeds.')]
+                    'The following links are to pairwise comparisons of each assembly to the other. These can be informative when comparing one assembly to a reference genome of the same organism. There may also be some value in comparing assemblies between different species or breeds.'])
 
     # Pair wise combination links
     for c in combos:
@@ -205,11 +218,17 @@ def indexMd(fastas, assemblies, combos, finalfolder):
     return mdlines
 
 def createHtml(mdlines, outfile):
-    extensions = ['extra', 'smarty']
+    extensions = ['extra', 'smarty', 'tables']
     html = markdown.markdown(mdlines, extensions=extensions, output_format='html5')
     doc = jinja2.Template(TEMPLATE).render(content=html)
     with open(outfile, 'w') as out:
         out.write(doc)
+
+def testHtml(mdlines):
+    extensions = ['extra', 'smarty', 'tables']
+    html = markdown.markdown(mdlines, extensions=extensions, output_format='html5')
+    doc = jinja2.Template(TEMPLATE).render(content=html)
+    return(doc)
 
 if __name__ == "__main__":
     args, parser = parse_user_input()
