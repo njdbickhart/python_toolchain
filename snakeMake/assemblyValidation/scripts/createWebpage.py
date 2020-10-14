@@ -116,6 +116,7 @@ def indexMd(fastas, assemblies, combos, finalfolder):
     mdlines.append('## Table of Contents')
     mdlines.extend(['* [Assembly quality comparison](#asmqual)',
                     '* [Assembly feature comparisons](#asmfeat)',
+                    '* [Assembly kmer comparisons](#asmkmer)',
                     '* [Assembly error windows](#asmwin)',
                     '* [Assembly comparisons](#asmcomp)',
                     '<a name="asmqual"></a>',
@@ -166,6 +167,16 @@ def indexMd(fastas, assemblies, combos, finalfolder):
                     'These structural variants represent larger (> 500 bp) potential misassemblies in the assembly. While having more of these variants is a sign of relatively poor quality, there may be a higher than expected count of these variants if the comparison read dataset is from a different individual than the reference individual used in the assembly. Alternatively, high heterozygosity in the sequenced individual can also inflate these statistics.'])
 
     mdlines.append(tablines[2])
+
+    # Assembly kmer comparison plots
+    mdlines.extend(['---',
+                    '<a name="asmkmer"></a>',
+                    '## Assembly kmer comparisons',
+                    'These plots show differences in kmer composition between the input sequence read file and the assembly itself. Unique kmers to the assembly are on the far left, and Unique kmers in the reads are just right of that. If these are assemblies of diploid organisms, you should see two peaks of kmers corresponding to the heterozygous and homozygous regions of the genome, respectively. Significant deviations or presence of unique kmers in the read dataset can indicate problems in the assembly.'])
+
+    for a in assemblies:
+        mdlines.append(f'#### {a} kmer spectra plot')
+        mdlines.append(f'![Kmer spectrum plot of {a} assembly]({finalfolder}/{a}.spectra-asm.st.pdf)')
 
     # Assembly error windows
     mdlines.extend(['---',
