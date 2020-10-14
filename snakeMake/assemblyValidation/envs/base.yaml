@@ -6,6 +6,9 @@ dependencies:
     - numpy
     - pandas
     - pysam
+    - jinja2
+    - markdown
+    - mdx_smartypants
     - matplotlib
     - scipy
     - samtools

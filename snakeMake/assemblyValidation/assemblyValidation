@@ -455,6 +455,7 @@ if len(config["assembly"].keys()) > 1:
             "final/{C}/vars{C}.1000-500000.pdf"
         params:
             prefix = lambda wildcards : "vars" + wildcards.C,
+            wc = lambda wildcards : wildcards.C,
             min = 75,
             max = 500000,
             extra = "-v"
@@ -463,5 +464,5 @@ if len(config["assembly"].keys()) > 1:
         shell:
             """
             Rscript {workflow.basedir}/scripts/asm_variant_histos.R -i {input} -o {params.prefix} -q {params.min} -m {params.max} {params.extra}
-            mv {params.prefix}*.pdf final/
+            mv {params.prefix}*.pdf final/{params.wc}/
             """
