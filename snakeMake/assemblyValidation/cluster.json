@@ -175,5 +175,19 @@
     "mem" : "10000",
     "stdout" : "logs/{rule}.stdout",
     "jobname" : "{rule}"
+  },
+
+  "plot_busco" :
+  {
+    "mem" : "10000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+
+  "comparison_webpage" :
+  {
+    "mem" : "10000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
   }
 }

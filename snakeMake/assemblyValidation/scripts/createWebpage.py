@@ -106,11 +106,19 @@ def compMd(combo, assemblies, outbase, finalfolder):
                     f'![Comparison of minimap2 alignments of each assembly to the other]({combo}/plot{combo}.png)',
                     '## All assembly alignment variants',
                     f'These are all of the discernable alignment variants identified in this assembly comparison, plotted on a log scale. Insertions and expansions indicate an increase in assembly size in {assemblies[1]} compared to {assemblies[0]}. Vice versa for deletions and contractions.',
-                    f'<embed src="{combo}/vars{combo}.log_all_sizes.pdf" type="application/pdf" width="100%" height="600px" />',
+                    #f'<embed src="{combo}/vars{combo}.log_all_sizes.pdf" type="application/pdf" width="100%" height="600px" />',
+                    f'![All variant sizes]({combo}/vars{combo}.log_all_sizes.png)',
                     '## Subsets of assembly alignment variants',
                     f'These plots show distributions of variants by size. These variant sites are the same as in the larger plot above, but scaled for easier viewing. This can be of interest when identifying differences in repeat structure between assemblies.',
-                    f'<embed src="{combo}/vars{combo}.75-1000.pdf" type="application/pdf" width="100%" height="600px" />\n<embed src="{combo}/vars{combo}.1000-500000.pdf" type="application/pdf" width="100%" height="600px" />',
-                    f'[Return to previous summary page](../{outbase}.html)'])
+                    #f'<embed src="{combo}/vars{combo}.75-1000.pdf" type="application/pdf" width="100%" height="600px" />\n<embed src="{combo}/vars{combo}.1000-500000.pdf" type="application/pdf" width="100%" height="600px" />',
+                    f'![Variants from 75 to 1000 bp]({combo}/vars{combo}.75-1000.png) ![Variants from 1000 to 500kb]({combo}/vars{combo}.1000-500000.png)',
+                    '## Pairwise kmer spectra plots',
+                    f'These plots show the same information as on the main page, but they are stacked side by side for comparison. {assemblies[1]} is the leftmost plot and {assemblies[0]} is the rightmost plot.',
+                    f'![Kmer spectrum plot]({assemblies[1]}.spectra-asm.st.png) ![Kmer spectrum plot]({assemblies[0]}.spectra-asm.st.png)',
+                    '## Pairwise ideogram error plots',
+                    f'These plots show the same information as on the main page, but they are stacked side by side for comparison. {assemblies[1]} is the leftmost plot and {assemblies[0]} is the rightmost plot.',
+                    f'![Ideogram error plots](ideogram_errors.{assemblies[1]}.png) ![Ideogram error plots](ideogram_errors.{assemblies[0]}.png)',
+                    f'##[Return to previous summary page](../{outbase}.html)'])
 
     # Same hack to add new lines. No excuse this time
     for i, l in enumerate(mdlines):
@@ -136,13 +144,14 @@ def indexMd(fastas, assemblies, combos, finalfolder):
                     'Here are the assemblies being compared, along with their short-hand labels'])
 
     for f, a in zip(fastas, assemblies):
-        mdlines.append(f'>{a}:{f}')
+        mdlines.append(f'>{a}:{f}<p>')
 
     mdlines.extend(['#### NG(X) plot',
                     'This is a measure of assembly continuity. The dotted line is the 50% mark of the anticipated assembly length. The higher the assembly\'s line is at this point, the more continuous the assembly',
-                    f'<embed src="{finalfolder}/combined_ngx_plot.pdf" type="application/pdf" width="100%" height="600 px" />',
+                    #f'<embed src="{finalfolder}/combined_ngx_plot.pdf" type="application/pdf" width="100%" height="600 px" />',
+                    f'![NG(x) plot of all assemblies]({finalfolder}/combined_ngx_plot.png)',
                     '#### Busco score plots',
-                    '> To be added later',
+                    f'![BUSCO category plots]({finalfolder}/combined_buscos.png)',
                     '#### Assembly Quality Statistics',
                     'These are statistics derived from the overal continuity of the assembly and the alignment of reads/kmers to it. Better assemblies tend to have fewer contigs, higher QV values, lower error rates, and higher BUSCO scores.'])
 
@@ -170,7 +179,8 @@ def indexMd(fastas, assemblies, combos, finalfolder):
                     'These statistics represent smaller scale variants detected from the alignment of reads to the assembly.',
                     '#### Feature Response Curves',
                     'The following plot shows sorted lengths of the assemblies with the fewest errors. A "better" assembly "peaks" further to the left and top of the plot. These metrics do not always correlate with assembly continuity, so an assembly with a higher N50 might not perform as well in these metrics if it has more errors.',
-                    f'<embed src="{finalfolder}/combined_frc_plot.pdf" type="application/pdf" width="100%" height="600px" />',
+                    #f'<embed src="{finalfolder}/combined_frc_plot.pdf" type="application/pdf" width="100%" height="600px" />',
+                    f'![Feature response curve]({finalfolder}/combined_frc_plot.png)',
                     '#### Feature Statistics',
                     'These are the errors plotted in the above Feature Response Curve image. All errors are defined in more detail by the [FRC_align](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0052210) program. The fewer the number of errors detected, the better.'])
 
@@ -189,7 +199,8 @@ def indexMd(fastas, assemblies, combos, finalfolder):
 
     for a in assemblies:
         mdlines.append(f'#### {a} kmer spectra plot')
-        mdlines.append(f'<embed src="{finalfolder}/{a}.spectra-asm.st.pdf" type="application/pdf" width="100%" height="600px" />')
+        #mdlines.append(f'<embed src="{finalfolder}/{a}.spectra-asm.st.pdf" type="application/pdf" width="100%" height="600px" />')
+        mdlines.append(f'![Kmer spectrum plot]({finalfolder}/{a}.spectra-asm.st.png)')
 
     # Assembly error windows
     mdlines.extend(['---',
@@ -199,7 +210,8 @@ def indexMd(fastas, assemblies, combos, finalfolder):
 
     for a in assemblies:
         mdlines.append(f'#### {a} ASM feature density on largest contigs')
-        mdlines.append(f'<embed src="{finalfolder}/ideogram_errors.{a}.pdf" type="application/pdf" width="100%" height="600px" />')
+        #mdlines.append(f'<embed src="{finalfolder}/ideogram_errors.{a}.pdf" type="application/pdf" width="100%" height="600px" />')
+        mdlines.append(f'![Ideogram error plots]({finalfolder}/ideogram_errors.{a}.png)')
 
     mdlines.extend(['---',
                     '<a name="asmcomp"></a>',
@@ -208,7 +220,7 @@ def indexMd(fastas, assemblies, combos, finalfolder):
 
     # Pair wise combination links
     for c in combos:
-        mdlines.append(f'#### [{c} comparison]({finalfolder}/sum{c}.html)')
+        mdlines.append(f'#### [{c} comparison]({finalfolder}/sum{c}.html)<p>')
 
     # Just because I'm lazy and realized this later, I'm going to loop through and add new lines to each md string
     for i, l in enumerate(mdlines):

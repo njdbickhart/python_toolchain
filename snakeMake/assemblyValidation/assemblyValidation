@@ -11,7 +11,7 @@ configfile : "default.json"
 wildcard_constraints:
     lane = "(1|2)"
 
-localrules: organize, move_kplots
+localrules: organize, move_kplots, package_for_distrib
 
 os.makedirs("fastas", exist_ok=True)
 os.makedirs("logs", exist_ok=True)
@@ -22,18 +22,19 @@ os.makedirs("mapped", exist_ok=True)
 finalSummary = ["final/summary_table.tab"]
 pcombis = []
 if len(config["assembly"].keys()) > 1:
-    finalSummary.extend(["final/combined_frc_plot.pdf", "final/combined_ngx_plot.pdf"])
+    finalSummary.extend(["final/combined_frc_plot.png", "final/combined_ngx_plot.png"])
     # Adding iterations of dotplots
     pcombis = [c[0] + "_" + c[1] for c in list(itertools.combinations(config["assembly"].keys(), 2))]
     finalSummary.extend(expand("final/{C}/plot{C}.png", C=pcombis))
-    finalSummary.extend(expand("final/{C}/vars{C}.log_all_sizes.pdf", C=pcombis))
+    finalSummary.extend(expand("final/{C}/vars{C}.log_all_sizes.png", C=pcombis))
+    finalSummary.append("assembly_qc.zip")
 
 rule all:
     input:
         finalSummary,
-        expand("final/ideogram_errors.{asm}.pdf", asm = config["assembly"].keys()),
+        expand("final/ideogram_errors.{asm}.png", asm = config["assembly"].keys()),
         expand("final/ideogram_upperq_error_windows.{asm}.bed", asm = config["assembly"].keys()),
-        expand("final/{asm}.spectra-asm.st.pdf", asm = config["assembly"].keys())
+        expand("final/{asm}.spectra-asm.st.png", asm = config["assembly"].keys())
 
 
 
@@ -265,20 +266,20 @@ rule run_merqury:
         dist_only = "merqury/{asm}/{asm}.dist_only.hist",
         qv = "merqury/{asm}/{asm}.qv",
         spectraasm = "merqury/{asm}/{asm}.spectra-asm.hist",
-        f1 = "merqury/{asm}/{asm}.spectra-asm.fl.pdf",
-        ln = "merqury/{asm}/{asm}.spectra-asm.ln.pdf",
-        st = "merqury/{asm}/{asm}.spectra-asm.st.pdf",
+        f1 = "merqury/{asm}/{asm}.spectra-asm.fl.png",
+        ln = "merqury/{asm}/{asm}.spectra-asm.ln.png",
+        st = "merqury/{asm}/{asm}.spectra-asm.st.png",
         complete = "merqury/{asm}/{asm}.completeness.stats"
     params:
         outbase = "{asm}",
-        pdfbase = "{asm}.spectra-asm"
+        pngbase = "{asm}.spectra-asm"
     threads: 20
     shell:
         """
         module load merqury/1.0
         bash {workflow.basedir}/scripts/spectra-cn.revised.sh {input.mdb} {input.fasta} {params.outbase} {params.outbase}
         mv {params.outbase}.* ./merqury/{params.outbase}/
-        /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pdfbase} -z {output.dist_only} --pdf
+        /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pngbase} -z {output.dist_only}
         mv {params.pdfbase}.*.pdf ./merqury/{params.outbase}/
         """
 
@@ -316,6 +317,21 @@ rule run_busco:
     script:
         "scripts/busco_lift.py"
 
+rule plot_busco:
+    input:
+        expand("busco/{asm}/busco_summary.txt", asm=config["assembly"].keys())
+    output:
+        "final/combined_buscos.png"
+    log:
+        "logs/bucso_plotting.log"
+    conda:
+        "envs/base.yaml"
+    params:
+        asms=list(config["assembly"].keys())
+    script:
+        "scripts/plotBusco.py"
+
+
 rule assembly_stats:
     input:
         "fastas/{asm}.fa"
@@ -348,7 +364,7 @@ rule ideogram_plot:
         features="calls/{asm}/merged_frc.txt_Features.txt",
         bams="mapped/{asm}/merged.bam"
     output:
-        ideogram="final/ideogram_errors.{asm}.pdf",
+        ideogram="final/ideogram_errors.{asm}.png",
         bed="final/ideogram_upperq_error_windows.{asm}.bed"
     params:
         chrthresh = 30
@@ -377,7 +393,7 @@ if len(config["assembly"].keys()) > 1:
         input:
             expand("calls/{asm}/merged_frc.txt_FRC.txt", asm=config["assembly"].keys())
         output:
-            plot = "final/combined_frc_plot.pdf"
+            plot = "final/combined_frc_plot.png"
         conda:
             "envs/base.yaml"
         params:
@@ -390,7 +406,7 @@ if len(config["assembly"].keys()) > 1:
             asms = expand("fastas/{asm}.fa", asm=config["assembly"].keys()),
             fais = expand("fastas/{asm}.fa.fai", asm=config["assembly"].keys())
         output:
-            plot = "final/combined_ngx_plot.pdf"
+            plot = "final/combined_ngx_plot.png"
         conda:
             "envs/base.yaml"
         params:
@@ -450,19 +466,57 @@ if len(config["assembly"].keys()) > 1:
         input:
             "calls/vars{C}.paf"
         output:
-            "final/{C}/vars{C}.log_all_sizes.pdf",
-            "final/{C}/vars{C}.75-1000.pdf",
-            "final/{C}/vars{C}.1000-500000.pdf"
+            "final/{C}/vars{C}.log_all_sizes.png",
+            "final/{C}/vars{C}.75-1000.png",
+            "final/{C}/vars{C}.1000-500000.png"
         params:
             prefix = lambda wildcards : "vars" + wildcards.C,
             wc = lambda wildcards : wildcards.C,
             min = 75,
             max = 500000,
-            extra = "-v"
+            extra = "-p -v"
         conda:
             "envs/dotplotly.yaml"
         shell:
             """
             Rscript {workflow.basedir}/scripts/asm_variant_histos.R -i {input} -o {params.prefix} -q {params.min} -m {params.max} {params.extra}
-            mv {params.prefix}*.pdf final/{params.wc}/
+            mv {params.prefix}*.png final/{params.wc}/
+            """
+
+    rule comparison_webpage:
+        input:
+            fastas = expand("fastas/{asm}.fa", asm=config["assembly"].keys()),
+            dotplots = expand("final/{C}/plot{C}.png", C=pcombis),
+            varplots = expand("final/{C}/vars{C}.log_all_sizes.png", C=pcombis),
+            frcplot = "final/combined_frc_plot.png",
+            ngxplot = "final/combined_ngx_plot.png",
+            ideograms = expand("final/ideogram_errors.{asm}.png", asm = config["assembly"].keys()),
+            spectra = expand("final/{asm}.spectra-asm.st.png", asm = config["assembly"].keys()),
+            summary_table = "final/summary_table.tab",
+            buscoplot = "final/combined_buscos.png",
+        output:
+            "summary_page.html"
+        conda:
+            "envs/base.yaml"
+        log:
+            "logs/comparison_webpage.log"
+        params:
+            final = "final",
+            output = "summary_page",
+            combos = [f'-c {x} ' for x in pcombis],
+            fastas = [f'-s {x} ' for x in input.fastas],
+            asms = [f'-a {x} ' for x in list(config["assembly"].keys())]
+        shell:
+            """
+            python {workflow.basedir}/scripts/createWebpage.py -f {params.final} -o {params.output} {params.combos} {params.fastas} {params.asms} 2> {log}
+            """
+
+    rule package_for_distrib:
+        input:
+            "summary_page.html"
+        output:
+            "assembly_qc.zip"
+        shell:
+            """
+            zip -r {output} {input} final
             """
