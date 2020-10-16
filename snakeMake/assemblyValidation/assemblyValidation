@@ -274,13 +274,15 @@ rule run_merqury:
         outbase = "{asm}",
         pngbase = "{asm}.spectra-asm"
     threads: 20
+    conda:
+        "envs/dotplotly.yaml"
     shell:
         """
         module load merqury/1.0
         bash {workflow.basedir}/scripts/spectra-cn.revised.sh {input.mdb} {input.fasta} {params.outbase} {params.outbase}
         mv {params.outbase}.* ./merqury/{params.outbase}/
         /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pngbase} -z {output.dist_only}
-        mv {params.pdfbase}.*.pdf ./merqury/{params.outbase}/
+        mv {params.pngbase}.*.png ./merqury/{params.outbase}/
         """
 
 rule download_busco:
@@ -302,7 +304,7 @@ rule run_busco:
         "busco_downloads/lineages/{}".format(config["buscoLineage"]),
         "fastas/{asm}.fa"
     output:
-        "busco/{asm}/busco_summary.txt",
+        protected("busco/{asm}/busco_summary.txt")
     log:
         "logs/{asm}/run_busco.log"
     threads: 70
@@ -376,9 +378,9 @@ rule ideogram_plot:
 
 rule move_kplots:
     input:
-        st = "merqury/{asm}/{asm}.spectra-asm.st.pdf"
+        st = "merqury/{asm}/{asm}.spectra-asm.st.png"
     output:
-        final = "final/{asm}.spectra-asm.st.pdf"
+        final = "final/{asm}.spectra-asm.st.png"
     shell:
         """
         cp {input.st} {output.final}
@@ -504,7 +506,7 @@ if len(config["assembly"].keys()) > 1:
             final = "final",
             output = "summary_page",
             combos = [f'-c {x} ' for x in pcombis],
-            fastas = [f'-s {x} ' for x in input.fastas],
+            fastas = lambda wildcards, input: [f'-s {x} ' for x in input.fastas],
             asms = [f'-a {x} ' for x in list(config["assembly"].keys())]
         shell:
             """

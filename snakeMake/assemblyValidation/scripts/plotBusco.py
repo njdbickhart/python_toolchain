@@ -30,7 +30,7 @@ for i, b in enumerate(buscos):
                 break
 
 df = pandas.DataFrame(data)
-df.set_index("Assembly")
+#df.set_index("Assembly")
 
 ax = df[["CompleteSC", "CompleteDup", "Fragmented", "Missing"]].plot.hbar(stacked=True, edgecolor='none')
 ax.legend(bbox_to_anchor=(1.03, 1.0))
