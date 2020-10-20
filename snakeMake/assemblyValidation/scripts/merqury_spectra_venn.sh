@@ -35,7 +35,14 @@ hist=$name.$asm.spectra-cn.hist
 hist_asm_only=$name.$asm.only.hist
 
 asm_db=${asm}.meryl
+read_k_copy0=$name.read.k$k.$asm.0.meryl
+read_k_copy1=$name.read.k$k.$asm.1.meryl
+read_k_copy2=$name.read.k$k.$asm.2.meryl
+read_k_copy3=$name.read.k$k.$asm.3.meryl
+read_k_copy4=$name.read.k$k.$asm.4.meryl
+read_k_copygt4=$name.read.k$k.$asm.gt4.meryl
 
+asm_only=$name.$asm.0.meryl
 
 echo "# Get solid k-mers"
 echo "Generate $db.hist"
@@ -82,4 +89,39 @@ if [[ -s $hist ]]; then
   echo
 else
 
-echo -e "Copies\tkmer_multiplicity\tCount" > $hist
+  echo -e "Copies\tkmer_multiplicity\tCount" > $hist
+  echo "# Read only"
+  meryl difference output $read_k_copy0 $read $asm_db
+  meryl histogram $read_k_copy0 | awk '{print "read-only\t"$0}' >> $hist
+
+  echo "# Copy 1 ~ 4"
+  for i in $(seq 1 4)
+  do
+      echo "Copy = $i .."
+      meryl intersect output $name.read.k$k.$asm.$i.meryl $read [ equal-to $i $asm_db ]
+      meryl histogram $name.read.k$k.$asm.$i.meryl | awk -v cn=$i '{print cn"\t"$0}' >> $hist
+      #rm -r $name.read.k$k.$asm.$i.meryl
+      echo
+  done
+
+  echo "Copy >4 .."
+  meryl intersect output read_k_copygt4 $read [ greater-than $i $asm_db ]
+  meryl histogram read_k_copygt4 | awk -v cn=">$i" '{print cn"\t"$0}' >> $hist
+  #rm -r $name.read.k$k.$asm.gt$i.meryl
+  echo
+fi
+
+echo "# Copy numbers in k-mers found only in asm"
+meryl difference output $asm_only $asm_db $read
+PRESENT=`meryl statistics $asm_only  | head -n4 | tail -n1 | awk '{print $2}'`
+DISTINCT=`meryl statistics $asm_only  | head -n3 | tail -n1 | awk '{print $2}'`
+MULTI=$(($PRESENT-$DISTINCT))
+echo -e "1\t0\t$DISTINCT" > $hist_asm_only
+echo -e "2\t0\t$MULTI" >> $hist_asm_only
+echo
+
+echo "# Plot $hist"
+echo "\
+Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-cn -z $hist_asm_only"
+Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-cn -z $hist_asm_only
+echo
