@@ -329,9 +329,10 @@ rule plot_busco:
     conda:
         "envs/base.yaml"
     params:
-        asms=list(config["assembly"].keys())
-    script:
-        "scripts/plotBusco.py"
+        buscos = lambda wildcards, input: [f'-b {x} ' for x in input],
+        asms= [f'-a {x} ' for x in list(config["assembly"].keys())]
+    shell:
+        "{workflow.basedir}/scripts/plotBusco.py {params.buscos} {params.asms} -o {output} 2> {log}"
 
 
 rule assembly_stats:
