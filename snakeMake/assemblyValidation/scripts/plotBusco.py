@@ -43,7 +43,7 @@ def main(args, parser):
 
     for i, b in enumerate(args.buscos):
         with open(b, 'r') as input:
-            for l in b:
+            for l in input:
                 l = l.strip()
                 if l.startswith('#'):
                     continue
@@ -63,10 +63,18 @@ def main(args, parser):
 
     fig, ax = plt.subplots()
 
-    ax = df[["CompleteSC", "CompleteDup", "Fragmented", "Missing"]].plot.hbar(stacked=True, edgecolor='none')
-    ax.legend(bbox_to_anchor=(1.03, 1.0))
+    #ax = df[["CompleteSC", "CompleteDup", "Fragmented", "Missing"]].plot.hbar(stacked=True, edgecolor='none')
+    ax = df.plot.barh(stacked=True, edgecolor='none')
+    for rowNum, row in df.iterrows():
+        xpos = 0
+        for val in row[1:]:
+            xpos += int(val)
+            if val > 8:
+                ax.text((xpos - int(val)) + (int(val) * 0.5) - 1, rowNum - 0.05, str(val), color = 'white')
+        xpos = 0
+    ax.legend(ncol=4, fontsize='small', loc='lower left', bbox_to_anchor=(0, 1))
 
-    plt.xticks(np.arange(len(args.asms)), df["Assembly"])
+    plt.yticks(np.arange(len(args.asms)), df["Assembly"])
     plt.savefig(args.output)
 
 if __name__ == "__main__":
