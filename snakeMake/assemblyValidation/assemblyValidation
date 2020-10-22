@@ -274,15 +274,15 @@ rule run_merqury:
         outbase = "{asm}",
         pngbase = "{asm}.spectra-asm"
     threads: 20
+    log:
+        "logs/{asm}/run_merqury.log
     conda:
         "envs/dotplotly.yaml"
     shell:
         """
         module load merqury/1.0
-        bash {workflow.basedir}/scripts/spectra-cn.revised.sh {input.mdb} {input.fasta} {params.outbase} {params.outbase}
-        mv {params.outbase}.* ./merqury/{params.outbase}/
-        /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {output.spectraasm} -o {params.pngbase} -z {output.dist_only}
-        mv {params.pngbase}.*.png ./merqury/{params.outbase}/
+        bash {workflow.basedir}/scripts/merqury_spectra_venn.sh {input.mdb} {input.fasta} {params.outbase} {params.outbase} 2> {log}
+        mv {params.pngbase}.* ./merqury/{params.outbase}/
         """
 
 rule download_busco:
@@ -325,7 +325,7 @@ rule plot_busco:
     output:
         "final/combined_buscos.png"
     log:
-        "logs/bucso_plotting.log"
+        "logs/{asm}/bucso_plotting.log"
     conda:
         "envs/base.yaml"
     params:

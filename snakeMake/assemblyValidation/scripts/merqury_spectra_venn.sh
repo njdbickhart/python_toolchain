@@ -10,6 +10,8 @@ function usage {
 
 source $MERQURY/util/util.sh
 
+mkdir -p merqury/$asm
+
 read=`link $1`
 asm1_fa=`link $2`
 asm=$3
@@ -28,21 +30,31 @@ echo
 ### Taken from filt.sh to avoid file collisions
 db=$read
 db=${db/.meryl}
-read_hist=$asm.$db.hist
-hist_ploidy=$asm.$db.hist.ploidy
-read_filt=$asm.$db.filt
-hist=$name.$asm.spectra-cn.hist
-hist_asm_only=$name.$asm.only.hist
+read_hist=merqury/$asm/$asm.$db.hist
+hist_ploidy=merqury/$asm/$asm.$db.hist.ploidy
+read_filt=merqury/$asm/$asm.$db.filt
+hist=merqury/$asm/$name.$asm.spectra-cn.hist
+hist_asm_only=merqury/$asm/$name.$asm.only.hist
 
+asm1=$asm
 asm_db=${asm}.meryl
-read_k_copy0=$name.read.k$k.$asm.0.meryl
-read_k_copy1=$name.read.k$k.$asm.1.meryl
-read_k_copy2=$name.read.k$k.$asm.2.meryl
-read_k_copy3=$name.read.k$k.$asm.3.meryl
-read_k_copy4=$name.read.k$k.$asm.4.meryl
-read_k_copygt4=$name.read.k$k.$asm.gt4.meryl
+read_k_copy0=merqury/$asm/$name.read.k$k.$asm.0.meryl
+read_k_copy1=merqury/$asm/$name.read.k$k.$asm.1.meryl
+read_k_copy2=merqury/$asm/$name.read.k$k.$asm.2.meryl
+read_k_copy3=merqury/$asm/$name.read.k$k.$asm.3.meryl
+read_k_copy4=merqury/$asm/$name.read.k$k.$asm.4.meryl
+read_k_copygt4=merqury/$asm/$name.read.k$k.$asm.gt4.meryl
+read_asm_int=merqury/$asm/$name.read.k$k.$asm1.meryl
 
-asm_only=$name.$asm.0.meryl
+asm_only=merqury/$asm/$name.$asm.0.meryl
+asm_solid=merqury/$asm/$asm.solid.meryl
+
+# outputs
+asm_qv=merqury/$asm/$name.qv
+perseq_qv=merqury/$asm/$name.$asm.qv
+completeness=merqury/$asm/$name.completeness.stats
+hist=merqury/$asm/$name.spectra-asm.hist
+hist_asm_dist_only=merqury/$asm/$name.dist_only.hist
 
 echo "# Get solid k-mers"
 echo "Generate $db.hist"
@@ -98,15 +110,15 @@ else
   for i in $(seq 1 4)
   do
       echo "Copy = $i .."
-      meryl intersect output $name.read.k$k.$asm.$i.meryl $read [ equal-to $i $asm_db ]
-      meryl histogram $name.read.k$k.$asm.$i.meryl | awk -v cn=$i '{print cn"\t"$0}' >> $hist
+      meryl intersect output merqury/$asm/$name.read.k$k.$asm.$i.meryl $read [ equal-to $i $asm_db ]
+      meryl histogram merqury/$asm/$name.read.k$k.$asm.$i.meryl | awk -v cn=$i '{print cn"\t"$0}' >> $hist
       #rm -r $name.read.k$k.$asm.$i.meryl
       echo
   done
 
   echo "Copy >4 .."
-  meryl intersect output read_k_copygt4 $read [ greater-than $i $asm_db ]
-  meryl histogram read_k_copygt4 | awk -v cn=">$i" '{print cn"\t"$0}' >> $hist
+  meryl intersect output $read_k_copygt4 $read [ greater-than $i $asm_db ]
+  meryl histogram $read_k_copygt4 | awk -v cn=">$i" '{print cn"\t"$0}' >> $hist
   #rm -r $name.read.k$k.$asm.gt$i.meryl
   echo
 fi
@@ -125,3 +137,46 @@ echo "\
 Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-cn -z $hist_asm_only"
 Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-cn -z $hist_asm_only
 echo
+
+echo "# QV statistics"
+ASM_ONLY=`meryl statistics $asm_only  | head -n4 | tail -n1 | awk '{print $2}'`
+      TOTAL=`meryl statistics $asm_db  | head -n4 | tail -n1 | awk '{print $2}'`
+      ERROR=`echo "$ASM_ONLY $TOTAL" | awk -v k=$k '{print (1-(1-$1/$2)^(1/k))}'`
+      QV=`echo "$ASM_ONLY $TOTAL" | awk -v k=$k '{print (-10*log(1-(1-$1/$2)^(1/k))/log(10))}'`
+      echo -e "$asm\t$ASM_ONLY\t$TOTAL\t$QV\t$ERROR" >> $asm_qv
+echo
+
+echo "# Per seq QV statistics"
+meryl-lookup -existence -sequence $asm_fa -mers $asm_only | \
+awk -v k=$k '{print $1"\t"$NF"\t"$(NF-2)"\t"(-10*log(1-(1-$NF/$(NF-2))^(1/k))/log(10))"\t"(1-(1-$NF/$(NF-2))^(1/k))}' > $perseq_qv
+echo
+
+      echo "# k-mer completeness (recovery rate) with solid k-mers for $asm with > $filt counts"
+meryl intersect output $asm_solid $asm_db $read_solid
+      TOTAL=`meryl statistics $read_solid | head -n3 | tail -n1 | awk '{print $2}'`
+      ASM=`meryl statistics $asm_solid | head -n3 | tail -n1 | awk '{print $2}'`
+      echo -e "${asm}\tall\t${ASM}\t${TOTAL}" | awk '{print $0"\t"((100*$3)/$4)}' >> $completeness
+rm -r $asm_solid
+echo
+
+echo "# $asm1 only"
+meryl intersect output $read_asm_int $read $asm_db
+
+echo "# Write output"
+echo -e "Assembly\tkmer_multiplicity\tCount" > $hist
+meryl histogram $read_k_copy0 | awk '{print "read-only\t"$0}' >> $hist
+meryl histogram $read_asm_int | awk -v hap="${asm1}" '{print hap"\t"$0}' >> $hist
+
+echo "# Get asm only for spectra-asm"
+ASM1_ONLY=`meryl statistics $asm_only | head -n3 | tail -n1 | awk '{print $2}'`
+echo -e "${asm1}\t0\t$ASM1_ONLY" > $hist_asm_dist_only
+
+echo "#	Plot $hist"
+echo "\
+Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-asm -z $hist_asm_dist_only --pdf"
+Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-asm -z $hist_asm_dist_only --pdf
+echo
+
+echo "# Cleaning up"
+rm -r $read_filt $hist_asm_only $read_k_copy0 $read_k_copy1 $read_k_copy2 $read_k_copy3
+rm -r $read_k_copy4 $read_k_copygt4 $asm_only $asm_solid

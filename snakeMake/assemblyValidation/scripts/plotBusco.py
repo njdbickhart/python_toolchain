@@ -10,11 +10,11 @@ asms = snakemake.params["asms"]
 print(asms)
 
 buscos = snakemake.input
-print(buscos)
+print(list(buscos))
 
 data = defaultdict(list)
 
-for i, b in enumerate(buscos):
+for i, b in enumerate(list(buscos)):
     with open(b, 'r') as input:
         for l in b:
             l = l.strip()
@@ -31,6 +31,8 @@ for i, b in enumerate(buscos):
 
 df = pandas.DataFrame(data)
 #df.set_index("Assembly")
+
+fig, ax = plt.subplots()
 
 ax = df[["CompleteSC", "CompleteDup", "Fragmented", "Missing"]].plot.hbar(stacked=True, edgecolor='none')
 ax.legend(bbox_to_anchor=(1.03, 1.0))
