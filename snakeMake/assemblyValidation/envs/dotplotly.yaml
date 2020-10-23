@@ -9,6 +9,8 @@ dependencies:
   - plotly
   - minimap2
   - r
+  - r-argparse
+  - r-scales
   - r-ggplot2
   - r-plotly
   - r-optparse

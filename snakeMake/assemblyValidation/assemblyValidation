@@ -298,7 +298,7 @@ rule plot_merqury:
         "envs/dotplotly.yaml"
     shell:
         """
-        /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {input.spectraasm} -o {params.pngbase} -z {input.dist_only}
+        Rscript /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {input.spectraasm} -o {params.pngbase} -z {input.dist_only}
         mv {params.pngbase}*.png ./merqury/{params.outbase}/
         """
 
@@ -342,14 +342,14 @@ rule plot_busco:
     output:
         "final/combined_buscos.png"
     log:
-        "logs/bucso_plotting.log"
+        "logs/busco_plotting.log"
     conda:
         "envs/base.yaml"
     params:
         buscos = lambda wildcards, input: [f'-b {x} ' for x in input],
         asms= [f'-a {x} ' for x in list(config["assembly"].keys())]
     shell:
-        "{workflow.basedir}/scripts/plotBusco.py {params.buscos} {params.asms} -o {output} 2> {log}"
+        "python {workflow.basedir}/scripts/plotBusco.py {params.buscos} {params.asms} -o {output} 2> {log}"
 
 
 rule assembly_stats:
