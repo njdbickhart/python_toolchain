@@ -261,7 +261,7 @@ rule run_sample_merqury:
 rule run_merqury:
     input:
         mdb = "mapped/meryl_db.meryl",
-        fasta = lambda wildcards: config["assembly"][wildcards.asm]
+        fasta = "fastas/{asm}.fa"
     output:
         dist_only = "merqury/{asm}/{asm}.dist_only.hist",
         qv = "merqury/{asm}/{asm}.qv",
@@ -270,12 +270,12 @@ rule run_merqury:
         ln = "merqury/{asm}/{asm}.spectra-asm.ln.png",
         st = "merqury/{asm}/{asm}.spectra-asm.st.png",
         complete = "merqury/{asm}/{asm}.completeness.stats"
-    params:
-        outbase = "{asm}",
-        pngbase = "{asm}.spectra-asm"
-    threads: 20
     log:
-        "logs/{asm}/run_merqury.log
+        "logs/{asm}/run_merqury.log"
+    params:
+        outbase = lambda wildcards: wildcards.asm,
+        pngbase = lambda wildcards: wildcards.asm + ".spectra-asm"
+    threads: 2
     conda:
         "envs/dotplotly.yaml"
     shell:
@@ -325,7 +325,7 @@ rule plot_busco:
     output:
         "final/combined_buscos.png"
     log:
-        "logs/{asm}/bucso_plotting.log"
+        "logs/bucso_plotting.log"
     conda:
         "envs/base.yaml"
     params:

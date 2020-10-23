@@ -85,7 +85,7 @@
   {
     "mem" : "25000",
     "ntasks-per-node" : "{threads}",
-    "stdout" : "logs/{asm}/{rule}.stdout",
+    "stdout" : "logs/{wildcards.asm}/{rule}.stdout",
     "jobname" : "{rule}"
   },
 
