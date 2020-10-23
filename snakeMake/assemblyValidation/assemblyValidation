@@ -267,7 +267,7 @@ rule run_merqury:
         qv = "merqury/{asm}/{asm}.qv",
         spectraasm = "merqury/{asm}/{asm}.spectra-asm.hist",
         complete = "merqury/{asm}/{asm}.completeness.stats",
-        db = "merqury/{asm}/{asm}.meryl"
+        db = directory("merqury/{asm}/{asm}.meryl")
     log:
         "logs/{asm}/run_merqury.log"
     params:
