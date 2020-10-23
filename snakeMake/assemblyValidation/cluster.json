@@ -184,6 +184,13 @@
     "jobname" : "{rule}"
   },
 
+  "plot_merqury" :
+  {
+    "mem" : "10000",
+    "stdout" : "logs/{rule}.stdout",
+    "jobname" : "{rule}"
+  },
+  
   "comparison_webpage" :
   {
     "mem" : "10000",

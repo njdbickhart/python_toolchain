@@ -134,8 +134,8 @@ echo
 
 echo "# Plot $hist"
 echo "\
-Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-cn -z $hist_asm_only"
-Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-cn -z $hist_asm_only
+Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-cn -z $hist_asm_only --pdf"
+Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-cn -z $hist_asm_only --pdf
 echo
 
 echo "# QV statistics"
@@ -171,12 +171,11 @@ echo "# Get asm only for spectra-asm"
 ASM1_ONLY=`meryl statistics $asm_only | head -n3 | tail -n1 | awk '{print $2}'`
 echo -e "${asm1}\t0\t$ASM1_ONLY" > $hist_asm_dist_only
 
-echo "#	Plot $hist"
-echo "\
-Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-asm -z $hist_asm_dist_only --pdf"
-Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-asm -z $hist_asm_dist_only --pdf
-echo
+#echo "#	Plot $hist"
+#echo "\
+#Rscript $MERQURY/plot/plot_spectra_cn.R -f $hist -o $name.$asm.spectra-asm -z $hist_asm_dist_only --pdf"
+#echo
 
 echo "# Cleaning up"
 rm -r $read_filt $hist_asm_only $read_k_copy0 $read_k_copy1 $read_k_copy2 $read_k_copy3
-rm -r $read_k_copy4 $read_k_copygt4 $asm_only $asm_solid
+rm -r $read_k_copy4 $read_k_copygt4 $asm_only

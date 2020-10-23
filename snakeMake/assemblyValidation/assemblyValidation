@@ -266,15 +266,12 @@ rule run_merqury:
         dist_only = "merqury/{asm}/{asm}.dist_only.hist",
         qv = "merqury/{asm}/{asm}.qv",
         spectraasm = "merqury/{asm}/{asm}.spectra-asm.hist",
-        f1 = "merqury/{asm}/{asm}.spectra-asm.fl.png",
-        ln = "merqury/{asm}/{asm}.spectra-asm.ln.png",
-        st = "merqury/{asm}/{asm}.spectra-asm.st.png",
-        complete = "merqury/{asm}/{asm}.completeness.stats"
+        complete = "merqury/{asm}/{asm}.completeness.stats",
+        db = "merqury/{asm}/{asm}.meryl"
     log:
         "logs/{asm}/run_merqury.log"
     params:
-        outbase = lambda wildcards: wildcards.asm,
-        pngbase = lambda wildcards: wildcards.asm + ".spectra-asm"
+        outbase = lambda wildcards: wildcards.asm
     threads: 2
     conda:
         "envs/dotplotly.yaml"
@@ -282,7 +279,27 @@ rule run_merqury:
         """
         module load merqury/1.0
         bash {workflow.basedir}/scripts/merqury_spectra_venn.sh {input.mdb} {input.fasta} {params.outbase} {params.outbase} 2> {log}
-        mv {params.pngbase}.* ./merqury/{params.outbase}/
+        mv {params.outbase}.*.pdf ./merqury/{params.outbase}/
+        mv {params.outbase}.* ./merqury/{params.outbase}/
+        """
+
+rule plot_merqury:
+    input:
+        dist_only = "merqury/{asm}/{asm}.dist_only.hist",
+        spectraasm = "merqury/{asm}/{asm}.spectra-asm.hist"
+    output:
+        f1 = "merqury/{asm}/{asm}.spectra-asm.fl.png",
+        ln = "merqury/{asm}/{asm}.spectra-asm.ln.png",
+        st = "merqury/{asm}/{asm}.spectra-asm.st.png"
+    params:
+        outbase = lambda wildcards: wildcards.asm,
+        pngbase = lambda wildcards: wildcards.asm + ".spectra-asm"
+    conda:
+        "envs/dotplotly.yaml"
+    shell:
+        """
+        /software/7/apps/merqury/1.0/plot/plot_spectra_cn.R -f {input.spectraasm} -o {params.pngbase} -z {input.dist_only}
+        mv {params.pngbase}*.png ./merqury/{params.outbase}/
         """
 
 rule download_busco:
