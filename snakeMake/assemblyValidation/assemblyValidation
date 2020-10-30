@@ -455,15 +455,17 @@ if len(config["assembly"].keys()) > 1:
         input:
             "mapped/map{C}.paf"
         output:
-            "final/{C}/plot{C}.png"
+            png = "final/{C}/plot{C}.png",
+            int = "final/{C}/int{C}.html"
         conda:
             "envs/dotplotly.yaml"
         params:
             prefix = lambda wildcards : wildcards.C
         shell:
             """
-            Rscript {workflow.basedir}/scripts/pafDotPlotly.R -i {input} -o {params.prefix} -v -l -x -s
-            mv {params.prefix}.png {output}
+            Rscript {workflow.basedir}/scripts/pafDotPlotly.R -i {input} -o {params.prefix} -v -l -s
+            mv {params.prefix}.png {output.png}
+            mv {params.prefix}.html {output.int}
             """
 
     rule variant_sizes:
