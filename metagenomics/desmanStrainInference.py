@@ -142,8 +142,8 @@ def callEliteVariants(desman : str, pileup : List[str], assembly : str) -> Tuple
     sp.run(cmd, shell=False)
     
     cmd = ["python3", desman + "/desman/Variant_Filter.py", 
-           "desmanfreqs.csv", "-o", "dfreqs", "-p", "-m", "1.0", "-f", "25.0", "-c",
-           "-sf", "0.50", "-t", "2.5"]
+           "desmanfreqs.csv", "-o", "dfreqs", "-p", "-m", "1.0", 
+           "-t", "2.5"]
     print(f'Cmd: {" ".join(cmd)}')
     sp.run(cmd, shell=False)
     
