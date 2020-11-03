@@ -21,6 +21,7 @@ class cententry:
 taxidfile = snakemake.params['taxids']
 sample = snakemake.params['samp']
 log = open(snakemake.log[0], 'a+')
+log.write("Beginning filtration")
 
 # Generate set of appropriate taxids
 taxids = set()
