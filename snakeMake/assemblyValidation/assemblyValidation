@@ -313,7 +313,9 @@ rule download_busco:
         lineage = config["buscoLineage"]
     shell:
         """
-        python {workflow.basedir}/scripts/downloadBuscoLineage.py {params.lineage}
+        touch empty.fa
+        busco -l {params.lineage} -i empty.fa -o test -f
+        rm empty.fa
         """
 
 rule run_busco:

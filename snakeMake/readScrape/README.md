@@ -1,12 +1,12 @@
 # ReadScrape
 ---
-A pipeline to gather unmapped reads from a reference genome alignment and convert them into contigs for additional analysis. 
+A pipeline to gather unmapped reads from a reference genome alignment and convert them into contigs for additional analysis.
 
 ## Requirements
 
 * Python 3.6+
 * [SPAdes](http://cab.spbu.ru/software/spades/) v3.12+
-* [Centrifuge](https://ccb.jhu.edu/software/centrifuge/manual.shtml) 
+* [Centrifuge](https://ccb.jhu.edu/software/centrifuge/manual.shtml)
 * Bedtools v2.5+
 * Samtools v1.6+
 * BWA v1.7+
@@ -29,7 +29,7 @@ Afterwards, there are several key steps to make this pipeline suited to your clu
 
 ### 1. Install all programs on your path
 
-Install all of the above required software on your path or make it available on your path before you submit the job. The snakemake workflow assumes that everything is available on your path, and that there are no collisions with job names! 
+Install all of the above required software on your path or make it available on your path before you submit the job. The snakemake workflow assumes that everything is available on your path, and that there are no collisions with job names!
 
 ### 2. Prepare the run parameter JSON file
 
@@ -62,7 +62,7 @@ After the script runs successfully, you will need to edit the default.json file 
 
 ### 3. Prepare the cluster JSON file
 
-Because your cluster parameters are likely different than mine, you may need to edit the cluster.json parameter file. It is located in the base directory of this folder, but you can copy it to your working directory and edit it as needed. 
+Because your cluster parameters are likely different than mine, you may need to edit the cluster.json parameter file. It is located in the base directory of this folder, but you can copy it to your working directory and edit it as needed.
 
 If you are using SLURM, most of the JSON categories should make sense. In that case,  you just need to edit the "partition" and add in any other specifications that your cluster admin requires. Otherwise, here are the important parameters to check and confirm:
 
@@ -89,7 +89,7 @@ You will need to modify the cluster submission text to accommodate your cluster 
 
 ## Directory and file structure
 
-If the pipeline runs successfully, it will generate the following folders in the current directory. The beginning portion of the pipeline will have separate sample-level subfolders that contain intermediary files. 
+If the pipeline runs successfully, it will generate the following folders in the current directory. The beginning portion of the pipeline will have separate sample-level subfolders that contain intermediary files.
 
 ```bash
    .
@@ -119,10 +119,15 @@ If the pipeline runs successfully, it will generate the following folders in the
 The important files that summarize the output of the pipeline can be found in the "collation" and "genotypes" folders. I will describe them in order of their generation:
 
 * Collation
-	* **main_c_file.cdhit	**	<-	Fasta file containing the best representative sequence for each clustered novel sequence
-	* **main_c_file.cdhit.clstr** <- Cd-Hit cluster file showing which scaffolds were found to cluster in each cluster designation
+	* **main_c_file.cdhit	**	<-	Fasta files containing the best representative sequence for each clustered novel sequence
+	* **main_c_file.cdhit.clstr** <- Cd-Hit cluster file showing which scaffolds were found to cluster in each cluster designation.
+    * This file contains newline separated, formatted text, with the "paragon" cluster ID denoted by special tags, and all other contigs below it having a percent ID
 
 * Genotypes
 	* **genotype_summary.tab**	<- (has header) lists cluster statistics and sample presence
 	* **association_counts.tab** <- (limited header) variable column length file that shows linkage counts for chromosome assignment of each cluster
+    * Columns one and two are the cluster name and number of chromosome assignments, respectively
+    * Columns from three onwards are a semicolon delimited field, with the chromosome name, followed by the count of samples that had the contig linked to that chromosome
 	* **(sample).genotype.tab** <- (has header; printed for each sample) has list of filtered novel sequence scaffolds that belong to that sample, along with possible chromosome assignment
+    * scaffold names refer to the assembled scaffolds present in the "filtered" folder
+    * percid represents the percent of nucleotide sequence similar to the paragon scaffold (see the genotype_summary.tab file for the paragon scaffold name)
