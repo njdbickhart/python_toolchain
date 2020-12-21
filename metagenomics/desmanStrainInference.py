@@ -117,7 +117,7 @@ def elitePileups(bam : str, elites : str, assembly : str) -> str:
     with open(elites, 'r') as bedfh:
         for region in getFormatBedLine(bedfh):
             safe = re.sub(change, '_', region)
-            cmd = ["samtools", "mpileup", "-r", 
+            cmd = ["samtools", "mpileup", "-s", "-r", 
                    region, "-f", assembly, bam ]
             print(f'Cmd: {" ".join(cmd)}')
             sp.run(cmd, check = True, stdout=open(bsegs[0] + "." + safe + ".pileup", "w"))
