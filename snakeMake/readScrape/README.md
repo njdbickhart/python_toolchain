@@ -121,13 +121,13 @@ The important files that summarize the output of the pipeline can be found in th
 * Collation
 	* **main_c_file.cdhit	**	<-	Fasta files containing the best representative sequence for each clustered novel sequence
 	* **main_c_file.cdhit.clstr** <- Cd-Hit cluster file showing which scaffolds were found to cluster in each cluster designation.
-    * This file contains newline separated, formatted text, with the "paragon" cluster ID denoted by special tags, and all other contigs below it having a percent ID
+    		* This file contains newline separated, formatted text, with the "paragon" cluster ID denoted by special tags, and all other contigs below it having a percent ID
 
 * Genotypes
 	* **genotype_summary.tab**	<- (has header) lists cluster statistics and sample presence
 	* **association_counts.tab** <- (limited header) variable column length file that shows linkage counts for chromosome assignment of each cluster
-    * Columns one and two are the cluster name and number of chromosome assignments, respectively
-    * Columns from three onwards are a semicolon delimited field, with the chromosome name, followed by the count of samples that had the contig linked to that chromosome
+    		* Columns one and two are the cluster name and number of chromosome assignments, respectively
+    		* Columns from three onwards are a semicolon delimited field, with the chromosome name, followed by the count of samples that had the contig linked to that chromosome
 	* **(sample).genotype.tab** <- (has header; printed for each sample) has list of filtered novel sequence scaffolds that belong to that sample, along with possible chromosome assignment
-    * scaffold names refer to the assembled scaffolds present in the "filtered" folder
-    * percid represents the percent of nucleotide sequence similar to the paragon scaffold (see the genotype_summary.tab file for the paragon scaffold name)
+    		* scaffold names refer to the assembled scaffolds present in the "filtered" folder
+    		* percid represents the percent of nucleotide sequence similar to the paragon scaffold (see the genotype_summary.tab file for the paragon scaffold name)
