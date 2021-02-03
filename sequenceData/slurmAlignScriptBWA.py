@@ -41,6 +41,10 @@ def parse_user_input():
                         help="[Optional] name of the slurm partition for jobs",
                         required=False, type=str, default="general"
                         )
+    parser.add_argument('-n', '--readname',
+                        help="[Optional] sort bams by readname instead of coordinate order",
+                        action='store_true'
+                        )
     parser.add_argument('-e', '--time',
                         help="[Optional] Time limit on jobs",
                         required=False, type=str, default="None"
@@ -86,7 +90,7 @@ def main(args):
 
             uname = bsegs[0] + "." + urlHash()
 
-            cmd = "bwa mem -t 8 -M -R '@RG\\tID:{LB}\\tSM:{ID}\\tLB:{LB}' {FA} {seg1} {seg2} | samtools sort -m 2G -o {uname}.sorted.bam -T {uname} -".format(ID=segs[-1], LB=segs[-2], FA=fasta, seg1=segs[0], seg2=segs[1], uname=uname)
+            cmd = "bwa mem -t 8 -M -R '@RG\\tID:{LB}\\tSM:{ID}\\tLB:{LB}' {FA} {seg1} {seg2} | samtools sort -m 2G -o {uname}.sorted.bam {nflag} -T {uname} -".format(ID=segs[-1], LB=segs[-2], FA=fasta, seg1=segs[0], seg2=segs[1], nflag='-n' if args.readname else '', uname=uname)
             slurmBams[segs[-1]].append(uname + ".sorted.bam")
 
             slurmWorkers[segs[-1]].createGenericCmd(cmd, "bwaAlign")
@@ -94,6 +98,7 @@ def main(args):
 
     # TODO: generate queuing mechanism
     if args.merge:
+        
         for k, worker in slurmWorkers.items():
             jobIds = worker.queueJobs()
 
@@ -112,11 +117,13 @@ def main(args):
             bams = slurmBams[k]
             cmds = []
 
-            for b in bams:
-                cmds.append('samtools index {}'.format(b))
+            if not args.readname:
+                for b in bams:
+                    cmds.append('samtools index {}'.format(b))
 
-            cmds.append("samtools merge -c -p -@ 6 {}.sorted.merged.bam {}".format(k, ' '.join(bams)))
-            cmds.append("samtools index {}.sorted.merged.bam".format(k))
+            cmds.append("samtools merge {} -c -p -@ 6 {}.sorted.merged.bam {}".format('-n' if args.readname else '', k, ' '.join(bams)))
+            if not args.readname:
+                cmds.append("samtools index {}.sorted.merged.bam".format(k))
 
             merger.addJobIDs(jobIds)
             merger.createArrayCmd(cmds, "samMerger")
