@@ -123,7 +123,7 @@ class parserException(Exception):
         self.line = line
         self.message = message
 
-    def formatMsg():
+    def formatMsg(self):
         return f'Parser error! Terminated at {self.expression}\nWith the following message: {self.message}\nAt file line:\n{self.line}\n'
     
 
