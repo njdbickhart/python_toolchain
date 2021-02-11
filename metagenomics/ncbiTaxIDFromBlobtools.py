@@ -60,6 +60,7 @@ def main(args, parser):
         print(f'Working on {file}')
         with open(file, 'r') as input:
             for l in input:
+                l = l.rstrip()
                 if l.startswith('>'):
                     tid = ctgConv.get(l[1:], 'NA')
                     tbin.update(tid)
@@ -68,7 +69,7 @@ def main(args, parser):
     # Now print it all out
     with open(args.output, 'w') as out:
         for b in bins:
-            out.write(b.createOutLine)
+            out.write(b.createOutLine())
     print("Done!")
 
 class binFile:
