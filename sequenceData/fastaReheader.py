@@ -16,8 +16,7 @@ FAHEADER = re.compile(r'>(\S+)')
 FALINES = re.compile(r'(.{60})')
 # regular expression to remove all potential confounding delimiters from the fasta name
 DELIMITERS = re.compile(r'[:-|,_]')
-# regular expression "empty" sequence to replace delimiters!
-REPLACEMENT = re.compile(r'')
+
 
 def arg_parse():
     parser = argparse.ArgumentParser(
@@ -83,7 +82,7 @@ def tableGeneration(filename, outputname, debug):
         for name, seq in fasta_reader_fh(input):
             if debug:
                 print(f'{name}\t{len(seq)}')
-            (nname, nsubs) = re.subn(DELIMITERS, REPLACEMENT, name)
+            (nname, nsubs) = re.subn(DELIMITERS, '', name)
             if debug:
                 print(f'Changed fasta header name {name} to {nname} and replaced {nsubs} delimiters')
             output.write(f'{name}\t{nname}\n')
