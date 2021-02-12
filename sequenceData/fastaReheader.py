@@ -15,7 +15,7 @@ FAHEADER = re.compile(r'>(\S+)')
 # regular expression to add newlines to fasta sequence to comply with fasta file format guidelines
 FALINES = re.compile(r'(.{60})')
 # regular expression to remove all potential confounding delimiters from the fasta name
-DELIMITERS = re.compile(r'[:-|,_]')
+DELIMITERS = re.compile(r'[:-|,_]{1}')
 
 
 def arg_parse():
@@ -123,7 +123,7 @@ def fasta_reader_fh(infile):
             if s[0] == '>':
                 yield name, seq 
                 name = s.rstrip()
-                re.match(FAHEADER, name).group(1)
+                name = re.match(FAHEADER, name).group(1)
                 break
             else:
                 seq += s.rstrip()        
