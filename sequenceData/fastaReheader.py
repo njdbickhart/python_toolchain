@@ -44,8 +44,8 @@ def arg_parse():
     return parser.parse_args(), parser
     
 def main(args, parser):
-    tableMode = True if args.table != "NO" and args.output != "NO" else False 
-    parseMode = True if args.table == "NO" and args.output == "NO" else False
+    tableMode = True if args.table == "NO" and args.output == "NO" else False 
+    parseMode = True if args.table != "NO" and args.output != "NO" else False
     
     if not tableMode and not parseMode:
         print("Error with input arguments! Could not determine which mode to use! Please select one of the options displayed in the help menu")
@@ -53,7 +53,7 @@ def main(args, parser):
         sys.exit(-1)
         
     if args.debug:
-        print("Debug selected. Startin script")
+        print("Debug selected. Starting script")
         
     if tableMode:
         if os.path.exists(args.fasta + ".table"):
