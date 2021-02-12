@@ -82,9 +82,9 @@ def tableGeneration(filename, outputname, debug):
         for name, seq in fasta_reader_fh(input):
             if debug:
                 print(f'{name}\t{len(seq)}')
-            (nname, nsubs) = re.subn(DELIMITERS, '', name)
+            nname = name.replace(':', '').replace('|', '').replace('_','').replace(',', '').replace('|', '')
             if debug:
-                print(f'Changed fasta header name {name} to {nname} and replaced {nsubs} delimiters')
+                print(f'Changed fasta header name {name} to {nname}')
             output.write(f'{name}\t{nname}\n')
             
 def replaceHeader(filename, tablefile, outputname, debug):
