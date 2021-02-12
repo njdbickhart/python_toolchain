@@ -46,6 +46,7 @@ def main(args, parser):
     tableMode = True if args.table == "NO" and args.output == "NO" else False 
     parseMode = True if args.table != "NO" and args.output != "NO" else False
     
+    # Sanity check!
     if not tableMode and not parseMode:
         print("Error with input arguments! Could not determine which mode to use! Please select one of the options displayed in the help menu")
         parser.print_help()
@@ -55,7 +56,9 @@ def main(args, parser):
         print("Debug selected. Starting script")
         
     if tableMode:
+        # Table mode parses the fasta file and generates a table for use in name conversion
         if os.path.exists(args.fasta + ".table"):
+            # Prevent cases where you accidentally overwrite tables you previously edited!
             print("Started to generate a table file but found an older table file that would have been overwritten. Do you want to overwrite the file?")
             x = input()
             if x[0].lower() != 'y':
@@ -65,8 +68,10 @@ def main(args, parser):
                 print("OK, overwriting file...")
                 
         tableGeneration(args.fasta, args.fasta + ".table", args.debug)
+        print("Table file name: " + args.fasta + ".table")
         print("Done! Please edit the table file and use it in the next iteration of the program to edit your fasta")
     elif parseMode:
+        # Parse mode processes the fasta file and replaces the header
         if args.debug:
             print("Starting to convert fasta file...")
             
@@ -82,7 +87,7 @@ def tableGeneration(filename, outputname, debug):
         for name, seq in fasta_reader_fh(input):
             if debug:
                 print(f'{name}\t{len(seq)}')
-            nname = name.replace(':', '').replace('|', '').replace('_','').replace(',', '').replace('|', '')
+            nname = name.replace(':', '').replace('|', '').replace('_','').replace(',', '').replace('|', '').replace('>', '').replace('<', '')
             if debug:
                 print(f'Changed fasta header name {name} to {nname}')
             output.write(f'{name}\t{nname}\n')
