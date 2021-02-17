@@ -106,9 +106,9 @@ class Strain:
             for hap, count in v.items():
                 pos = [-1, -1]
                 if hap in self.contigPositions[contig]:
-                    tlist = self.contigPositions[contig][hap]
-                    minp = min(tlist)
-                    maxp = max(tlist)
+                    temp = self.contigPositions[contig][hap]
+                    minp = min(temp)
+                    maxp = max(temp)
                     pos = [minp, maxp]
 
                 tlist.append(f'{self.binid}\t{hap}\t{len(hap)}\t{count}\t{contig}\t{pos[0]}\t{pos[1]}\n')
