@@ -50,13 +50,8 @@ def main(args, parser):
                 workhorse.position(s)
         
         if args.dastool != "NO":
-            with open(args.dastool, 'r') as das:
-                das.readline()
-                for l in das:
-                    s = l.rstrip().split()
-                    if s[0] == args.prefix:
-                        workhorse.update(s[-2], s[-1])
-                        break
+            (comp, cont) = getDasComp(args.dastool, args.prefix)
+            workhorse.update(comp, cont)
                 
         with open(args.output + '.long', 'w') as long, open(args.output + '.short', 'w') as short:
             tlist = workhorse.produceLongOut()
@@ -66,9 +61,20 @@ def main(args, parser):
     else:
         with open(args.output + '.long', 'w') as long, open(args.output + '.short', 'w') as short:
             long.write(f'{args.prefix}\t0\t0\t0\t0\t0\t0\n')
-            short.write(f'{args.prefix}\t0\t0\t0\n')
+            if args.dastool != "NO":
+                (comp, cont) = getDasComp(args.dastool, args.prefix)
+                short.write(f'{args.prefix}\t0\t{comp}\t{cont}\n')
+            else:
+                short.write(f'{args.prefix}\t0\t0\t0\n')
         
-
+def getDasComp(dastool, prefix):
+    with open(dastool, 'r') as das:
+        das.readline()
+        for l in das:
+            s = l.rstrip().split()
+            if s[0] == prefix:
+                return s[-2], s[-1]
+    return 0.0, 0.0
 
 class Strain:
     
