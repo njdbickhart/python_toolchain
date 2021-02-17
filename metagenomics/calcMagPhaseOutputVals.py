@@ -23,7 +23,7 @@ def arg_parse():
                         )
     parser.add_argument('-d', '--dastool', 
                         help="dastool completeness estimate",
-                        required=True, type=str
+                        required=False, type=str, default = "NO"
                         )
     parser.add_argument('-o', '--output',
                         help="Output file name prefix. output = {output}.long and {output}.short",
@@ -42,6 +42,15 @@ def main(args, parser):
             for l in input:
                 s = l.rstrip().split()
                 workhorse.add(s)
+        
+        if args.dastool != "NO":
+            with open(args.dastool, 'r') as das:
+                das.readline()
+                for l in das:
+                    s = l.rstrip().split()
+                    if s[0] == args.prefix:
+                        workhorse.update(s[-2], s[-1])
+                        break
                 
         with open(args.output + '.long', 'w') as long, open(args.output + '.short', 'w') as short:
             tlist = workhorse.produceLongOut()
@@ -80,9 +89,10 @@ class Strain:
         
         self.contigStrains[segs[2]][segs[0]].append(segs[3])
         
+        
     def update(self, comp, cont):
-        self.comp = comp
-        self.cont = cont
+        self.comp = float(comp)
+        self.cont = float(cont)
         
     def produceLongOut(self):
         tlist = list()
@@ -94,6 +104,7 @@ class Strain:
                     minp = min(tlist)
                     maxp = max(tlist)
                     pos = [minp, maxp]
+
                 tlist.append(f'{self.binid}\t{hap}\t{len(hap)}\t{count}\t{contig}\t{pos[0]}\t{pos[1]}\n')
                 
         return tlist
