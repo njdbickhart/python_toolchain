@@ -42,6 +42,12 @@ def main(args, parser):
             for l in input:
                 s = l.rstrip().split()
                 workhorse.add(s)
+                
+        with open(f'{args.folder}/{args.prefix}.strain.human_readable_by_pos.txt', 'r') as input:
+            input.readline()
+            for l in input:
+                s = l.rstrip().split()
+                workhorse.position(s)
         
         if args.dastool != "NO":
             with open(args.dastool, 'r') as das:
