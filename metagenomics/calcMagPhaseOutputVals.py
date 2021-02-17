@@ -87,7 +87,7 @@ class Strain:
         if "?" in segs[0]:
             return
         
-        self.contigStrains[segs[2]][segs[0]].append(segs[3])
+        self.contigPositions[segs[2]][segs[0]].append(segs[3])
         
         
     def update(self, comp, cont):
