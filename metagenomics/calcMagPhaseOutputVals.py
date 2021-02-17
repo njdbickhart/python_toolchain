@@ -43,15 +43,26 @@ def main(args, parser):
                 s = l.rstrip().split()
                 workhorse.add(s)
                 
+        with open(args.output + '.long', 'w') as long, open(args.output + '.short', 'w') as short:
+            tlist = workhorse.produceLongOut()
+            for t in tlist:
+                long.write(t)
+            short.write(workhorse.produceShortOut())
+    else:
+        with open(args.output + '.long', 'w') as long, open(args.output + '.short', 'w') as short:
+            long.write(f'{args.prefix}\t0\t0\t0\t0\t0\t0\n')
+            short.write(f'{args.prefix}\t0\t0\t0\n')
         
 
 
 class Strain:
     
-    def __init__(self, binid):
-        # Keys -> contig -> hap = number of reads
+    def __init__(self, binid):        
         self.binid = binid
+        # Keys -> contig -> hap = number of reads
         self.contigStrains = defaultdict(lambda : defaultdict(int))
+        # Keys -> contig -> hap -> list of positions
+        self.contigPositions = defaultdict(lambda : defaultdict(list))
         self.maxHapcount = 0
         self.comp = 0.0
         self.cont = 0.0
@@ -61,7 +72,13 @@ class Strain:
         if "?" in segs[0]:
             return
             
-        self.contigStrains[segs[2]][segs[1]] = int(segs[3])
+        self.contigStrains[segs[2]][segs[0]] = int(segs[3])
+        
+    def position(self, segs):
+        if "?" in segs[0]:
+            return
+        
+        self.contigStrains[segs[2]][segs[0]].append(segs[3])
         
     def update(self, comp, cont):
         self.comp = comp
@@ -71,7 +88,13 @@ class Strain:
         tlist = list()
         for contig, v in self.contigStrains.items():
             for hap, count in v.items():
-                tlist.append(f'{binid}\t{hap}\t{len(hap)}\t{count}\t{contig}\n')
+                pos = [-1, -1]
+                if hap in self.contigPositions[contig]:
+                    tlist = self.contigPositions[contig][hap]
+                    minp = min(tlist)
+                    maxp = max(tlist)
+                    pos = [minp, maxp]
+                tlist.append(f'{self.binid}\t{hap}\t{len(hap)}\t{count}\t{contig}\t{pos[0]}\t{pos[1]}\n')
                 
         return tlist
     
@@ -81,7 +104,7 @@ class Strain:
             if count > self.maxHapcount:
                 self.maxHapcount = count 
                 
-        return f'{binid}\t{self.maxHapcount}\t{self.comp}\t{self.cont}\n'
+        return f'{self.binid}\t{self.maxHapcount}\t{self.comp}\t{self.cont}\n'
 
 if __name__ == "__main__":
     args, parser = arg_parse()
