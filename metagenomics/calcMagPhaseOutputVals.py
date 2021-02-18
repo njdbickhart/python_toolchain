@@ -91,7 +91,7 @@ class Strain:
         self.cont = 0.0
         
     def add(self, segs):
-        if int(segs[1]) == 0):
+        if int(segs[1]) == 0:
             # Reset counter
             if self.currentHapCount > self.maxHapcount:
                 self.maxHapcount = self.currentHapCount 
