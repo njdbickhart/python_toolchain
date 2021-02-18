@@ -84,15 +84,24 @@ class Strain:
         self.contigStrains = defaultdict(lambda : defaultdict(int))
         # Keys -> contig -> hap -> list of positions
         self.contigPositions = defaultdict(lambda : defaultdict(list))
+
         self.maxHapcount = 0
+        self.currentHapCount = 0
         self.comp = 0.0
         self.cont = 0.0
         
     def add(self, segs):
+        if int(segs[1]) == 0):
+            # Reset counter
+            if self.currentHapCount > self.maxHapcount:
+                self.maxHapcount = self.currentHapCount 
+            self.currentHapCount = 0
         # Dodging any haplotypes that contain "?" SNPs for now
         if "?" in segs[0]:
             return
-            
+        
+        self.currentHapCount += 1
+        
         self.contigStrains[segs[2]][segs[0]] = int(segs[3])
         
     def position(self, segs):
@@ -121,12 +130,7 @@ class Strain:
                 
         return tlist
     
-    def produceShortOut(self):
-        for contig, v in self.contigStrains.items():
-            count = len(v.keys())
-            if count > self.maxHapcount:
-                self.maxHapcount = count 
-                
+    def produceShortOut(self):                        
         return f'{self.binid}\t{self.maxHapcount}\t{self.comp}\t{self.cont}\n'
 
 if __name__ == "__main__":
