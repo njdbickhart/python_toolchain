@@ -1,0 +1,435 @@
+import os
+import re
+import subprocess
+from collections import defaultdict
+
+# The following is a cluster-environment specific change
+shell.executable("/usr/bin/bash")
+# Wildcards: {sample} {assembly_group}
+BINS = ["bin3c"]
+
+config = {
+"logdir" : "/lustre/project/forage_assemblies/sheep_project/complete_flye/rerun_logs",
+"diamonddb" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.diamond.dmnd",
+"diamondtaxid" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.taxids",
+"ncbidb" : "/project/rumen_longread_metagenome_assembly/assemblies/protists/blob_ncbi.db",
+"checkm_dataroot": "/lustre//project/forage_assemblies/sheep_project/pipeline_test/checkmdb",
+"sourmash_gbk" : "/lustre/project/forage_assemblies/sheep_project/pipeline_test/sourdb/genbank-d2-k31.sbt.json",
+"assemblies" : [
+"/lustre/project/forage_assemblies/sheep_project/complete_flye/flye4.contigs.fasta",
+"/lustre/project/forage_assemblies/sheep_project/complete_flye/clr1.contigs.fasta",
+"/lustre/project/forage_assemblies/sheep_project/complete_flye/clr2.contigs.fasta",
+],
+"samples" : {
+"Lib101_L1" : [
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L001_R1_001.fastq.gz",
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L001_R2_001.fastq.gz"
+    ],
+    "Lib101_L2" : [
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L002_R1_001.fastq.gz",
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L002_R2_001.fastq.gz"
+    ],
+    "Lib101_L3" : [
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L003_R1_001.fastq.gz",
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L003_R2_001.fastq.gz"
+    ],
+    "Lib101_L4" : [
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L004_R1_001.fastq.gz",
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L004_R2_001.fastq.gz"
+    ]
+},
+"bin3c" : "/lustre/project/forage_assemblies/sheep_project/bin3C/bin3C.py",
+"blobtools" : "/lustre/project/forage_assemblies/sheep_project/blobtools/blobtools",
+"hic" : {
+"Sau3CI" : [
+  "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/hic_data/Smith_Sheep_63_HC_S2_L001_R1_001.fastq.gz",
+  "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/hic_data/Smith_Sheep_63_HC_S2_L001_R2_001.fastq.gz"
+]
+}
+}
+
+os.makedirs(config['logdir'], exist_ok=True)
+os.makedirs(config['logdir'] + "/bwa", exist_ok=True)
+os.makedirs("assembly", exist_ok=True)
+
+def getAssemblyBaseName(files):
+    return [re.sub('\.fa.{0,3}', '', os.path.basename(x)) for x in files]
+
+
+localrules: link_assemblies
+rule all:
+
+
+# Take configuration assemblies and softlink them
+rule link_assemblies:
+    input:
+        config["assemblies"]
+    output:
+        "assembly/{assembly_group}.fa"
+    run:
+        for i in input:
+            cmd = ["ln", "-s", i, "assembly/" + re.sub('\.fa.{0,3}', '', os.path.basename(i)) + ".fa"]
+            subprocess.call(cmd)
+
+rule bwa_index:
+    input:
+        "assembly/{assembly_group}.fa"
+    output:
+        "assembly/{assembly_group}.fa.amb",
+        "assembly/{assembly_group}.fa.ann",
+        "assembly/{assembly_group}.fa.bwt",
+        "assembly/{assembly_group}.fa.pac",
+        "assembly/{assembly_group}.fa.sa",
+        "assembly/{assembly_group}.fa.fai"
+    log:
+        config['logdir'] + "/{assembly_group}.log"
+    conda:
+        "../envs/metabat.yaml"
+    shell:
+        """
+        bwa index {input} 2> {log}
+        samtools faidx {input} 2> {log}
+        """
+
+rule bwa_mem:
+    input:
+        amb = "assembly/{assembly_group}.fa.amb",
+        ann = "assembly/{assembly_group}.fa.ann",
+        bwt = "assembly/{assembly_group}.fa.bwt",
+        pac = "assembly/{assembly_group}.fa.pac",
+        sa = "assembly/{assembly_group}.fa.sa",
+        reference = "assembly/{assembly_group}.fa",
+        r1 = lambda wildcards: config["samples"][wildcards.sample][0],
+        r2 = lambda wildcards: config["samples"][wildcards.sample][1],
+    output:
+        "mapping/{assembly_group}/{sample}.bam"
+    log:
+        config['logdir'] + "/bwa_mem/{assembly_group}_{sample}.log"
+    params:
+        extra="",
+        #pipe_cmd = "samtools sort -o {output} -",
+        threads = 8
+    conda:
+        "../envs/metabat.yaml"
+    shell:
+        """
+        bwa mem -t {params.threads} {params.extra} {input.reference} {input.r1} {input.r2} | samtools sort -o {output} - >> {log} 2>&1
+        """
+rule create_bam_index:
+    input:
+        "mapping/{assembly_group}/{file}.bam"
+    output:
+        "mapping/{assembly_group}/{file}.bam.bai"
+
+    threads:
+        1
+    shell:
+        "samtools index {input}"
+
+rule bin3c_contact:
+    input:
+        reference = "assembly/{assembly_group}.fa",
+        bam = "mapping/{assembly_group}/hic_{enzyme}.bam"
+    output:
+        directory("binning/bin3c/{assembly_group}/{enzyme}_full_out")
+    threads: 1
+    conda:
+        "envs/bin3c.yaml"
+    params:
+        enzyme = lambda wildcards: wildcards.enzyme,
+        bin3c = config["bin3c"]
+    shell:
+        """
+        {params.bin3c} mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
+        """
+
+
+rule bin3c_cluster:
+    input:
+        "binning/bin3c/{assembly_group}/{enzyme}_full_out"
+    output:
+        outclust = "binning/bin3c/{assembly_group}/{enzyme}_full_clust/clustering.mcl"
+    threads: 1
+    params:
+        outfolder = "binning/bin3c/{assembly_group}/{enzyme}_full_temp",
+        realout = "binning/bin3c/{assembly_group}/{enzyme}_full_clust",
+        bin3c = config["bin3c"]
+    conda:
+        "envs/bin3c.yaml"
+    shell:
+        """
+        python2 {params.bin3c} cluster --no-plot -v {input}/contact_map.p.gz {params.outfolder}
+        mv {params.outfolder}/clustering.mcl {params.realout}/
+        rm -r {params.outfolder}
+        """
+
+rule modify_bin3c:
+    input:
+        expand("binning/bin3c/{{assembly_group}}/{enzyme}_full_clust/clustering.mcl", enzyme=config["hic"])
+    output:
+        "binning/bin3c/{assembly_group}/bin3c.full.clusters.tab"
+    run:
+        with open(output[0], 'w') as out:
+            seen = set()
+            bnum = 0
+            for j in input:
+                with open(j, 'r') as bins:
+                    for l in bins:
+                        s = l.rstrip().split()
+                        for i in s:
+                            if not i in seen:
+                                out.write(f'{i}\tbin3c.{bnum}\n')
+                            seen.add(i)
+                        bnum += 1
+
+rule das_tool:
+    input:
+        binfiles = expand("binning/{bins}/{{assembly_group}}/{bins}.full.clusters.tab", bins=BINS),
+        reference = "assembly/{assembly_group}.fa"
+    output:
+        expand("binning/DASTool/{{assembly_group}}.full{postfix}",
+               postfix=["_DASTool_summary.txt", "_DASTool_hqBins.pdf", "_DASTool_scores.pdf"]),
+        expand("binning/DASTool/{{assembly_group}}.full_{bins}.eval",
+               bins= BINS),
+        cluster_attribution = "binning/DASTool/{assembly_group}.full_cluster_attribution.tsv"
+    threads: 10
+    log:
+        config['logdir'] + "/dastool.{assembly_group}.full.log"
+    params:
+        binnames = ",".join(BINS),
+        scaffolds2bin = lambda wildcards, input: ",".join(input.binfiles),
+        output_prefix = "binning/DASTool/{assembly_group}.full"
+    shell:
+        """
+        module load usearch/11.0.667
+        echo {params.output_prefix} {params.scaffolds2bin} {params.binnames}
+        DAS_Tool --outputbasename {params.output_prefix} --bins {params.scaffolds2bin} \
+        --labels {params.binnames} --contigs {input.reference} --search_engine diamond \
+        --write_bin_evals 1 --create_plots 1 --threads {threads} --debug &> {log};
+        mv {params.output_prefix}_DASTool_scaffolds2bin.txt {output.cluster_attribution} &>> {log}
+        """
+
+rule diamond:
+    input:
+        "assembly/{assembly_group}.fa"
+    output:
+        "blobtools/{assembly_group}.diamondout.tsv"
+    threads: 16
+    params:
+        db = config['diamonddb']
+    shell:
+        """
+        diamond blastx --query {input} --db {params.db} --threads {threads} --outfmt 6 --sensitive --max-target-seqs 1 --evalue 1e-25 -o {output}
+        """
+
+rule blobtools_taxify:
+    input:
+        "blobtools/{assembly_group}.diamondout.tsv"
+    output:
+        "blobtools/taxify.{assembly_group}.diamondout.tsv.taxified.out"
+    threads: 2
+    params:
+        tax = config['diamondtaxid'],
+        blobtools = config['blobtools'],
+        outbase = "blobtools/taxify"
+    shell:
+        """
+        {params.blobtools} taxify -f {input} -m {params.tax} -s 0 -t 2 -o {params.outbase}
+        """
+
+rule blobtools_cov:
+    input:
+        bams = "mapping/{assembly_group}/{sample}.bam",
+        bais = "mapping/{assembly_group}/{sample}.bam.bai",
+        fasta = "assembly/{assembly_group}.fa"
+    output:
+        cov = "blobtools/{assembly_group}.{sample}.bam.cov"
+    params:
+        outbase = "blobtools/{assembly_group}",
+        blobtools = config['blobtools']
+    shell:
+        """
+        {params.blobtools} map2cov -i {input.fasta} -b {input.bams} -o {params.outbase}
+        """
+
+def getCovStr(covs):
+    return "-c " + " -c ".join(covs)
+
+rule blobtools_create:
+    input:
+        contigs = "assembly/{assembly_group}.fa",
+        covs = expand("blobtools/{assembly_group}.{sample}.bam.cov", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"]),
+        tax = "blobtools/taxify.{assembly_group}.diamondout.tsv.taxified.out"
+    output:
+        blobdb = "blobtools/{assembly_group}.blobDB.json"
+    params:
+        cstr = getCovStr(expand("blobtools/{assembly_group}.{sample}.bam.cov", assembly_group=getAssemblyBaseName(config["assemblies"]), sample=config["samples"])),
+        outpre = "blobtools/{assembly_group}",
+        db = config["ncbidb"],
+        blobtools = config['blobtools']
+    shell:
+        """
+        echo "using {params.cstr}"
+        {params.blobtools} create -i {input.contigs} {params.cstr} -t {input.tax} -o {params.outpre} --db {params.db}
+        """
+
+rule blobtools_viewplot:
+    input:
+        blobdb = "blobtools/{assembly_group}.blobDB.json"
+    output:
+        supplot = "blobtools/supkingdom.{assembly_group}.blobDB.json.bestsum.superkingdom.p8.span.100.blobplot.covsum.pdf",
+        phylumplot = "blobtools/phylum.{assembly_group}.blobDB.json.bestsum.phylum.p8.span.100.blobplot.covsum.pdf",
+        table = "blobtools/table.{assembly_group}.blobDB.table.txt"
+    params:
+        blobtools = config['blobtools']
+    shell:
+        """
+        {params.blobtools} plot -i {input.blobdb} --notitle --format pdf -r superkingdom -o blobtools/supkingdom
+        {params.blobtools} plot -i {input.blobdb} --notitle --format pdf -r phylum -o blobtools/phylum
+
+        {params.blobtools} view -i {input.blobdb} -o blobtools/table -r all
+        """
+
+rule blobtab_condense:
+    input:
+        table = "blobtools/table.{assembly_group}.blobDB.table.txt"
+    output:
+        crop = "blobtools/table.{assembly_group}.lens.tab"
+    params:
+        script = workflow.basedir + "/scripts/trimBlobTable.py"
+    shell:
+        """
+        python {params.script} {input.table} {output.crop}
+        """
+
+def interlace(input):
+    v = list()
+    for i in input.crops:
+        m = re.search(r'blobtools/table.(.+).lens.tab', i)
+        v.append(m.group(1))
+        v.append(i)
+    return ' '.join(v)
+
+rule blobview_plot:
+    input:
+        crops = expand("blobtools/table.{assembly_group}.lens.tab", assembly_group=getAssemblyBaseName(config["assemblies"]))
+    output:
+        plot = "figures/summary_taxonomic_plot.pdf"
+    params:
+        interlaced = lambda wildcards, input : interlace(input),
+        script = workflow.basedir + "/scripts/gcSupKingPlot.R"
+    shell:
+        """
+        Rscript {params.script} {params.interlaced}
+        """
+
+rule separate_contigs:
+    input:
+        "assembly/{assembly_group}.fa",
+        "assembly/{assembly_group}.fa.fai"
+    output:
+        directory("assembly/{assembly_group}/")
+    run:
+        os.mkdir(output[0])
+        with open(input[1], 'r') as fai:
+            count = 0
+            for l in fai:
+                s = l.rstrip().split()
+                if s[1] > 90000:
+                    shell(f'samtools faidx {input[0]} {s[0]} > {output[0]}/{s[0]}.fasta')
+                count += 1
+                if count > 1200:
+                    break
+
+rule checkm_contigs:
+    input:
+        "assembly/{assembly_group}/"
+    output:
+        table = "tables/{assembly_group}.contigs.checkm.txt",
+        directory = "contigs_checkm/{assembly_group}"
+    threads: 8
+    shell:
+        """
+        checkm lineage_wf -f {output.table} -t {threads} -x fasta {output.directory}
+        """
+
+rule cov_by_comp_table:
+    input:
+        table = "blobtools/table.{assembly_group}.blobDB.table.txt",
+        checkm = "tables/{assembly_group}.contigs.checkm.txt"
+    output:
+        comp = "tables/{assembly_group}.ctg_cov_by_comp.tab"
+    params:
+        asm = '{assembly_group}'
+    run:
+        ctglookup = defaultdict(dict)
+        with open(input["checkm"], 'r') as check:
+            for x in range(3):
+                l = check.readline()
+            for l in check:
+                s = l.rstrip().split()
+                ctglookup[s[0]]["Comp"] = s[-3]
+                ctglookup[s[0]]["Cont"] = s[-2]
+        with open(output["comp"], 'w') as out, open(input["table"], 'r') as blob:
+            out.write(f'Contig\tCoverage\tCompleteness\tContamination\tAssembly\n')
+            # find column indexes
+            covidx = 0
+            for l in blob:
+                if l.startswith('##'):
+                    continue
+                if l.startswith('#'):
+                    s = l.rstrip().split('\t')
+                    for i, x enumerate(s):
+                        if x == "cov_sum":
+                            covidx = i
+                            break
+                if s[0] in ctglookup:
+                    out.write(f'{s[0]}\t{s[covidx]}\t{ctglookup[s[0]]["Comp"]}\t{ctglookup[s[0]]["Cont"]}\t{params["asm"]}\n')
+
+def ctg_interlace(input):
+    v = list()
+    for i in input.comp:
+        m = re.search(r'tables/(.+).ctg_cov_by_comp.tab', i)
+        v.append(m.group(1))
+        v.append(i)
+    return ' '.join(v)
+
+rule contig_cov_by_comp_plot:
+    input:
+        comp = expand("tables/{assembly_group}.ctg_cov_by_comp.tab", assembly_group=getAssemblyBaseName(config["assemblies"]))
+    output:
+        "figures/contig_facet_cov_by_comp_scatter.pdf",
+        "figures/contig_top80_cov_by_comp.pdf"
+    params:
+        interlaced = lambda wildcards, input : ctg_interlace(input),
+        script = workflow.basedir + "/scripts/CovByCompPlot.R"
+    shell:
+        """
+        Rscript {params.script} {params.interlaced}
+        """
+
+checkpoint mag_generation:
+    input:
+        reference = "assembly/{assembly_group}.fa",
+        cluster = "binning/DASTool/{assembly_group}.full_cluster_attribution.tsv"
+    output:
+        dir = directory("mags/{assembly_group}/"),
+        counts = "binning/DASTool/{assembly_group}.full_cluster_counts.tab"
+    script:
+        "scripts/magGeneration.py"
+
+def all_mags(wildcards):
+    '''
+    '''
+    mag_generation_output = checkpoints.mag_generation.get(**wildcards).output[0]
+    iteration = wildcards.iteration
+    assembly = wildcards.assembly
+    extension = wildcards.extension
+    batch_list = expand('output/.{iteration}_{assembly}/{contig}.{extension}',
+                        iteration=iteration,
+                        assembly=assembly,
+                        extension=extension,
+                        contig=glob_wildcards(f'output/.{iteration}_{assembly}_{extension}/{{contig}}').contig)
+    return batch_list
+
+#TODO: Work on MASH comparisons and get the magphase pipeline running

@@ -1,0 +1,27 @@
+channels:
+    - anaconda
+    - bioconda
+    - conda-forge
+    - ruby-lang
+    - r
+dependencies:
+    - python=3.9
+    - diamond=0.9.30
+    - samtools=1.9
+    - bwa=0.7.17
+    - docopt
+    - tqdm
+    - pyyaml
+    - git
+    - pysam
+    - numpy
+    - matplotlib
+    - perl-bioperl
+    - das_tool=1.1.1
+    - diamond=0.9.30
+    - r-essentials
+    - r-ggridges
+    - r-gridExtra
+    - r-tidyverse
+    - prodigal=2.6.3
+    - checkm-genome
