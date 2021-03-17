@@ -35,7 +35,7 @@ def main(args, parser):
         winlist = defaultdict(list)
         for r, l in zip(references, lengths):
             for i in range(0, l, args.windowlength):
-                winlist[r].append(window(r, i, i + args.binsize))
+                winlist[r].append(window(r, i, i + args.windowlength))
         
         
         for c, w in winlist.items():
