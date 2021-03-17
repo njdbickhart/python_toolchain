@@ -16,9 +16,9 @@ rule all_binned:
 
 rule temp_completion:
     input:
-        expand("binning/{bins}/{assembly_group}/{bins}.{king}.clusters.tab", bins= BINS, assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
-        expand("binning/DASTool/{assembly_group}.{king}_cluster_attribution.tsv", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING),
-        expand("binning/DASTool/{assembly_group}.{king}_cluster_counts.tab", assembly_group=getAssemblyBaseName(config["assemblies"]), king=KING)
+        expand("binning/{bins}/{assembly_group}/{bins}.clusters.tab", bins= BINS, assembly_group=getAssemblyBaseName(config["assemblies"])),
+        expand("binning/DASTool/{assembly_group}.cluster_attribution.tsv", assembly_group=getAssemblyBaseName(config["assemblies"])),
+        expand("binning/DASTool/{assembly_group}.cluster_counts.tab", assembly_group=getAssemblyBaseName(config["assemblies"]))
     output:
         temp(touch("FinishedBinning"))
 
@@ -112,47 +112,11 @@ rule metabat_binning:
         metabat2 {params.other} --numThreads {params.threads} -i {input.assembly} -a {input.depth} -o {output} > {log} 2>&1
         """
 
-rule eukrep:
-    input:
-        assembly = "assembly/{assembly_group}.fa"
-    output:
-        "eukrep/{assembly_group}/euk.final.contigs.fa"
-    conda:
-        "../envs/EukRep.yaml"
-    log:
-        config['logdir'] + "/eukrep/{assembly_group}.eukrep.log"
-    params:
-        prok = "eukrep/{assembly_group}/prok.final.contigs.fa",
-        min_contig = 1000
-    shell:
-        """
-        EukRep -i {input} -o {output} --prokarya {params.prok} --min {params.min_contig} > {log} 2>&1
-        rm {params.prok}
-        """
-
-rule metabat_binning_euk:
-    input:
-        assembly = "eukrep/{assembly_group}/euk.final.contigs.fa",
-        depth = "binning/metabat2/{assembly_group}/jgi_abund.txt"
-    output:
-        "binning/metabat2/{assembly_group}/metabat_bin_euk.tab"
-    conda:
-         "../envs/metabat.yaml"
-    params:
-        other = "--saveCls --minContig 3000 --noBinOut",
-        threads = 8
-    log:
-        config['logdir'] + "/metabat2/{assembly_group}.eukbin.log"
-    shell:
-        """
-        metabat2 {params.other} --numThreads {params.threads} -i {input.assembly} -a {input.depth} -o {output} > {log} 2>&1
-        """
-
 rule metabat_convert:
     input:
-        bin = "binning/metabat2/{assembly_group}/metabat_bin_{king}.tab"
+        bin = "binning/metabat2/{assembly_group}/metabat_bin_full.tab"
     output:
-        cluster = "binning/metabat2/{assembly_group}/metabat2.{king}.clusters.tab"
+        cluster = "binning/metabat2/{assembly_group}/metabat2.clusters.tab"
     run:
         with open(input.bin, 'r') as bins, open(output.cluster, 'w') as out:
             for l in bins:
@@ -174,26 +138,13 @@ rule concoct_ctgprep:
         cut_up_fasta.py {input.assembly} -c 10000 -o 0 --merge_last -b {output.bed} > {output.contigs}
         """
 
-rule concoct_ctgprep_euk:
-    input:
-        assembly = "eukrep/{assembly_group}/euk.final.contigs.fa"
-    output:
-        contigs = "binning/concoct/{assembly_group}/contigs_10k_euk.fa",
-        bed = "binning/concoct/{assembly_group}/contigs_10k_euk.bed"
-    conda:
-        "../envs/concoct.yaml"
-    shell:
-        """
-        cut_up_fasta.py {input.assembly} -c 10000 -o 0 --merge_last -b {output.bed} > {output.contigs}
-        """
-
 rule concoct_calc_cov:
     input:
-        bed = "binning/concoct/{assembly_group}/contigs_10k_{king}.bed",
+        bed = "binning/concoct/{assembly_group}/contigs_10k_full.bed",
         bam = expand("mapping/{{assembly_group}}/{sample}.bam", sample=config["samples"]),
         bai = expand("mapping/{{assembly_group}}/{sample}.bam.bai", sample=config["samples"])
     output:
-        coverage = "binning/concoct/{assembly_group}/coverage_file_{king}.tab"
+        coverage = "binning/concoct/{assembly_group}/coverage_file_full.tab"
     conda:
         "../envs/concoct.yaml"
     shell:
@@ -203,13 +154,13 @@ rule concoct_calc_cov:
 
 rule run_concoct:
     input:
-        contigs = "binning/concoct/{assembly_group}/contigs_10k_{king}.fa",
-        coverage = "binning/concoct/{assembly_group}/coverage_file_{king}.tab"
+        contigs = "binning/concoct/{assembly_group}/contigs_10k_full.fa",
+        coverage = "binning/concoct/{assembly_group}/coverage_file_full.tab"
     output:
-        bins = temp("binning/concoct/{assembly_group}/{king}/clustering_gt3000.csv"),
-        fbins = "binning/concoct/{assembly_group}/clustering_merged_{king}.csv"
+        bins = temp("binning/concoct/{assembly_group}/clustering_gt3000.csv"),
+        fbins = "binning/concoct/{assembly_group}/clustering_merged_full.csv"
     params:
-        basename = "binning/concoct/{assembly_group}/{king}/",
+        basename = "binning/concoct/{assembly_group}/",
         read_length = 150,
         min_length = 3000
     conda:
@@ -228,9 +179,9 @@ rule run_concoct:
         """
 rule convert_concoct:
     input:
-        bin = "binning/concoct/{assembly_group}/clustering_merged_{king}.csv"
+        bin = "binning/concoct/{assembly_group}/clustering_merged_full.csv"
     output:
-        cluster = "binning/concoct/{assembly_group}/concoct.{king}.clusters.tab"
+        cluster = "binning/concoct/{assembly_group}/concoct.full.clusters.tab"
     run:
         with open(input.bin, 'r') as bins, open(output.cluster, 'w') as out:
             bins.readline()
@@ -279,32 +230,16 @@ if config.get("hic"):
             {params.bin3c} mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
             """
 
-    rule bin3c_contact_euk:
-        input:
-            reference = "eukrep/{assembly_group}/euk.final.contigs.fa",
-            bam = "mapping/{assembly_group}/hic_{enzyme}.bam"
-        output:
-            directory("binning/bin3c/{assembly_group}/{enzyme}_euk_out")
-        threads: 1
-        conda:
-            "../envs/bin3c.yaml"
-        params:
-            enzyme = lambda wildcards: wildcards.enzyme,
-            bin3c = config["bin3c"]
-        shell:
-            """
-            {params.bin3c} mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
-            """
 
     rule bin3c_cluster:
         input:
-            "binning/bin3c/{assembly_group}/{enzyme}_{king}_out"
+            "binning/bin3c/{assembly_group}/{enzyme}_full_out"
         output:
-            outclust = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust/clustering.mcl"
+            outclust = "binning/bin3c/{assembly_group}/{enzyme}_full_clust/clustering.mcl"
         threads: 1
         params:
-            outfolder = "binning/bin3c/{assembly_group}/{enzyme}_{king}_temp",
-            realout = "binning/bin3c/{assembly_group}/{enzyme}_{king}_clust",
+            outfolder = "binning/bin3c/{assembly_group}/{enzyme}_full_temp",
+            realout = "binning/bin3c/{assembly_group}/{enzyme}_full_clust",
             bin3c = config["bin3c"]
         conda:
             "../envs/bin3c.yaml"
@@ -317,9 +252,9 @@ if config.get("hic"):
 
     rule modify_bin3c:
         input:
-            expand("binning/bin3c/{{assembly_group}}/{enzyme}_{king}_clust/clustering.mcl", enzyme=config["hic"], king=KING)
+            expand("binning/bin3c/{{assembly_group}}/{enzyme}_full_clust/clustering.mcl", enzyme=config["hic"])
         output:
-            "binning/bin3c/{assembly_group}/bin3c.{king}.clusters.tab"
+            "binning/bin3c/{assembly_group}/bin3c.full.clusters.tab"
         run:
             with open(output[0], 'w') as out:
                 seen = set()
@@ -353,37 +288,6 @@ rule das_tool:
         binnames = ",".join(BINS),
         scaffolds2bin = lambda wildcards, input: ",".join(input.binfiles),
         output_prefix = "binning/DASTool/{assembly_group}.full"
-    shell:
-        """
-        module load usearch/11.0.667
-        echo {params.output_prefix} {params.scaffolds2bin} {params.binnames}
-        DAS_Tool --outputbasename {params.output_prefix} --bins {params.scaffolds2bin} \
-        --labels {params.binnames} --contigs {input.reference} --search_engine diamond \
-        --write_bin_evals 1 --create_plots 1 --threads {threads} --debug &> {log};
-        mv {params.output_prefix}_DASTool_scaffolds2bin.txt {output.cluster_attribution} &>> {log}
-        """
-
-# TODO: DASTool creates uncontrollable prefixes for temp files. While I work this out, I'm making each version run sequentially for EUK and FULL
-rule das_tool_euk:
-    input:
-        prevbins = expand("binning/{bins}/{{assembly_group}}/{bins}.full.clusters.tab", bins=BINS),
-        binfiles = expand("binning/{bins}/{{assembly_group}}/{bins}.euk.clusters.tab", bins=BINS),
-        reference = "assembly/{assembly_group}.fa"
-    output:
-        expand("binning/DASTool/{{assembly_group}}.euk{postfix}",
-               postfix=["_DASTool_summary.txt", "_DASTool_hqBins.pdf", "_DASTool_scores.pdf"]),
-        expand("binning/DASTool/{{assembly_group}}.euk_{bins}.eval",
-               bins= BINS),
-        cluster_attribution = "binning/DASTool/{assembly_group}.euk_cluster_attribution.tsv"
-    threads: 10
-    log:
-        config['logdir'] + "/dastool.{assembly_group}.euk.log"
-    conda:
-        "../envs/dastool.yaml"
-    params:
-        binnames = ",".join(BINS),
-        scaffolds2bin = lambda wildcards, input: ",".join(input.binfiles),
-        output_prefix = "binning/DASTool/{assembly_group}.euk"
     shell:
         """
         module load usearch/11.0.667
