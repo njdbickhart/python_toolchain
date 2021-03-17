@@ -53,7 +53,8 @@ def main(args, parser):
     # Now print it all out
     with open(args.output, 'w') as out:
         for c, w in winlist.items():
-            out.write(w.getBed())
+            for win in w:
+                out.write(win.getBed())
 
 class window:
     
