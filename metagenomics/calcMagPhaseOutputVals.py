@@ -94,7 +94,7 @@ class Strain:
         if int(segs[1]) == 0:
             # Reset counter
             if self.currentHapCount > self.maxHapcount:
-                self.maxHapcount = self.currentHapCount 
+                self.maxHapcount = self.currentHapCount -1  
             self.currentHapCount = 0
         # Dodging any haplotypes that contain "?" SNPs for now
         if "?" in segs[0]:
@@ -130,7 +130,10 @@ class Strain:
                 
         return tlist
     
-    def produceShortOut(self):                        
+    def produceShortOut(self):                       
+        if self.currentHapCount > self.maxHapcount:
+            # Catch cases where there is only one haplotype locus!
+            self.maxHapcount = self.currentHapCount - 1 
         return f'{self.binid}\t{self.maxHapcount}\t{self.comp}\t{self.cont}\n'
 
 if __name__ == "__main__":

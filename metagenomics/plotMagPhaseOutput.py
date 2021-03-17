@@ -15,6 +15,7 @@ import argparse
 import pandas
 import numpy as np
 import pysam
+import seaborn as sns
 
 def arg_parse():
     parser = argparse.ArgumentParser(
@@ -32,13 +33,17 @@ def arg_parse():
                         help="Input CCS read depth bam file",
                         required=True, type=str
                         )
-    parser.add_argument('-h', '--human', 
+    parser.add_argument('-u', '--human', 
                         help="Input human-readable position variant call file",
                         required=True, type=str
                         )
     parser.add_argument('-i', '--binsize',
                         help="Bin size in bases [5000 bp]",
                         type = int, default=5000
+                        )
+    parser.add_argument('-e', '--breaks',
+                        help="Draw windows in the following bed regions [Optional]",
+                        type = str, default="NO"
                         )
     return parser.parse_args(), parser
     
@@ -48,7 +53,7 @@ def main(args, parser):
     with open(args.fai, 'r') as fai:
         for l in fai:
             s = l.rstrip().split()
-            ctglens[s[0]] = s[1]
+            ctglens[s[0]] = int(s[1])
             
     # Create windows 
     winlist = defaultdict(list)
@@ -85,6 +90,8 @@ def main(args, parser):
             # determine where the contig start falls
             for i, win in enumerate(winlist[s[2]]):
                 if int(s[3]) < win.end and int(s[3]) >= win.start:
+                    if s[5] == 'REF':
+                        s[0] = '0'
                     winlist = updateWin(winlist, s[2], i, int(s[6]), s[0])
                     print(f'Updating window: {s[2]} {win.start} {win.end} to {s[6]} for Hap {s[0]}')
                     #hapset.add(s[4])
@@ -94,7 +101,7 @@ def main(args, parser):
     bars = list()
     for c, w in winlist.items():
         bars.append([ctgoffset[c], ctglens[c]])
-        for win in winlist:
+        for win in w:
             for i, h in enumerate(sorted(win.count.keys())):
                 raw["contig"].append(c)
                 raw["start"].append(win.start + ctgoffset[c])
@@ -105,16 +112,33 @@ def main(args, parser):
     df = pandas.DataFrame(raw)
     df.to_csv(args.output + '.wins', sep='\t', header=True)
     
-    df['pos'] = df["contig"] + "_" + str(df["start"])
+    df['pos'] = df["contig"] + "_" + df["start"].astype(str)
     
     
     fig, ax = plt.subplots()
-    ax = df[['pos', 'hap', 'count']].plot.area(x='pos', y='count', ax=ax, colormap='viridis')
-    plt.xticks(rotation=90)
+    #ax = df[['pos', 'hap', 'count']].plot.area(x='pos', y='count', hue='hap', ax=ax, colormap='viridis')
+    #sns.barplot(data=df[['pos', 'hap','count']], x='pos', y='count', hue='hap', ax=ax, palette='dark')
+    tdata = df[['start','hap','count']].pivot_table(index='start', columns='hap', values='count', fill_value=0, aggfunc='sum').unstack().to_frame().rename(columns={0:'Count'})
+    #sns.lineplot(data=df[['start','hap','count']], x='start', y='count', hue='hap', ax=ax, palette='dark')
+    sns.lineplot(data=tdata, x='start', y='Count', hue='hap', ax=ax, palette='dark')
+    plt.xticks(rotation=45)
     
+    if args.breaks != 'NO':
+        maxy = tdata['Count'].max()
+        with open(args.breaks, 'r') as input:
+            for l in input:
+                s = l.rstrip().split()
+                ctgstart = int(s[1]) + ctgoffset[s[0]]
+                ctgend = int(s[2]) + ctgoffset[s[0]]
+                midpoint = (ctgend - ctgstart) / 2 + ctgstart
+                ax.axvline(ctgstart, ls='-', c='lightgrey', zorder=-1)
+                ax.axvline(ctgend, ls='--', c='lightgrey', zorder=-1)
+                ax.text(midpoint, maxy, s[3], rotation='vertical', verticalalignment='top', size=4.0)
+                print(f'Drawing line for {s[0]} {s[1]} {s[2]} {s[3]} {midpoint} {maxy}')
+
     if len(breaks) > 1:
         for b in breaks:
-            ax.axvline(b, ls='-', c='lightgrey', zorder=-1)
+            ax.axvline(b, ls='-', c='k', zorder=-1)
     
     #ax.add_collection(BrokenBarHCollection(bars, [-1, 1], facecolors=plt.get_cmap('tab20')))
     #ax.axis('tight')
@@ -126,7 +150,7 @@ def main(args, parser):
             
     
 def updateWin(winlist, contig, winidx, count, haplotype = '0'):
-    winlist[contig].count[haplotype] = count
+    winlist[contig][winidx].addCount(haplotype, count)
     return winlist
     
 
@@ -135,9 +159,19 @@ class window:
     def __init__(self, contig, start, end):
         self.contig = contig
         self.start = start 
-        self.end = end 
-        self.count = defaultdict(int)
-        
+        self.end = end
+        self.haps = dict()
+        self.hapcount = 0
+        self.count = dict()
+    
+    def addCount(self, hap, count):
+        if hap != '0':
+            if hap not in self.haps:
+                self.hapcount += 1
+                self.haps[hap] = self.hapcount
+            hap = str(self.haps[hap])
+        self.count[hap] = count
+    
     def getCount(self, hap):
         if hap in self.count:
             return self.count[hap]
