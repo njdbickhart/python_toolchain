@@ -332,14 +332,10 @@ rule separate_contigs:
     run:
         os.mkdir(output[0])
         with open(input[1], 'r') as fai:
-            count = 0
             for l in fai:
                 s = l.rstrip().split()
                 if s[1] > 90000:
                     shell(f'samtools faidx {input[0]} {s[0]} > {output[0]}/{s[0]}.fasta')
-                count += 1
-                if count > 1200:
-                    break
 
 rule checkm_contigs:
     input:

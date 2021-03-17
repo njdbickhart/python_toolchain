@@ -45,19 +45,15 @@ def main(args, parser):
             fout.write(f'{seq}\n')
     
 def fastaReader(infile):
-    name = infile.readline().rstrip().replace('>', '', 1)
-    while True:
-        seq = ""
-        for s in infile:
-            if s[0] == '>':
-                yield name, seq
-                name = s.rstrip().replace('>', '', 1)
-                break
-            else:
-                seq += s.rstrip()
-    else:
-        yield name, seq
-        return
+    header, sequence = '', ''
+    for line in infile:
+        if line[0] == '>':
+            if sequence: yield header, sequence 
+            header = line.rstrip().replace('>','').split()[0]
+            sequence =''
+        else:
+            sequence += line.rstrip()
+    yield header, sequence
 
 if __name__ == "__main__":
     args, parser = arg_parse()
