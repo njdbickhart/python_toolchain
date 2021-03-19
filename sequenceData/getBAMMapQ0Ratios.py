@@ -76,7 +76,7 @@ class window:
         return self.mapq0 != 0
     
     def getBed(self):
-        return f'{self.contig}\t{self.start}\t{self.end}\t{self.hasMapq0}\t{self.getRatio}\t{self.totReadCount}\t{self.mapq0}\n'
+        return f'{self.contig}\t{self.start}\t{self.end}\t{self.hasMapq0()}\t{self.getRatio()}\t{self.totReadCount}\t{self.mapq0}\n'
 
 if __name__ == "__main__":
     args, parser = arg_parse()

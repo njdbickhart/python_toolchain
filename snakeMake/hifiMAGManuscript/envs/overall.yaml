@@ -25,3 +25,4 @@ dependencies:
     - r-tidyverse
     - prodigal=2.6.3
     - checkm-genome
+    - minimap2

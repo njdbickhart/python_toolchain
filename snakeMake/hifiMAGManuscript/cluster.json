@@ -1,0 +1,95 @@
+{
+  "__default__" :
+  {
+    "mem" : "5000",
+    "ntasks-per-node" : "1",
+    "nodes" : "1",
+    "partition" : "priority",
+    "qos" : "msn",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.stdout",
+    "jobname" : "{rule} [{wildcards.assembly_group}]"
+  },
+
+  "bwa_index":
+  {
+    "mem" : "15000",
+  },
+
+  "bwa_mem":
+  {
+    "ntasks-per-node" : "{threads}",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.sample}.stdout",
+  },
+
+  "ccs_align":
+  {
+    "ntasks-per-node" : "{threads}",
+  },
+
+  "bin3c_contact":
+  {
+    "mem" : "55000",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.enzyme}.stdout",
+  },
+
+  "bin3c_cluster":
+  {
+    "mem" : "55000",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.enzyme}.stdout",
+  },
+
+  "das_tool":
+  {
+    "mem" : "55000",
+    "ntasks-per-node" : "{threads}",
+  },
+
+  "diamond":
+  {
+    "mem" : "55000",
+    "ntasks-per-node" : "{threads}",
+  },
+
+  "blobtools_taxify":
+  {
+    "mem" : "55000",
+    "ntasks-per-node" : "{threads}",
+  },
+
+  "blobtools_create":
+  {
+    "mem" : "65000",
+  },
+
+  "blobtools_viewplot":
+  {
+    "mem" : "65000",
+    "stdout" : "logs/{rule}.stdout",
+  },
+
+  "blobview_plot":
+  {
+    "mem" : "15000",
+  },
+
+  "checkm_contigs":
+  {
+    "mem" : "55000",
+    "ntasks-per-node" : "{threads}",
+  },
+
+  "contig_cov_by_comp_plot":
+  {
+    "stdout" : "logs/{rule}.stdout",
+  },
+
+  "binCovPlot":
+  {
+    "stdout" : "logs/{rule}.stdout",
+  },
+
+  "makeMashMap":
+  {
+    "mem" : "55000",
+  },
+}
