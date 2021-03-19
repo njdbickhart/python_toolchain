@@ -59,6 +59,7 @@ def getAssemblyBaseName(files):
 
 
 localrules: link_assemblies, modify_bin3c, separate_contigs, cov_by_comp_table
+
 rule all:
     input:
         expand("mash/{assembly_group}.msh", assembly_group=getAssemblyBaseName(config["assemblies"])),
@@ -69,8 +70,6 @@ rule all:
         "figures/contig_top80_cov_by_comp.pdf",
         "figures/contig_ridge_top95_coverage.pdf",
         "figures/summary_taxonomic_plot.pdf"
-
-
 
 # Take configuration assemblies and softlink them
 rule link_assemblies:
@@ -491,7 +490,7 @@ def all_mags(wildcards):
     assembly_group = wildcards.assembly_group
     batch_list = expand('mags/{assembly_group}/{bin}.fa',
                         assembly_group = assembly_group,
-                        bin=glob_wildcards(os.path.join(mag_generation_output, "{bin}.fa").bin)
+                        bin=glob_wildcards(os.path.join(mag_generation_output, "{bin}.fa").bin))
     return batch_list
 
 #TODO: Work on MASH comparisons and get the magphase pipeline running
