@@ -60,6 +60,16 @@ def getAssemblyBaseName(files):
 
 localrules: link_assemblies, modify_bin3c, separate_contigs, cov_by_comp_table
 rule all:
+    input:
+        expand("mash/{assembly_group}.msh", assembly_group=getAssemblyBaseName(config["assemblies"])),
+        "figures/bin_facet_cov_by_comp_scatter.pdf",
+        "figures/bin_top80_cov_by_comp.pdf",
+        "figures/bin_ridge_top95_coverage.pdf",
+        "figures/contig_facet_cov_by_comp_scatter.pdf",
+        "figures/contig_top80_cov_by_comp.pdf",
+        "figures/contig_ridge_top95_coverage.pdf",
+        "figures/summary_taxonomic_plot.pdf"
+
 
 
 # Take configuration assemblies and softlink them
