@@ -108,7 +108,7 @@ class variantList:
             elif not i in self.carIdx and naltcount == 0:
                 varCon += 1
         self.varCon.append(varCon)        
-        self.varPerc.append(float(self.varCon / self.sampTot))
+        self.varPerc.append(float(varCon / self.sampTot))
             
                 
     def processVCF(self, vcf):
