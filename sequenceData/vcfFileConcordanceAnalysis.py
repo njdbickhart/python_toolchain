@@ -159,7 +159,7 @@ class variantList:
         quantiles = df['Perc'].apply(lambda x : x if x > 0.95 else 0.95).rename("Magnitude")
         
         g = sns.scatterplot(x=df['Pos'], y=df['Perc'], hue=quantiles)
-        g.set(ylim=(ymin, None))
+        g.set(ylim=(ymin, 1.0))
         plt.savefig(self.output + '.pdf')       
                     
                 
