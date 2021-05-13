@@ -122,7 +122,7 @@ class variantList:
             gtypes = segs[i][0:3:2]
             naltcount = 0
             for g in gtypes:
-                if g != '0':
+                if g != '0' and g != '.':
                     naltcount += 1
             if i in self.carIdx and naltcount == 1:
                 varCon += 1
@@ -185,7 +185,7 @@ class variantList:
         quantiles = df['Perc'].apply(lambda x : x if x > 0.95 else 0.95).rename("Magnitude")
         
         g = sns.scatterplot(x=df['Pos'], y=df['Perc'], hue=quantiles)
-        g.set(ylim=(ymin, 1.0))
+        g.set(ylim=(ymin, 1.01))
         
         if self.hasAnn:
             for row in range(0, df.shape[0]):
