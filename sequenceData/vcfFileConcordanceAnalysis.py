@@ -120,6 +120,7 @@ class variantList:
                 elif l.startswith('#CHROM'):
                     header = True
                     self._getCarrierIdx(l)
+                    continue
                 elif l.startswith('#'):
                     continue
                     
