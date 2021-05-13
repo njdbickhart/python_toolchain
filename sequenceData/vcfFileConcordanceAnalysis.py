@@ -190,8 +190,9 @@ class variantList:
         if self.hasAnn:
             for row in range(0, df.shape[0]):
                 if df.Ann[row] == "HIGH":
-                    plt.text(df.Pos[row], df.Perc[row] + 0.01, df.Ann[row])
-                    plt.text(df.Pos[row], df.Perc[row] + 0.02, df.Pos[row])
+                    plt.text(df.Pos[row], df.Perc[row] + 0.01, f'{df.Ann[row]};{df.Pos[row]}')
+                    plt.plot([df.Pos[row], df.Pos[row]], [df.Perc[row], df.Perc[row] + 0.01], 'k-')
+                
         
         plt.savefig(self.output + '.pdf')       
                     
