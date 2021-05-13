@@ -90,6 +90,7 @@ class variantList:
                 self.carIdx.add(x)
         self.sampTot -= 9
         
+        print(f'Total Samples: {self.sampTot}')
         if len(self.carIdx) == 0:
             print("Found zero carriers in the header! Exiting...")
             sys.exit(-1)
@@ -146,11 +147,13 @@ class variantList:
             "Perc" : self.varPerc
             })
         df = df.sort_values(by=['Pos'])
-        df['Quantile'] = pd.qcut(df['Perc'], [0.90, 0.95, 1.0], labels=False)
+        #df['Quantile'] = pd.qcut(df['Perc'], [0.90, 0.95, 1.0], labels=False)
         
         ymin = float(df['Perc'].min())
         
-        g = sns.scatterplot(x=df['Pos'], y=df['Perc'], hue=df['Quantile'])
+        quantiles = df['Perc'].apply(lambda x : x if x > 0.95 else 0.95).rename("Magnitude")
+        
+        g = sns.scatterplot(x=df['Pos'], y=df['Perc'], hue=quantiles)
         g.set(ylim=(ymin, None))
         plt.savefig(self.output + '.pdf')       
                     
