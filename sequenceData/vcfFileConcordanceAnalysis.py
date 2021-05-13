@@ -177,12 +177,22 @@ class variantList:
         df = df.sort_values(by=['Pos'])
         #df['Quantile'] = pd.qcut(df['Perc'], [0.90, 0.95, 1.0], labels=False)
         
+        if self.hasAnn:
+            df['Ann'] = self.varAnn
+        
         ymin = minimum
         
         quantiles = df['Perc'].apply(lambda x : x if x > 0.95 else 0.95).rename("Magnitude")
         
         g = sns.scatterplot(x=df['Pos'], y=df['Perc'], hue=quantiles)
         g.set(ylim=(ymin, 1.0))
+        
+        if self.hasAnn:
+            for row in range(0, df.shape[0]):
+                if df.Ann[row] == "HIGH":
+                    plt.text(df.Pos[row], df.Perc[row] + 0.01, df.Ann[row])
+                    plt.text(df.Pos[row], df.Perc[row] + 0.02, df.Pos[row])
+        
         plt.savefig(self.output + '.pdf')       
                     
                 
