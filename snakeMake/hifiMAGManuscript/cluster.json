@@ -7,7 +7,6 @@
     "partition" : "priority",
     "qos" : "msn",
     "stdout" : "logs/{rule}.{wildcards.assembly_group}.stdout",
-    "jobname" : "{rule} [{wildcards.assembly_group}]"
   },
 
   "bwa_index":
@@ -17,12 +16,21 @@
 
   "bwa_mem":
   {
+    "mem" : "15000",
     "ntasks-per-node" : "{threads}",
     "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.sample}.stdout",
+  },
+  
+  "align_hic":
+  {
+    "mem" : "15000",
+    "ntasks-per-node" : "{threads}",
+    "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.enzyme}.stdout",
   },
 
   "ccs_align":
   {
+    "mem" : "15000",
     "ntasks-per-node" : "{threads}",
   },
 
@@ -46,7 +54,7 @@
 
   "diamond":
   {
-    "mem" : "55000",
+    "mem" : "185000",
     "ntasks-per-node" : "{threads}",
   },
 
@@ -69,6 +77,7 @@
 
   "blobview_plot":
   {
+    "stdout" : "logs/{rule}.stdout",
     "mem" : "15000",
   },
 

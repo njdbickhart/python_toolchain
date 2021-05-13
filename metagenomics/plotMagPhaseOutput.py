@@ -119,6 +119,7 @@ def main(args, parser):
     #ax = df[['pos', 'hap', 'count']].plot.area(x='pos', y='count', hue='hap', ax=ax, colormap='viridis')
     #sns.barplot(data=df[['pos', 'hap','count']], x='pos', y='count', hue='hap', ax=ax, palette='dark')
     tdata = df[['start','hap','count']].pivot_table(index='start', columns='hap', values='count', fill_value=0, aggfunc='sum').unstack().to_frame().rename(columns={0:'Count'})
+    print(tdata.head())
     #sns.lineplot(data=df[['start','hap','count']], x='start', y='count', hue='hap', ax=ax, palette='dark')
     sns.lineplot(data=tdata, x='start', y='Count', hue='hap', ax=ax, palette='dark')
     plt.xticks(rotation=45)

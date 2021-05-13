@@ -3,7 +3,7 @@ import os
 os.makedirs("logs", exist_ok=True)
 configfile: "default.json"
 
-local_rules: pilon_round
+localrules: pilon_round
 
 max_iteration = 2
 wildcard_constraints:

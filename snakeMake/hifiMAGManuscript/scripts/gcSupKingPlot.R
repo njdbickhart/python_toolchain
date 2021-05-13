@@ -15,6 +15,8 @@ args = commandArgs(trailingOnly=TRUE)
 # LEN GC KING
 #alltabs <- list()
 fulldata <- data.frame(LEN=NA, GC=NA, KING=NA, ASM=NA)[-1,]
+fulldata$ASM <- as.character(fulldata$ASM)
+fulldata$KING <- as.character(fulldata$KING)
 
 for(l in seq(1, length(args))){
   if(l %% 2 == 0){

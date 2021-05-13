@@ -19,7 +19,7 @@ class bin:
         return f'{self.name}\t{self.cov}\t{self.comp}\t{self.cont}\t{self.asm}\n'
 
 if len(sys.argv) < 6:
-    print usage
+    print(usage)
     sys.exit()
 
 # Create contig to bin tool and bin dictionary
@@ -41,12 +41,16 @@ with open(sys.argv[3], 'r') as blob:
             continue
         if l.startswith('#'):
             s = l.rstrip().split('\t')
-            for i, x enumerate(s):
+            for i, x in enumerate(s):
                 if x == "cov_sum":
                     covidx = i
+                    print(f'Covidx = {covidx}')
                     break
+        s = l.rstrip().split('\t')
         if s[0] in ctgToBin:
             binctgcovs[ctgToBin[s[0]]].append(float(s[covidx]))
+
+print(f'Identified {len(binctgcovs)} bins with values out of {len(binDict)} bins')
 
 for b, cs in binctgcovs.items():
     avg = np.mean(cs)
@@ -59,7 +63,7 @@ with open(sys.argv[4], 'r') as das:
         s = l.rstrip().split()
         if s[0] in binDict:
             binDict[s[0]].comp = float(s[-2])
-            binDict[s[1]].cont = float(s[-1])
+            binDict[s[0]].cont = float(s[-1])
 
 # Write it all out
 with open(sys.argv[5], 'w') as out:

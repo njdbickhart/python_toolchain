@@ -9,7 +9,7 @@ shell.executable("/usr/bin/bash")
 BINS = ["bin3c"]
 
 config = {
-"logdir" : "/lustre/project/forage_assemblies/sheep_project/complete_flye/rerun_logs",
+"logdir" : "/lustre/project/forage_assemblies/sheep_project/complete_flye/clr3_rerun/logs",
 "diamonddb" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.diamond.dmnd",
 "diamondtaxid" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.taxids",
 "ncbidb" : "/project/rumen_longread_metagenome_assembly/assemblies/protists/blob_ncbi.db",
@@ -43,7 +43,7 @@ config = {
 "bin3c" : "/lustre/project/forage_assemblies/sheep_project/bin3C/bin3C.py",
 "blobtools" : "/lustre/project/forage_assemblies/sheep_project/blobtools/blobtools",
 "hic" : {
-"Sau3CI" : [
+"Sau3AI" : [
   "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/hic_data/Smith_Sheep_63_HC_S2_L001_R1_001.fastq.gz",
   "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/hic_data/Smith_Sheep_63_HC_S2_L001_R2_001.fastq.gz"
 ]
@@ -60,9 +60,12 @@ def getAssemblyBaseName(files):
 
 localrules: link_assemblies, modify_bin3c, separate_contigs, cov_by_comp_table
 
+wildcard_constraints:
+    assembly_group = ".{1,5}\.contigs",
+    samples = "Lib101_L\d{1}"
 rule all:
     input:
-        expand("mash/{assembly_group}.msh", assembly_group=getAssemblyBaseName(config["assemblies"])),
+        #expand("mash/{assembly_group}.msh", assembly_group=getAssemblyBaseName(config["assemblies"])),
         "figures/bin_facet_cov_by_comp_scatter.pdf",
         "figures/bin_top80_cov_by_comp.pdf",
         "figures/bin_ridge_top95_coverage.pdf",
@@ -93,7 +96,7 @@ rule bwa_index:
         "assembly/{assembly_group}.fa.sa",
         "assembly/{assembly_group}.fa.fai"
     log:
-        config['logdir'] + "/{assembly_group}.log"
+        config['logdir'] + "/{assembly_group}.index.log"
     conda:
         "envs/overall.yaml"
     shell:
@@ -115,7 +118,7 @@ rule bwa_mem:
     output:
         "mapping/{assembly_group}/{sample}.bam"
     log:
-        config['logdir'] + "/bwa_mem/{assembly_group}_{sample}.log"
+        config['logdir'] + "/bwa/{assembly_group}_{sample}.log"
     params:
         extra="",
         #pipe_cmd = "samtools sort -o {output} -",
@@ -156,10 +159,34 @@ rule create_bam_index:
     shell:
         "samtools index {input}"
 
+rule align_hic:
+    input:
+        amb = "assembly/{assembly_group}.fa.amb",
+        ann = "assembly/{assembly_group}.fa.ann",
+        bwt = "assembly/{assembly_group}.fa.bwt",
+        pac = "assembly/{assembly_group}.fa.pac",
+        sa = "assembly/{assembly_group}.fa.sa",
+        reference = "assembly/{assembly_group}.fa",
+        r1 = lambda wildcards: config["hic"][wildcards.enzyme][0],
+        r2 = lambda wildcards: config["hic"][wildcards.enzyme][1]
+    output:
+        "mapping/{assembly_group}/hic/hic_{enzyme}.bam"
+    threads: 8
+    conda:
+        "envs/overall.yaml"
+    log:
+        config['logdir'] + "/{assembly_group}_{enzyme}.hic.log"
+    shell:
+        """
+        bwa mem -t {threads} -5SP {input.reference} {input.r1} {input.r2} | \
+        samtools view -F 0x904 -bS - | \
+        samtools sort -o {output} -n - 2> {log}
+        """
+
 rule bin3c_contact:
     input:
         reference = "assembly/{assembly_group}.fa",
-        bam = "mapping/{assembly_group}/hic_{enzyme}.bam"
+        bam = "mapping/{assembly_group}/hic/hic_{enzyme}.bam"
     output:
         directory("binning/bin3c/{assembly_group}/{enzyme}_full_out")
     threads: 1
@@ -232,7 +259,7 @@ rule das_tool:
         scaffolds2bin = lambda wildcards, input: ",".join(input.binfiles),
         output_prefix = "binning/DASTool/{assembly_group}.full"
     conda:
-        "envs/overall.yaml"
+        "envs/dastool.yaml"
     shell:
         """
         module load usearch/11.0.667
@@ -262,7 +289,7 @@ rule diamond:
         "assembly/{assembly_group}.fa"
     output:
         "blobtools/{assembly_group}.diamondout.tsv"
-    threads: 16
+    threads: 72
     params:
         db = config['diamonddb']
     conda:
@@ -379,7 +406,7 @@ rule blobview_plot:
         interlaced = lambda wildcards, input : interlace(input),
         script = workflow.basedir + "/scripts/gcSupKingPlot.R"
     conda:
-        "envs/overall.yaml"
+        "envs/rlibs.yaml"
     shell:
         """
         Rscript {params.script} {params.interlaced}
@@ -392,25 +419,35 @@ rule separate_contigs:
     output:
         directory("assembly/{assembly_group}/")
     run:
-        os.mkdir(output[0])
+        os.makedirs(output[0], exist_ok=True)
+        chrs = dict()
+        count = 0
         with open(input[1], 'r') as fai:
+            count = 0
             for l in fai:
                 s = l.rstrip().split()
-                if s[1] > 90000:
-                    shell(f'samtools faidx {input[0]} {s[0]} > {output[0]}/{s[0]}.fasta')
+                chrs[s[0]] = int(s[1])
+        chrs = {k: v for k, v in sorted(chrs.items(), key=lambda item: item[1])}
+        for k in chrs.keys():
+            shell(f'samtools faidx {input[0]} {s[0]} > {output[0]}/{s[0]}.fasta')
+            count += 1
+            if count >= 1000:
+                break
 
 rule checkm_contigs:
     input:
         "assembly/{assembly_group}/"
     output:
-        table = "tables/{assembly_group}.contigs.checkm.txt",
-        directory = "contigs_checkm/{assembly_group}"
+        table = protected("tables/{assembly_group}.contigs.checkm.txt"),
+        directory = directory("contigs_checkm/{assembly_group}")
     threads: 8
     conda:
         "envs/overall.yaml"
+    log:
+        config['logdir'] + "/checkm_{assembly_group}_stdout.log"
     shell:
         """
-        checkm lineage_wf -f {output.table} -t {threads} -x fasta {output.directory}
+        checkm lineage_wf -f {output.table} -t {threads} -x fasta {input} {output.directory} 2> {log}
         """
 
 rule cov_by_comp_table:
@@ -428,6 +465,8 @@ rule cov_by_comp_table:
                 l = check.readline()
             for l in check:
                 s = l.rstrip().split()
+                if s[0].startswith('-') or len(s) < 5:
+                    continue
                 ctglookup[s[0]]["Comp"] = s[-3]
                 ctglookup[s[0]]["Cont"] = s[-2]
         with open(output["comp"], 'w') as out, open(input["table"], 'r') as blob:
@@ -439,17 +478,18 @@ rule cov_by_comp_table:
                     continue
                 if l.startswith('#'):
                     s = l.rstrip().split('\t')
-                    for i, x enumerate(s):
+                    for i, x in enumerate(s):
                         if x == "cov_sum":
                             covidx = i
                             break
+                s = l.rstrip().split('\t')
                 if s[0] in ctglookup:
                     out.write(f'{s[0]}\t{s[covidx]}\t{ctglookup[s[0]]["Comp"]}\t{ctglookup[s[0]]["Cont"]}\t{params["asm"]}\n')
 
 def ctg_interlace(input):
     v = list()
     for i in input.comp:
-        m = re.search(r'tables/(.+).ctg_cov_by_comp.tab', i)
+        m = re.search(r'tables/(.+).(.{3})_cov_by_comp.tab', i)
         v.append(m.group(1))
         v.append(i)
     return ' '.join(v)
@@ -465,33 +505,33 @@ rule contig_cov_by_comp_plot:
         interlaced = lambda wildcards, input : ctg_interlace(input),
         script = workflow.basedir + "/scripts/CovByCompPlot.R"
     conda:
-        "envs/overall.yaml"
+        "envs/rlibs.yaml"
     shell:
         """
         Rscript {params.script} contig {params.interlaced}
         """
 
-checkpoint mag_generation:
-    input:
-        reference = "assembly/{assembly_group}.fa",
-        cluster = "binning/DASTool/{assembly_group}.full_cluster_attribution.tsv"
-    output:
-        dir = directory("mags/{assembly_group}/"),
-        counts = "binning/DASTool/{assembly_group}.full_cluster_counts.tab"
-    conda:
-        "envs/overall.yaml"
-    script:
-        "scripts/magGeneration.py"
+#checkpoint mag_generation:
+#    input:
+#        reference = "assembly/{assembly_group}.fa",
+#        cluster = "binning/DASTool/{assembly_group}.full_cluster_attribution.tsv"
+#    output:
+#        dir = directory("mags/{assembly_group}/"),
+#        counts = "binning/DASTool/{assembly_group}.full_cluster_counts.tab"
+#    conda:
+#        "envs/overall.yaml"
+#    script:
+#        "scripts/magGeneration.py"
 
-def all_mags(wildcards):
-    '''
-    '''
-    mag_generation_output = checkpoints.mag_generation.get(**wildcards).output["dir"]
-    assembly_group = wildcards.assembly_group
-    batch_list = expand('mags/{assembly_group}/{bin}.fa',
-                        assembly_group = assembly_group,
-                        bin=glob_wildcards(os.path.join(mag_generation_output, "{bin}.fa").bin))
-    return batch_list
+#def all_mags(wildcards):
+#    '''
+#    '''
+#    mag_generation_output = checkpoints.mag_generation.get(**wildcards).output["dir"]
+#    assembly_group = wildcards.assembly_group
+#    batch_list = expand('mags/{assembly_group}/{bin}.fa',
+#                        assembly_group = assembly_group,
+#                        bin=glob_wildcards(os.path.join(mag_generation_output, "{bin}.fa").bin))
+#    return batch_list
 
 #TODO: Work on MASH comparisons and get the magphase pipeline running
 
@@ -523,22 +563,22 @@ rule binCovPlot:
         interlaced = lambda wildcards, input : ctg_interlace(input),
         script = workflow.basedir + "/scripts/CovByCompPlot.R"
     conda:
-        "envs/overall.yaml"
+        "envs/rlibs.yaml"
     shell:
         """
         Rscript {params.script} bin {params.interlaced}
         """
 
-rule makeMashMap:
-    input:
-        all_mags
-    output:
-        "mash/{assembly_group}.msh"
-    params:
-        dir = "mags/{assembly_group}",
-        temp = "{assembly_group}.temp",
-        script = workflow.basedir + "/scripts/mash_sketch_bins.pl"
-    shell:
-        """
-        perl {params.script} {params.dir} {params.temp} {output}
-        """
+#rule makeMashMap:
+#    input:
+#        all_mags
+#    output:
+#        "mash/{assembly_group}.msh"
+#    params:
+#        dir = "mags/{assembly_group}",
+#        temp = "{assembly_group}.temp",
+#        script = workflow.basedir + "/scripts/mash_sketch_bins.pl"
+#    shell:
+#        """
+#        perl {params.script} {params.dir} {params.temp} {output}
+#        """
