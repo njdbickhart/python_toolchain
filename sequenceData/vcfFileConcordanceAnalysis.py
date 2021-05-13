@@ -42,6 +42,11 @@ def arg_parse():
                         help="Newline delimited list of carrier animals. Carriers are assumed to be heterozygotes and all others homozygous reference",
                         required=True, type=str,
                         )
+    
+    parser.add_argument('-m', '--min',
+                        help="Minimum y value to plot (float)",
+                        default=0.90, type=float,
+                        )
     return parser.parse_args(), parser
     
 def main(args, parser):
@@ -61,7 +66,7 @@ def main(args, parser):
     worker.printOutTable()
     
     # Print out plot
-    worker.plotData()
+    worker.plotData(args.min)
     
     print("Data has been printed and plotted!")
     
@@ -141,7 +146,7 @@ class variantList:
             for i in range(len(self.varPos)):
                 out.write(f'{self.chrom}\t{self.varPos[i]}\t{self.varCon[i]}\t{self.varPerc[i]}\n')
                 
-    def plotData(self):
+    def plotData(self, minimum):
         df = pd.DataFrame({
             "Pos" : self.varPos,
             "Perc" : self.varPerc
@@ -149,7 +154,7 @@ class variantList:
         df = df.sort_values(by=['Pos'])
         #df['Quantile'] = pd.qcut(df['Perc'], [0.90, 0.95, 1.0], labels=False)
         
-        ymin = float(df['Perc'].min())
+        ymin = minimum
         
         quantiles = df['Perc'].apply(lambda x : x if x > 0.95 else 0.95).rename("Magnitude")
         
