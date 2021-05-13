@@ -85,6 +85,8 @@ class variantList:
         self.varPos = list()
         self.varCon = list()
         self.varPerc = list()
+        self.varAnn = list()
+        self.hasAnn = True
         
         
     def _getCarrierIdx(self, cline):
@@ -103,6 +105,19 @@ class variantList:
     def _estimateConcordance(self, segs):
         self.varPos.append(int(segs[1]))
         varCon = 0
+        
+        if self.hasAnn:
+            dsegs = segs[7].split(';')
+            astr = ''
+            for d in dsegs:
+                if d.startswith('ANN='):
+                    isegs = d.split(',')[0].split('|')
+                    astr = isegs[2]
+            if astr == '':
+                self.hasAnn = False
+            else:
+                self.varAnn.append(astr)
+        
         for i in range(9, len(segs)):
             gtypes = segs[i][0:3:2]
             naltcount = 0
@@ -142,9 +157,17 @@ class variantList:
         
     def printOutTable(self):
         with open(self.output + ".tab", 'w') as out:
-            out.write("Chr\tPos\tConcord\tPercent\n")
+            out.write("Chr\tPos\tConcord\tPercent")
+            if self.hasAnn:
+                out.write("\tAnn\n")
+            else:
+                out.write("\n")
             for i in range(len(self.varPos)):
-                out.write(f'{self.chrom}\t{self.varPos[i]}\t{self.varCon[i]}\t{self.varPerc[i]}\n')
+                out.write(f'{self.chrom}\t{self.varPos[i]}\t{self.varCon[i]}\t{self.varPerc[i]}')
+                if self.hasAnn:
+                    out.write(f'\t{self.varAnn[i]}\n')
+                else:
+                    out.write("\n")
                 
     def plotData(self, minimum):
         df = pd.DataFrame({
