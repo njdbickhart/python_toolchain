@@ -11,19 +11,19 @@
 
   "bwa_index":
   {
-    "mem" : "15000",
+    "mem" : "18000",
   },
 
   "bwa_mem":
   {
-    "mem" : "15000",
+    "mem" : "18000",
     "ntasks-per-node" : "{threads}",
     "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.sample}.stdout",
   },
-  
+
   "align_hic":
   {
-    "mem" : "15000",
+    "mem" : "18000",
     "ntasks-per-node" : "{threads}",
     "stdout" : "logs/{rule}.{wildcards.assembly_group}.{wildcards.enzyme}.stdout",
   },
@@ -54,7 +54,7 @@
 
   "diamond":
   {
-    "mem" : "185000",
+    "mem" : "250000",
     "ntasks-per-node" : "{threads}",
   },
 
