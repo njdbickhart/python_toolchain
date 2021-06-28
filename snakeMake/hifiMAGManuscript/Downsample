@@ -9,7 +9,7 @@ shell.executable("/usr/bin/bash")
 BINS = ["bin3c"]
 
 config = {
-"logdir" : "/lustre/project/forage_assemblies/sheep_project/complete_flye/clr3_rerun/logs",
+"logdir" : "/lustre/project/rumen_longread_metagenome_assembly/analysis/sheep/logs",
 "diamonddb" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.diamond.dmnd",
 "diamondtaxid" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.taxids",
 "ncbidb" : "/project/rumen_longread_metagenome_assembly/assemblies/protists/blob_ncbi.db",
