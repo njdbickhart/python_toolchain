@@ -42,10 +42,9 @@ with open(sys.argv[3], 'r') as blob:
         if l.startswith('#'):
             s = l.rstrip().split('\t')
             for i, x in enumerate(s):
-                if x == "cov_sum":
+                if x == "cov_sum" or x == "cov0":
                     covidx = i
                     print(f'Covidx = {covidx}')
-                    break
         s = l.rstrip().split('\t')
         if s[0] in ctgToBin:
             binctgcovs[ctgToBin[s[0]]].append(float(s[covidx]))
