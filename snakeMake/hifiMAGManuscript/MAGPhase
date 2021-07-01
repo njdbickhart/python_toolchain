@@ -61,7 +61,7 @@ rule filterBam:
 
 rule MAGPhase:
     input:
-        mag = "mags/{asm}.{ext}"
+        mag = "mags/{asm}.{ext}",
         bam = "mapping/assembly.filtered.bam",
         bed = "beds/{asm}.bed"
     output:
