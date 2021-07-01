@@ -458,7 +458,7 @@ rule cov_by_comp_table:
                 if l.startswith('#'):
                     s = l.rstrip().split('\t')
                     for i, x in enumerate(s):
-                        if x == "cov_sum" || x == "cov0":
+                        if x == "cov_sum" or x == "cov0":
                             covidx = i
                 s = l.rstrip().split('\t')
                 if s[0] in ctglookup:
