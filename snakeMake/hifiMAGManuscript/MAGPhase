@@ -76,7 +76,7 @@ rule MAGPhase:
         script = magphaseloc + "phasing/mag_phaser.py"
     shell:
         """
-        python {params.script} --bhDFR {params.bhFDR} -a {input.mag} -b {input.bam} -g {input.bed} -o {params.outname} 2> {log}
+        python {params.script} --bhFDR {params.bhFDR} -a {input.mag} -b {input.bam} -g {input.bed} -o {params.outname} 2> {log}
         """
 
 rule MergeMAGPhase:
