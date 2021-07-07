@@ -102,8 +102,8 @@ rule MergeMAGPhase:
 
 rule ConsolidateMAGPhase:
     input:
-        expand("consolidate/{asm}/{{asm}}.{ext}.short", asm=ASM, ext=EXT),
-        expand("consolidate/{asm}/{{asm}}.{ext}.long", asm=ASM, ext=EXT)
+        expand("consolidate/{asm}/{asm}.{ext}.short", asm=ASM, ext=EXT),
+        expand("consolidate/{asm}/{asm}.{ext}.long", asm=ASM, ext=EXT)
     output:
         short = "consolidate/consolidated.short",
         long  = "consolidate/consolidated.long"
