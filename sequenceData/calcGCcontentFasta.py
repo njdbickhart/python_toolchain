@@ -6,9 +6,18 @@ Created on Tue Oct 17 09:40:22 2017
 Version 2: Added fastq support and read/contig lengths to columns
 """
 import sys
+import gzip
 import argparse
 import concurrent.futures
 import collections
+
+def smartFile(filename : str, mode : str = 'r'):
+    fh = None
+    if filename.endswith('.gz'):
+        fh = gzip.open(filename, mode='rt')
+    else:
+        fh = open(filename, mode)
+    return fh
 
 def gc_task(name, seq):
     count = count_gc(seq)
@@ -94,17 +103,19 @@ if __name__ == '__main__':
         
     with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
         if args.fasta != None:
-            with open(args.fasta, 'r') as fp:
-                for name, seq in read_fasta(fp):
-                    count = executor.submit(count_gc, seq)
-                    lens[name] = len(seq)
-                    results[name] = count
+            fp = smartFile(args.fasta)
+            for name, seq in read_fasta(fp):
+                count = executor.submit(count_gc, seq)
+                lens[name] = len(seq)
+                results[name] = count
+            fp.close()
         elif args.fastq != None:
-            with open(args.fastq, 'r') as fp:
-                for name, seq, qual in read_fastq(fp):
-                    count = executor.submit(count_gc, seq)
-                    lens[name] = len(seq)
-                    results[name] = count
+            fp = smartFile(args.fastq)
+            for name, seq, qual in read_fastq(fp):
+                count = executor.submit(count_gc, seq)
+                lens[name] = len(seq)
+                results[name] = count
+            fp.close()
     
     
     sortResults = collections.OrderedDict(sorted(results.items()))
