@@ -24,7 +24,8 @@ config = {
 "/lustre/project/rumen_longread_metagenome_assembly/analysis/sheep/links/asm60.fa",
 "/lustre/project/rumen_longread_metagenome_assembly/analysis/sheep/links/asm70.fa",
 "/lustre/project/rumen_longread_metagenome_assembly/analysis/sheep/links/asm80.fa",
-"/lustre/project/rumen_longread_metagenome_assembly/analysis/sheep/links/asm90.fa"
+"/lustre/project/rumen_longread_metagenome_assembly/analysis/sheep/links/asm90.fa",
+"/lustre/project/rumen_longread_metagenome_assembly/analysis/sheep/links/asm00.fa"
 ],
 "samples" : {
 "Lib101_L1" : [
