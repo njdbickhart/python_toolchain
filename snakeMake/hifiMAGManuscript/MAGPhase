@@ -9,7 +9,7 @@ configfile : "default.json"
 
 fullassembly = config["assembly"]
 magphaseloc = "/lustre/project/rumen_longread_metagenome_assembly/binaries/cDNA_Cupcake/"
-reads = "/lustre/project/rumen_longread_metagenome_assembly/assemblies/sheep/downsample.90.fasta"
+reads = config["reads"]
 
 
 localrules: ConsolidateMAGPhase
@@ -30,7 +30,7 @@ rule alignHiFi:
     output:
         bam = "mapping/assembly.bam",
         bai = "mapping/assembly.bam.bai"
-    threads: 8
+    threads: 36
     log:
         "logs/alignHiFi.out"
     params:
