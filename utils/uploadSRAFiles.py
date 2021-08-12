@@ -3,6 +3,15 @@
 Created on Thu Aug 12 16:12:08 2021
 
 @author: derek.bickhart-adm
+You can submit your files to NCBI SRA in 32 easy(tm) steps!
+1. Fill in metadata on the website
+2. get your ftp data at the end of metadata submission
+3. login using an alternative FTP client (ie. filezilla) and create a new folder in your upload directory
+4. make sure that the python ftplib package is installed (/KEEP/rumen_longread_metagenome_assembly/aspera on Ceres)
+5. Run this script with the ftp login information provided by NCBI, and the path to your upload copied right from their site, but with the final portion of the path terminating with the folder name you just created using another ftp client
+6. Watch out for log messages throughout the script to ensure that your files are being copied
+7-31. bang head against desk repeatedly
+32. Breathe a sigh of relief -- your torture is over... for now :) 
 """
 
 import argparse
