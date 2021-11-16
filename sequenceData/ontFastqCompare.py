@@ -91,11 +91,14 @@ def getRString(fqname):
 def get_fastq_info(filename, fqinfo, number):
     infile = smartFile(filename, 'r')
 
+    rnum = 0
     for head, seq, qual in fastq_reader_fh(infile):
         rstring = getRString(head)
+        rnum += 1
         if rstring == "NULL":
             # The fastq file is either improperly formatted, or we ran into a read error
             # continue # skip to avoid issues with non-ONT fastqs
+            rstring = f'{rnum}_{number}'
         
         flen = len(seq)
         mqual = round(np.mean(bytearray(qual, "ascii")) - 33, 2)
