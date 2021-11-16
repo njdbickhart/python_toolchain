@@ -95,7 +95,7 @@ def get_fastq_info(filename, fqinfo, number):
         rstring = getRString(head)
         if rstring == "NULL":
             # The fastq file is either improperly formatted, or we ran into a read error
-            continue
+            # continue # skip to avoid issues with non-ONT fastqs
         
         flen = len(seq)
         mqual = round(np.mean(bytearray(qual, "ascii")) - 33, 2)
