@@ -132,7 +132,7 @@ def straight_plot_df(chromosome_list, chromosome_size, bed, colors):
         ctranslate[i] = next(cycler)
         
     genes = pandas.DataFrame(gtable)
-    genes['color'] = genes['name'].map(ctranslate)
+    genes['colors'] = genes['name'].map(ctranslate)
     return genes
     
 def chromosome_collections(df, y_positions, height,  **kwargs):
