@@ -171,7 +171,7 @@ def get_chromosomes_names(input):
         for l in fai:
             segs = l.rstrip().split()
             list_chromosomes.append(segs[0])
-            list_length.append(segs[1])
+            list_length.append(int(segs[1]))
     return list_chromosomes, list_length
 
 if __name__ == "__main__":
