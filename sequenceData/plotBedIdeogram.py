@@ -121,6 +121,8 @@ def straight_plot_df(chromosome_list, chromosome_size, bed, colors):
     with open(bed, 'r') as input:
         for l in input:
             s = l.rstrip().split()
+            if s[0] not in chromosome_list:
+                continue
             gtable['chrom'].append(s[0])
             gtable['start'].append(int(s[1]))
             gtable['end'].append(int(s[2]))
