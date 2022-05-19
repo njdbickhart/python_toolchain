@@ -1,0 +1,82 @@
+import os
+import re
+import subprocess
+from collections import defaultdict
+
+# The following is a cluster-environment specific change
+shell.executable("/usr/bin/bash")
+
+wildcard_constraints:
+    chunk = "\d+"
+
+configfile : "methyl.json"
+
+maxchunk = config["chunksize"]
+chunk = [str(x) for x in range(int(maxchunk))]
+
+rule all:
+    input:
+
+
+rule ccs_recall:
+    input:
+        readFile = lambda wildcards: config["reads"][wildcards.rf],
+        chunk = lambda wildcards: chunks[wildcards.chunk]
+    output:
+        recalled = "recalled/{rf}_{chunk}.bam",
+    threads: 30
+    params:
+        maxchunk = maxchunk,
+        chunkNum = "{chunk}"
+    env:
+        "envs/pb_tools"
+    shell:
+        """
+        ccs -j {threads} --chunk {params.chunkNum}/{params.maxchunk} --hifi-kinetics {input.readFile} {output.recalled}
+        """
+
+rule primrose:
+    input:
+        recalled = "recalled/{rf}_{chunk}.bam"
+    output:
+        retagged = "primrose/{rf}_{chunk}.bam"
+    threads: 30
+    envs:
+        "envs/primrose"
+    shell:
+        """
+        primrose -j {threads} {input.recalled} {output.retagged}
+        """
+
+rule bam_merge:
+    input:
+        bams = expand("recalled/{rf}_{{chunk}}.bam", rf=config["reads"].keys())
+    output:
+        merged = "recalled/{rf}_merged.bam"
+    threads: 30
+    envs:
+        "envs/primrose"
+    shell:
+        """
+        samtools merge -@ {threads} {output.merged} {input.bams}
+        """
+
+rule alignment:
+    input:
+        merged = "recalled/{rf}_merged.bam",
+        asm = config["assembly"]
+    output:
+        aligns = "mapping/{rf}_aligned.bam"
+    threads: 30
+    envs:
+        "envs/pb_tools"
+    shell:
+        """
+        pbmm2 align -j 15 -J 15 --sort --log-level INFO --preset HIFI {input.asm} {input.merged} {output.aligns}
+        """
+
+rule methyl_calling:
+    input:
+        aligns = "mapping/{rf}_aligned.bam"
+    output:
+        calls = "calls/{rf}_

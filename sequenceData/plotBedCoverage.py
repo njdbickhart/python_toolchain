@@ -41,6 +41,10 @@ def arg_parse():
                         help="Bin size in bases [5000 bp]",
                         type = int, default=5000
                         )
+    parser.add_argument('-l', '--yaxislimit',
+                        help="Set the upper limit for depth of coverage in the plot",
+                        type = int, default=-1
+                        )
     return parser.parse_args(), parser
 
 def main(args, parser):
@@ -125,8 +129,13 @@ def main(args, parser):
     log.info(f'Dataframe complete, head: {df.head()}')
 
     fig, ax = plt.subplots()
+
     sns.lineplot(data=df, x='start', y='count', ax=ax, palette='dark')
     plt.xticks(rotation=45)
+
+    # Set y limit if given
+    if args.yaxislimit != -1:
+        plt.ylim([0, int(args.yaxislimit)])
 
     # Now to add contig break points
     for b in bars:
