@@ -36,7 +36,9 @@ def main(args, parser):
             
             if name not in data[chrom]:
                 data[chrom][name] = query(name, chrom)
-                
+            else:
+                if abs(data[chrom][name].minstart - start) > 2000000:
+                    continue
             data[chrom][name].addCoord(start, end, orient)
             
     # Now to go through each chromosome and sort by coordinates
@@ -44,7 +46,7 @@ def main(args, parser):
         for c in data.keys():
             temp = sorted(data[c].items(), key = lambda kv: kv[1].minstart )
             for n, q in temp:
-                out.write("\t".join(q.generateLine) + "\n")
+                out.write("\t".join(q.generateLine()) + "\n")
                 
 
 class query:
@@ -65,14 +67,27 @@ class query:
             self.maxend = end
         
     def generateLine(self):
+        fixedCoords = []
+        self.coords.sort()
+        for c in self.coords:
+            if len(fixedCoords) == 0:
+                fixedCoords.append(c)
+            elif c.start < fixedCoords[-1].end and c.end > fixedCoords[-1].start:
+                fixedCoords[-1].start = min([c.start, fixedCoords[-1].start, c.end, fixedCoords[-1].end])
+                fixedCoords[-1].end = max([c.start, fixedCoords[-1].start, c.end, fixedCoords[-1].end])
+            else:
+                fixedCoords.append(c)
+        self.coords = fixedCoords
+        for c in self.coords:
+            c.makeRelative(self.minstart)
 
-        blockCount = len(self.coords)
-        blockSizes = [x.end - x.start for x in self.coords]
-        blockStarts = [x.start for x in self.coords]
+        blockCount = str(len(self.coords))
+        blockSizes = [str(x.end - x.start) for x in self.coords]
+        blockStarts = [str(x.start) for x in self.coords]
 
         orient = self.getOrient()
-        return [self.chromosome, self.minstart, self.maxend, self.name, 1000, 
-                          orient, self.minstart, self.maxend, '0,0,255', blockCount,
+        return [self.chromosome, str(self.minstart), str(self.maxend), self.name, '1000', 
+                          orient, str(self.minstart), str(self.maxend), '0,0,255', blockCount,
                           ",".join(blockSizes), ",".join(blockStarts)]
     
     def getOrient(self):
@@ -81,10 +96,10 @@ class query:
             oKeys[o.orientation] += 1
         if len(oKeys.keys()) == 1:
             # If there is a consensus, return that
-            return oKeys.keys()[0]
+            return list(oKeys.keys())[0]
         else:
             # otherwise, return the most frequent key
-            tlist = [k for (k, v) in dict(sorted(oKeys.items(), key=lambda item: item[1], reverse = True))]
+            tlist = [k for k, v in sorted(oKeys.items(), key=lambda item: item[1], reverse = True)]
             return tlist[0]
         
     def __lt__(self, other):
@@ -96,6 +111,10 @@ class coords:
         self.start = start
         self.end = end
         self.orientation = orientation
+
+    def makeRelative(self, rStart):
+        self.start = self.start - rStart
+        self.end = self.end - rStart
         
     def __lt__(self, other):
         return self.start < other.start

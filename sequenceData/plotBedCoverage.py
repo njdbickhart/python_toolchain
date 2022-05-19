@@ -45,6 +45,8 @@ def arg_parse():
 
 def main(args, parser):
     # Get the list of chromosomes to plot
+    log.basicConfig(level=log.INFO)
+
     plotAll = True
     chrToPlot = set()
     if len(args.chrom) > 0:
@@ -54,6 +56,7 @@ def main(args, parser):
         log.info(f'Plotting {len(chrToPlot)} chromosomes in the same plot')
     else:
         log.info(f'Attempting to plot entire bam file')
+
 
     # Get the contig length list
     ctglens = dict()
@@ -71,6 +74,7 @@ def main(args, parser):
     breaks = list()
     lastbp = 0
     for c in chrToPlot:
+        c = c.rstrip()
         ctgoffset[c] = lastbp + 100
         for i in range(0, ctglens[c], args.binsize):
             winlist[c].append(window(c, i, i + args.binsize))
@@ -85,14 +89,18 @@ def main(args, parser):
         log.info(f'Reading from bamfile: {bamfile}')
         bamToIdx[bamidx] = bamfile
         # read each sam region and count the reads
-        with pysam.AlignmentFile(args.bam, 'rb') as bamfile:
+        with pysam.AlignmentFile(bamfile, 'rb') as bamhandle:
             for c, w in winlist.items():
                 for i, win in enumerate(w):
                     count = 0
-                    for s in bamfile.fetch(c, win.start, win.end):
-                        if s.is_secondary:
-                            continue
-                        count += 1
+                    try:
+                        for s in bamhandle.fetch(c, win.start, win.end):
+                            if s.is_secondary:
+                                continue
+                            count += 1
+                    except:
+                        log.info(f'Could not find {c} in bam file: {bamfile}!')
+                        continue
                     if count > maxy:
                         maxy = count
                     winlist = updateWin(winlist, c, i, count, bamidx)
@@ -101,7 +109,7 @@ def main(args, parser):
     raw = defaultdict(list)
     bars = list()
     for c, w in winlist.items():
-        bars.append([ctgoffset[c], ctglens[c]])
+        bars.append([ctgoffset[c], ctglens[c], c])
         for win in w:
             for i, h in enumerate(sorted(win.count)):
                 raw["contig"].append(c)
@@ -126,13 +134,13 @@ def main(args, parser):
         if midpoint < 0:
             midpoint = int(b[1] / 2)
         ax.axvline(b[0], ls='-', c='k', zorder=-1)
-        ax.text(midpoint, maxy * 0.80, rotation = 'vertical', verticalalignment='top', size=4.0)
+        ax.text(midpoint, maxy * 0.80, b[2], rotation = 'vertical', verticalalignment='top', size=4.0)
 
     log.info(f'Plot saved to: {args.output}.pdf')
     plt.savefig(args.output + '.pdf')
 
 def updateWin(winlist, contig, winidx, count, bamidx):
-    winlist[contig][winidx].addCount(idx, count)
+    winlist[contig][winidx].addCount(bamidx, count)
     return winlist
 
 
@@ -145,7 +153,10 @@ class window:
         self.count = list()
 
     def addCount(self, idx, count):
-        self.count[idx] = count
+        if idx < len(self.count):
+            self.count[idx] = count
+        else:
+            self.count.append(count)
 
     def getCount(self, idx):
         if idx in self.count:
