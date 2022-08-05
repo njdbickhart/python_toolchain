@@ -74,9 +74,42 @@ rule alignment:
         """
         pbmm2 align -j 15 -J 15 --sort --log-level INFO --preset HIFI {input.asm} {input.merged} {output.aligns}
         """
+rule read_file_merge:
+    input:
+        aligns = expand("mapping/{rf}_aligned.bam", rf=config["reads"].keys())
+    output:
+        merged = "mapping/total_merged_pacb.bam"
+    threads: 30
+    envs:
+        "envs/primrose"
+    shell:
+        """
+        samtools merge -@ {threads} {output.merged} {input.aligns}
+        """
+
+rule get_model_data:
+    output:
+        model = directory("pb-CpG-tools/pileup_calling_model")
+    shell:
+        """
+        # It's ugly, but this is the work-around I have to use!
+        git clone https://github.com/PacificBiosciences/pb-CpG-tools.git
+        """
 
 rule methyl_calling:
     input:
-        aligns = "mapping/{rf}_aligned.bam"
+        aligns = "mapping/total_merged_pacb.bam",
+        model = "pb-CpG-tools/pileup_calling_model",
+        assembly = config["assembly"],
+        mode = ["count", "model"]
     output:
-        calls = "calls/{rf}_
+        calls = "calls/cpgscores_{mode}.combined.denovo.mincov4.bed"
+    threads: 30
+    params:
+        outbase = "calls/cpgscores_{mode}"
+    envs:
+        "envs/pb_tools"
+    shell:
+    """
+    aligned_bam_to_cpg_scores.py -b {input.aligns} -f {input.assembly} -o {params.outbase} -p {input.mode} -d {input.model} -t {threads}
+    """

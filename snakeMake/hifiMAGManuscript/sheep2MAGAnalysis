@@ -1,0 +1,26 @@
+import os
+import re
+import subprocess
+from collections import defaultdict
+
+# The following is a cluster-environment specific change
+shell.executable("/usr/bin/bash")
+
+os.makedirs(config['logdir'], exist_ok=True)
+os.makedirs(config['logdir'] + "/bwa", exist_ok=True)
+os.makedirs("assembly", exist_ok=True)
+
+config = {
+"logdir" : "/lustre/project/rumen_longread_metagenome_assembly/analysis/sheep/logs",
+"diamonddb" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.diamond.dmnd",
+"diamondtaxid" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.taxids",
+"ncbidb" : "/project/rumen_longread_metagenome_assembly/assemblies/protists/blob_ncbi.db",
+"checkm_dataroot": "/lustre//project/forage_assemblies/sheep_project/pipeline_test/checkmdb",
+"sourmash_gbk" : "/lustre/project/forage_assemblies/sheep_project/pipeline_test/sourdb/genbank-d2-k31.sbt.json",
+"samples" : {
+"Lib101_L1" : [
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L001_R1_001.fastq.gz",
+      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L001_R2_001.fastq.gz"
+    ]
+},
+}
