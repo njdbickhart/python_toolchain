@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from collections import defaultdict
+import contextlib
 import gzip
 import math
 from scipy.stats.kde import gaussian_kde
@@ -23,12 +24,20 @@ def arg_parse():
     parser = argparse.ArgumentParser(
             description = "A wrapper script for the FlashFry CRISPR design tool"
             )
-    parser.add_argument('-f', '--fasta', 
-                        help="Input reference fasta file. If a database has not been created before, the wrapper will make one",
+    parser.add_argument('-b', '--bisulfite', 
+                        help="Input bisulfite sequence data file",
                         required=True, type=str
                         )
     parser.add_argument('-o', '--output',
-                        help="Output file basename. Output files are (basename).output and (basename).output.scored",
+                        help="Output file basename for plots and tables",
+                        required=True, type=str,
+                        )
+    parser.add_argument('-p', '--pacbio', 
+                        help="Input PacBio bed file.",
+                        required=True, type=str
+                        )
+    parser.add_argument('-n', '--nanopore',
+                        help="Input Nanopore bed file",
                         required=True, type=str,
                         )
     return parser.parse_args(), parser
@@ -38,16 +47,32 @@ def main(args, parser):
     worker = sparseArrayHelper()
     
     # Load Bisulfite data
-    worker.loadBisulf("C:/SharedFolders/sequencing_projects/methyl5c_comparison/SAM113662CF_Sheep_Friesian_CGonly_MethCalls.gz", limit="haplotype1-0000001")
+    worker.loadBisulf(args.bisulfite, limit="haplotype1-0000001")
     print("Loaded Bisulfite")
     
     # Load PacBio data
-    worker.loadPacB("C:/SharedFolders/sequencing_projects/methyl5c_comparison/friesian.pbcpg.model.combined.denovo.mincov4.bed", limit="haplotype1-0000001")
+    worker.loadPacB(args.pacbio, limit="haplotype1-0000001")
     print("Loaded PacB")
     
     # Load ONT data
-    worker.loadONT("C:/SharedFolders/sequencing_projects/methyl5c_comparison/Friesian.test.methyl.bed.gz", limit="haplotype1-0000001")
+    worker.loadONT(args.nanopore, limit="haplotype1-0000001")
     print("Loaded ONT")
+    
+    # Generate plots
+    (fig, axis) = plt.subplots(ncols=2, nrows=4)
+    axs = axis.flatten().tolist()
+    axs.reverse()
+
+@contextlib.contextmanager
+def smartFile(filename : str, mode : str = 'r'):
+    if filename.endswith('gz'):
+        fh = gzip.open(filename, 'rt', encoding='utf-8')
+    else:
+        fh = open(filename, mode)
+    try:
+        yield fh
+    finally:
+        fh.close()
 
 def plotDistribution(workerdf, plotName):
     sns.violinplot(data=workerdf)
@@ -117,7 +142,7 @@ class sparseArrayHelper:
     def loadPacB(self, file, limit = None, ftype="PacB"):
         num = len(self.sampleToIdx.keys())
         self.sampleToIdx[ftype] = num
-        with open(file, 'r') as input:
+        with smartFile(file, 'r') as input:
             for l in input: 
                 s = l.rstrip().split()
                 if limit != None:
@@ -129,7 +154,7 @@ class sparseArrayHelper:
         num = len(self.sampleToIdx.keys())
         self.sampleToIdx[ftype] = num
         
-        with gzip.open(file, mode='rt') as input:
+        with smartFile(file, mode='rt') as input:
             for l in input:
                 s = l.rstrip().split()
                 s[0] = s[0].replace('_', '-')
@@ -143,7 +168,7 @@ class sparseArrayHelper:
         num = len(self.sampleToIdx.keys())
         self.sampleToIdx[ftype] = num
         
-        with gzip.open(file, mode='rt') as input:
+        with smartFile(file, mode='rt') as input:
             for l in input:
                 s = l.rstrip().split()
                 if limit != None:
