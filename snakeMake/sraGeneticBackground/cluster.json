@@ -1,0 +1,12 @@
+{
+  "__default__" :
+  {
+    "mem" : "{params.mem}",
+    "ntasks-per-node" : "{threads}",
+    "nodes" : "1",
+    "partition" : "main",
+    "qos" : "std",
+    "jobname" : "{rule}"
+  },
+
+}

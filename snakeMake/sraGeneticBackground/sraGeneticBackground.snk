@@ -1,0 +1,103 @@
+import os
+import subprocess as sp
+
+shell.executable("/usr/bin/bash")
+
+configfile : "default.json"
+
+os.makedirs("fastas", exist_ok=True)
+os.makedirs("logs", exist_ok=True)
+os.makedirs("mapped", exist_ok=True)
+os.makedirs("final", exist_ok=True)
+
+def getAssemblyName(v):
+    return v.replace('.fa', '')
+
+rule all:
+    input:
+        expand("mapped/{assembly}/{sample}.merged.bam",
+            assembly = getAssemblyName(config["assembly"]),
+            sample = config["samples"][wildcards.srafiles][1])
+
+rule download_srafiles:
+    input:
+        lambda wildcards: config["samples"][wildcards.srafiles][0]
+    output:
+        temp("fastas/{srafiles}_1.fastq"),
+        temp("fastas/{srafiles}_2.fastq")
+    params:
+        download_folder = "fastas",
+        mem="4000"
+    threads: 3
+    conda:
+        "envs/base.yaml"
+    log:
+        "logs/{srafiles}.download.log"
+    conda:
+        "envs/sra.yaml"
+    shell:
+        "fasterq-dump {wildcards.srafiles} -O {params.download_folder} --threads {threads} 2> {log}"
+
+rule bwa_index:
+    input:
+        lambda wildcards: config["assembly"]
+    output:
+        "{assembly}.fa.amb",
+        "{assembly}.fa.ann",
+        "{assembly}.fa.bwt",
+        "{assembly}.fa.pac",
+        "{assembly}.fa.sa",
+        "{assembly}.fa.fai"
+    log:
+        "logs/{assembly}.indexing.log"
+    conda:
+        "envs/base.yaml"
+    params:
+        mem = "8000"
+    threads: 1
+    shell:
+        """
+        bwa index {input} 2> {log}
+        samtools faidx {input} 2> {log}
+        """
+
+rule align_reads:
+    input:
+        fq1 = "fastas/{srafiles}_1.fastq",
+        fq2 = "fastas/{srafiles}_2.fastq",
+        sample = config["samples"][wildcards.srafiles][1],
+        fasta = "{assembly}.fa",
+        fai = "{assembly}.fa.fai"
+    output:
+        temp("mapped/{assembly}/{srafiles}.{sample}.bam")
+    log:
+        "logs/{assembly}/{srafiles}_{sample}_bwa.log"
+    threads: 8
+    params:
+        mem = "8000"
+    conda:
+        "envs/base.yaml"
+    shell:
+        """
+        bwa mem -R '@RG\\tID:{wildcards.srafiles}\\tSM:{input.sample}\\tPL:ILLUMINA' -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | samtools sort -o {output}  - >> {log} 2>&1
+        samtools index {output}
+        """
+
+rule merge_samples:
+    input:
+        bam = expand("mapped/{assembly}/{{srafiles}}.{sample}.bam", sample = config["samples"][wildcards.srafiles][1])
+    output:
+        "mapped/{assembly}/{sample}.merged.bam",
+        "mapped/{assembly}/{sample}.merged.bam.bai"
+    log:
+        "logs/{assembly}/{sample}_merger.log"
+    threads: 8
+    params:
+        mem = "8000"
+    conda:
+        "envs/base.yaml"
+    shell:
+        """
+        samtools merge -@ {threads} {output[0]} {input}
+        samtools index {output[0]}
+        """

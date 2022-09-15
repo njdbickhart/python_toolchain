@@ -1,0 +1,9 @@
+channels:
+    - anaconda
+    - bioconda
+dependencies:
+    - python=3.7
+    - numpy
+    - samtools
+    - bwa
+    - sra-tools
