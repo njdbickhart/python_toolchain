@@ -11,17 +11,29 @@ os.makedirs("mapped", exist_ok=True)
 os.makedirs("final", exist_ok=True)
 
 def getAssemblyName(v):
-    return v.replace('.fa', '')
+    return os.path.basename(v).replace('.fa', '')
+
+#SAMPLES = set([v[1] for v in config["samples"].values()])
+SRAFILES = [v[0] for v in config["samples"].values()]
+
+def get_combis(wildcards, config):
+    return [v[1] + "_" + v[0] for v in config["samples"].values()]
+
+def from_combi(wildcards, combi):
+    return combi.split("_")[1]
+
+wildcard_constraints:
+    srafiles = "|".join(SRAFILES)
 
 rule all:
     input:
-        expand("mapped/{assembly}/{sample}.merged.bam",
+        expand("mapped/{assembly}/{combi}.merged.bam",
             assembly = getAssemblyName(config["assembly"]),
-            sample = config["samples"][wildcards.srafiles][1])
+            combi = lambda wildcards : get_combis(wildcards, config))
 
 rule download_srafiles:
-    input:
-        lambda wildcards: config["samples"][wildcards.srafiles][0]
+    #input:
+    #    lambda wildcards: config["samples"][wildcards.srafiles][0]
     output:
         temp("fastas/{srafiles}_1.fastq"),
         temp("fastas/{srafiles}_2.fastq")
@@ -36,7 +48,7 @@ rule download_srafiles:
     conda:
         "envs/sra.yaml"
     shell:
-        "fasterq-dump {wildcards.srafiles} -O {params.download_folder} --threads {threads} 2> {log}"
+        "fasterq-dump {wildcards.srafiles} --split-files -O {params.download_folder} --threads {threads} 2> {log}"
 
 rule bwa_index:
     input:
@@ -65,27 +77,27 @@ rule align_reads:
     input:
         fq1 = "fastas/{srafiles}_1.fastq",
         fq2 = "fastas/{srafiles}_2.fastq",
-        sample = config["samples"][wildcards.srafiles][1],
         fasta = "{assembly}.fa",
         fai = "{assembly}.fa.fai"
     output:
-        temp("mapped/{assembly}/{srafiles}.{sample}.bam")
+        "mapped/{assembly}/{srafiles}.{sample}.bam"
     log:
         "logs/{assembly}/{srafiles}_{sample}_bwa.log"
     threads: 8
     params:
-        mem = "8000"
+        mem = "8000",
+        sample = lambda wildcards: config["samples"][wildcards.srafiles][1]
     conda:
         "envs/base.yaml"
     shell:
         """
-        bwa mem -R '@RG\\tID:{wildcards.srafiles}\\tSM:{input.sample}\\tPL:ILLUMINA' -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | samtools sort -o {output}  - >> {log} 2>&1
+        bwa mem -R '@RG\\tID:{wildcards.srafiles}\\tSM:{params.sample}\\tPL:ILLUMINA' -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | samtools sort -o {output}  - >> {log} 2>&1
         samtools index {output}
         """
 
 rule merge_samples:
     input:
-        bam = expand("mapped/{assembly}/{{srafiles}}.{sample}.bam", sample = config["samples"][wildcards.srafiles][1])
+        bam = expand("mapped/{assembly}/{srafiles}.{{sample}}.bam", assembly=getAssemblyName(config["assembly"]) , srafiles = SRAFILES)
     output:
         "mapped/{assembly}/{sample}.merged.bam",
         "mapped/{assembly}/{sample}.merged.bam.bai"
