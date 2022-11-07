@@ -6,7 +6,8 @@
     "nodes" : "1",
     "partition" : "main",
     "qos" : "std",
-    "jobname" : "{rule}"
+    "jobname" : "{rule}",
+    "output" : "{rule}_%A.out"
   },
 
 }
