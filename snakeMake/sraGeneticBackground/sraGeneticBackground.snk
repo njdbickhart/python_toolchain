@@ -7,13 +7,13 @@ configfile : "default.json"
 
 os.makedirs("fastas", exist_ok=True)
 os.makedirs("logs", exist_ok=True)
-os.makedirs("mapped", exist_ok=True)
+
 os.makedirs("final", exist_ok=True)
 
 def getAssemblyName(v):
     return os.path.basename(v).replace('.fa', '')
 
-#SAMPLES = set([v[1] for v in config["samples"].values()])
+SAMPLES = set([v[1] for v in config["samples"].values()])
 SRAFILES = [v[0] for v in config["samples"].values()]
 
 def get_combis(wildcards, config):
@@ -27,9 +27,8 @@ wildcard_constraints:
 
 rule all:
     input:
-        expand("mapped/{assembly}/{combi}.merged.bam",
-            assembly = getAssemblyName(config["assembly"]),
-            combi = lambda wildcards : get_combis(wildcards, config))
+        "calls/freebayes/merged_freebayes.vcf",
+        "calls/strelka/variants.vcf.gz"
 
 rule download_srafiles:
     #input:
@@ -73,43 +72,85 @@ rule bwa_index:
         samtools faidx {input} 2> {log}
         """
 
-rule align_reads:
+rule finished_download:
     input:
-        fq1 = "fastas/{srafiles}_1.fastq",
-        fq2 = "fastas/{srafiles}_2.fastq",
-        fasta = "{assembly}.fa",
-        fai = "{assembly}.fa.fai"
+        fai = "{assembly}.fa.fai",
+        fqs = extend("fastas/{srafiles}_{ext}.fastq", srafiles=SRAFILES, ext=[1,2])
     output:
-        "mapped/{assembly}/{srafiles}.{sample}.bam"
-    log:
-        "logs/{assembly}/{srafiles}_{sample}_bwa.log"
-    threads: 8
+        temp(touch('FinishedDownload'))
+
+# Trick rule to create empty files for snakemake organization
+rule temp_aggregate:
+    input:
+        finished = 'FinishedDownload'
+    output:
+        expand("mapped/{samples}", samples=SAMPLES)
     params:
-        mem = "8000",
-        sample = lambda wildcards: config["samples"][wildcards.srafiles][1]
+        samples = SAMPLES
+    run:
+        os.makedirs("mapped", exist_ok=True)
+        for i in params["samples"]:
+            cmd = ['touch', 'mapped/' + i]
+            print(cmd)
+            sp.call(cmd)
+
+rule aggregate_reads:
+    input:
+        sample = "mapped/{samples}",
+        reference = lambda wildcards: config["assembly"]
+    output:
+        temp("mapped/{samples}.merged.bam"),
+        temp("mapped/{samples}.merged.bam.bai")
+    log:
+        "logs/{samples}_aggregate.log"
+    threads: 8
     conda:
         "envs/base.yaml"
+    params:
+        mem = "9000",
+        config = "default.json",
+        fastdir = "fastas",
+        assembly = lambda wildcards: wildcards.assembly
     shell:
         """
-        bwa mem -R '@RG\\tID:{wildcards.srafiles}\\tSM:{params.sample}\\tPL:ILLUMINA' -t {threads} -M {input.fasta} {input.fq1} {input.fq2} | samtools sort -o {output}  - >> {log} 2>&1
-        samtools index {output}
+        python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {input.sample} {params.fastdir} {input.reference} {params.assembly} {log}
         """
 
-rule merge_samples:
+rule strelka:
     input:
-        bam = expand("mapped/{assembly}/{srafiles}.{{sample}}.bam", assembly=getAssemblyName(config["assembly"]) , srafiles = SRAFILES)
+        bams = expand("mapped/{samples}.merged.bam", samples=SAMPLES),
+        reference = lambda wildcards: config["assembly"]
     output:
-        "mapped/{assembly}/{sample}.merged.bam",
-        "mapped/{assembly}/{sample}.merged.bam.bai"
+        "calls/strelka/variants.vcf.gz"
     log:
-        "logs/{assembly}/{sample}_merger.log"
-    threads: 8
-    params:
-        mem = "8000"
+        "logs/strelka.log"
+    threads: 20
     conda:
-        "envs/base.yaml"
+        "envs/strelka.yaml"
+    params:
+        mem= "50000",
+        concatfiles = lambda wildcards, input: " ".join([f'--bam {x}' for x in input.bams]),
+        outputfolder = "calls/strelka",
     shell:
         """
-        samtools merge -@ {threads} {output[0]} {input}
-        samtools index {output[0]}
+        configureStrelkaGermlineWorkflow.py {params.concatfiles} --referenceFasta {input.reference} --runDir {params.outputfolder}
+
+        {params.outputfolder}/runWorkflow.py -m local -j 20
         """
+
+rule freebayes:
+    input:
+        ref=lambda wildcards: config["assembly"],
+        samples=expand("mapped/{samples}.merged.bam", samples=SAMPLES)
+    output:
+        "calls/freebayes/merged_freebayes.vcf"
+    log:
+        "logs/freebayes.log"
+    conda:
+        "envs/freebayes.yaml"
+    params:
+        extra="-g 1000 --min-repeat-entropy 1 --no-partial-observations",
+        chunksize=1000000
+    threads: 10
+    script:
+        "scripts/freebayes_lift.py"
