@@ -51,16 +51,11 @@ rule download_srafiles:
 
 rule bwa_index:
     input:
-        lambda wildcards: config["assembly"]
+        config["assembly"]
     output:
-        "{assembly}.fa.amb",
-        "{assembly}.fa.ann",
-        "{assembly}.fa.bwt",
-        "{assembly}.fa.pac",
-        "{assembly}.fa.sa",
-        "{assembly}.fa.fai"
+        temp(touch("Indexed"))
     log:
-        "logs/{assembly}.indexing.log"
+        "logs/assembly_indexing.log"
     conda:
         "envs/base.yaml"
     params:
@@ -74,7 +69,7 @@ rule bwa_index:
 
 rule finished_download:
     input:
-        fai = "{assembly}.fa.fai",
+        fai = "Indexed",
         fqs = expand("fastas/{srafiles}_{ext}.fastq", srafiles=SRAFILES, ext=[1,2])
     output:
         temp(touch('FinishedDownload'))
@@ -97,7 +92,7 @@ rule temp_aggregate:
 rule aggregate_reads:
     input:
         sample = "mapped/{samples}",
-        reference = lambda wildcards: config["assembly"]
+        reference = config["assembly"]
     output:
         temp("mapped/{samples}.merged.bam"),
         temp("mapped/{samples}.merged.bam.bai")
@@ -109,17 +104,16 @@ rule aggregate_reads:
     params:
         mem = "9000",
         config = "default.json",
-        fastdir = "fastas",
-        assembly = lambda wildcards: wildcards.assembly
+        fastdir = "fastas"
     shell:
         """
-        python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {input.sample} {params.fastdir} {input.reference} {params.assembly} {log}
+        python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {input.sample} {params.fastdir} {input.reference} {log}
         """
 
 rule strelka:
     input:
         bams = expand("mapped/{samples}.merged.bam", samples=SAMPLES),
-        reference = lambda wildcards: config["assembly"]
+        reference = config["assembly"]
     output:
         "calls/strelka/variants.vcf.gz"
     log:
@@ -140,7 +134,7 @@ rule strelka:
 
 rule freebayes:
     input:
-        ref=lambda wildcards: config["assembly"],
+        ref= config["assembly"],
         samples=expand("mapped/{samples}.merged.bam", samples=SAMPLES)
     output:
         "calls/freebayes/merged_freebayes.vcf"

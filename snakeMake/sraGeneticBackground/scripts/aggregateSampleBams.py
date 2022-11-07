@@ -6,13 +6,13 @@ import glob
 from collections import defaultdict
 from snakemake import shell
 
-usage = f'python3 {sys.argv[0]} config samplename fastqdir reference asmname logfile'
-if len(sys.argv) != 7:
+usage = f'python3 {sys.argv[0]} config samplename fastqdir reference logfile'
+if len(sys.argv) != 6:
     print(usage)
     sys.exit(-1)
 
 # log file
-logging.basicConfig(filename=sys.argv[6], encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename=sys.argv[5], encoding='utf-8', level=logging.DEBUG)
 
 # load configfile
 config = json.load(open(sys.argv[1], 'r'))
@@ -38,14 +38,14 @@ for i in sranames:
 logging.info(f'Found {nfiles} for sample: {sys.argv[2]}')
 logging.info(f'Beginning alignment')
 
-os.makedirs(f'mapped/{sys.argv[5]}', exist_ok=True)
+os.makedirs(f'mapped/', exist_ok=True)
 
 mergefiles = []
 # Begin alignment
 for k, l in fastqs.items():
-    tfile = f'mapped/{sys.argv[5]}/{k}.temp.bam'
-    cmd = f'bwa mem -t 8 {sys.argv[4]} {l[0]} {l[1]} 2>> {sys.argv[6]}' +
-    f'| samtools sort - > {tfile} 2>> {sys.argv[6]}'
+    tfile = f'mapped/{k}.temp.bam'
+    cmd = f'bwa mem -t 8 {sys.argv[4]} {l[0]} {l[1]} 2>> {sys.argv[5]}' +
+    f'| samtools sort - > {tfile} 2>> {sys.argv[5]}'
     logging.info(f'CMD: {cmd}')
     mergefiles.append(tfile)
 
@@ -56,10 +56,10 @@ for k, l in fastqs.items():
     shell(cmd)
 
 # If merger, then run the following
-outfile = f'mapped/{sys.argv[5]}/{sys.argv[2]}.merged.bam'
+outfile = f'mapped/{sys.argv[2]}.merged.bam'
 if len(mergefiles) > 1:
     fstring = " ".join(mergefiles)
-    cmd = f'samtools merge -@ 8 {outfile} {fstring}; samtools index {outfile}'
+    cmd = f'samtools merge -@ 8 {outfile} {fstring}; samtools index {outfile} 2>> {sys.argv[5]}'
     logging.info(f'CMD: {cmd}')
 
     shell(cmd)
