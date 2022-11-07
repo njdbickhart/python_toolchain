@@ -44,7 +44,7 @@ mergefiles = []
 # Begin alignment
 for k, l in fastqs.items():
     tfile = f'mapped/{k}.temp.bam'
-    cmd = f'bwa mem -t 8 {sys.argv[4]} {l[0]} {l[1]} 2>> {sys.argv[5]}' +
+    cmd = f'bwa mem -t 8 -R "@RG\tID:{k}\tSM:{sys.argv[2]}\tLB:{k}\tPL:ILLUMINA" {sys.argv[4]} {l[0]} {l[1]} 2>> {sys.argv[5]}' +
     f'| samtools sort - > {tfile} 2>> {sys.argv[5]}'
     logging.info(f'CMD: {cmd}')
     mergefiles.append(tfile)

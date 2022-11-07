@@ -16,19 +16,20 @@ def getAssemblyName(v):
 SAMPLES = set([v[1] for v in config["samples"].values()])
 SRAFILES = [v[0] for v in config["samples"].values()]
 
-def get_combis(wildcards, config):
-    return [v[1] + "_" + v[0] for v in config["samples"].values()]
-
-def from_combi(wildcards, combi):
-    return combi.split("_")[1]
 
 wildcard_constraints:
     srafiles = "|".join(SRAFILES)
 
+onerror:
+    print("Error! Mailing log...")
+    shell("tail -n 100 {log} | mail -s 'sraGeneticBackgroundError' derek.bickhart@hendrix-genetics.com")
+    print("Done")
+
 rule all:
     input:
         "calls/freebayes/merged_freebayes.vcf",
-        #"calls/strelka/variants.vcf.gz"
+        #"calls/strelka/variants.vcf.gz",
+        "calls/gatk/merged_vcf.gz"
 
 rule download_srafiles:
     #input:
@@ -148,3 +149,37 @@ rule freebayes:
     threads: 10
     script:
         "scripts/freebayes_lift.py"
+
+rule haplotype_caller:
+    input:
+        # single or list of bam files
+        bam="mapped/{samples}.merged.bam",
+        ref=config["assembly"]
+    output:
+        temp(vcf="calls/gatk/{sample}.vcf")
+    log:
+        "logs/gatk/{sample}.log",
+    params:
+        extra="",  # optional
+        java_opts="",  # optional
+        mem=10000
+    threads: 10
+    resources:
+        mem_mb=2048
+    wrapper:
+        "v1.18.3/bio/gatk/haplotypecaller"
+
+rule haplotype_merger:
+    input:
+        vcfs = expand("calls/{sample}.vcf", sample=SAMPLES)
+    output:
+        "calls/gatk/merged_vcf.gz"
+    log:
+        "logs/gatk_merged.log"
+    threads: 10
+    params:
+        mem=5000,
+    shell:
+        """
+        bcftools merge --threads {threads} -O {output} -o z {input.vcfs} 2>> {log}
+        """
