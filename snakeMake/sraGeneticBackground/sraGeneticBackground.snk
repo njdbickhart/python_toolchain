@@ -28,7 +28,7 @@ wildcard_constraints:
 rule all:
     input:
         "calls/freebayes/merged_freebayes.vcf",
-        "calls/strelka/variants.vcf.gz"
+        #"calls/strelka/variants.vcf.gz"
 
 rule download_srafiles:
     #input:
@@ -75,7 +75,7 @@ rule bwa_index:
 rule finished_download:
     input:
         fai = "{assembly}.fa.fai",
-        fqs = extend("fastas/{srafiles}_{ext}.fastq", srafiles=SRAFILES, ext=[1,2])
+        fqs = expand("fastas/{srafiles}_{ext}.fastq", srafiles=SRAFILES, ext=[1,2])
     output:
         temp(touch('FinishedDownload'))
 
