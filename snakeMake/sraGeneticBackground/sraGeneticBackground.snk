@@ -156,9 +156,9 @@ rule haplotype_caller:
         bam="mapped/{samples}.merged.bam",
         ref=config["assembly"]
     output:
-        vcf = temp("calls/gatk/{sample}.vcf")
+        vcf = temp("calls/gatk/{samples}.vcf")
     log:
-        "logs/gatk/{sample}.log",
+        "logs/gatk/{samples}.log",
     params:
         extra="",  # optional
         java_opts="",  # optional
