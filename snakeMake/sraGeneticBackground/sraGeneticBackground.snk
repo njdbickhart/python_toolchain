@@ -48,7 +48,7 @@ rule download_srafiles:
     conda:
         "envs/sra.yaml"
     shell:
-        "fastq-dump {wildcards.srafiles} --split-files -O {params.download_folder} 2> {log}"
+        "fasterq-dump {wildcards.srafiles} --split-files -O {params.download_folder} 2> {log}"
 
 rule bwa_index:
     input:
