@@ -141,7 +141,7 @@ rule freebayes:
     output:
         "calls/freebayes/{samples}.gvcf"
     log:
-        "logs/freebayes.log"
+        "logs/freebayes.{samples}.log"
     conda:
         "envs/freebayes.yaml"
     params:
