@@ -15,10 +15,12 @@ def getAssemblyName(v):
 
 SAMPLES = set([v[1] for v in config["samples"].values()])
 SRAFILES = [v[0] for v in config["samples"].values()]
+CALLERS = ["freebayes", "gatk"]
 
 
 wildcard_constraints:
-    srafiles = "|".join(SRAFILES)
+    srafiles = "|".join(SRAFILES),
+    callers = "|".join(CALLERS)
 
 onerror:
     print("Error! Mailing log...")
@@ -27,9 +29,8 @@ onerror:
 
 rule all:
     input:
-        "calls/freebayes/merged_freebayes.vcf",
-        #"calls/strelka/variants.vcf.gz",
-        "calls/gatk/merged_vcf.gz"
+        expand("calls/{callers}/{samples}.gvcf.gz",
+            callers=CALLERS, samples = SAMPLES)
 
 rule download_srafiles:
     #input:
@@ -136,15 +137,15 @@ rule strelka:
 rule freebayes:
     input:
         ref= config["assembly"],
-        samples=expand("mapped/{samples}.merged.bam", samples=SAMPLES)
+        samples="mapped/{samples}.merged.bam"
     output:
-        "calls/freebayes/merged_freebayes.vcf"
+        "calls/freebayes/{samples}.gvcf"
     log:
         "logs/freebayes.log"
     conda:
         "envs/freebayes.yaml"
     params:
-        extra="-g 1000 --min-repeat-entropy 1 --no-partial-observations",
+        extra="--min-repeat-entropy 1 --gvcf",
         chunksize=1000000
     threads: 10
     script:
@@ -156,7 +157,7 @@ rule haplotype_caller:
         bam="mapped/{samples}.merged.bam",
         ref=config["assembly"]
     output:
-        vcf = temp("calls/gatk/{samples}.vcf")
+        gvcf = "calls/gatk/{samples}.gvcf"
     log:
         "logs/gatk/{samples}.log",
     params:
@@ -169,17 +170,15 @@ rule haplotype_caller:
     wrapper:
         "v1.18.3/bio/gatk/haplotypecaller"
 
-rule haplotype_merger:
+rule gzip_gvcfs:
     input:
-        vcfs = expand("calls/gatk/{samples}.vcf", samples=SAMPLES)
+        "calls/{callers}/{samples}.gvcf"
     output:
-        "calls/gatk/merged_vcf.gz"
-    log:
-        "logs/gatk_merged.log"
-    threads: 10
+        protected("calls/{callers}/{samples}.gvcf.gz")
+    threads: 1
     params:
-        mem=5000,
+        mem=1000
     shell:
         """
-        bcftools merge --threads {threads} -O {output} -o z {input.vcfs} 2>> {log}
+        gzip {input}
         """
