@@ -14,13 +14,15 @@ def getAssemblyName(v):
     return os.path.basename(v).replace('.fa', '')
 
 SAMPLES = set([v[1] for v in config["samples"].values()])
-SRAFILES = [v[0] for v in config["samples"].values()]
+PAIRED_SRA = [v[0] for v in config["samples"].items() if v[1] == "P"]
+SINGLE_SRA = [v[0] for v in config["samples"].items() if v[1] == "S"]
 CALLERS = ["freebayes", "gatk"]
 
 localrules: all, finished_download, temp_aggregate, finished_aggregate
 
 wildcard_constraints:
-    srafiles = "|".join(SRAFILES),
+    paired = "|".join(PAIRED_SRA),
+    single = "|".join(SINGLE_SRA),
     callers = "|".join(CALLERS)
 
 onerror:
@@ -34,12 +36,12 @@ rule all:
             callers=CALLERS, samples = SAMPLES),
         'FinishedAggregate'
 
-rule download_srafiles:
+rule download_paired:
     #input:
     #    lambda wildcards: config["samples"][wildcards.srafiles][0]
     output:
-        temp("fastas/{srafiles}_1.fastq"),
-        temp("fastas/{srafiles}_2.fastq")
+        temp("fastas/{paired}_1.fastq"),
+        temp("fastas/{paired}_2.fastq")
     params:
         download_folder = "fastas",
         mem="4000"
@@ -47,11 +49,27 @@ rule download_srafiles:
     conda:
         "envs/base.yaml"
     log:
-        "logs/{srafiles}.download.log"
+        "logs/{paired}.download.log"
     conda:
         "envs/sra.yaml"
     shell:
-        "fasterq-dump {wildcards.srafiles} --split-files -O {params.download_folder} 2> {log}"
+        "fasterq-dump {wildcards.paired} --split-files -O {params.download_folder} 2> {log}"
+
+rule download_single:
+    output:
+        temp("fastas/{single}.fastq")
+    params:
+        download_folder = "fastas",
+        mem="4000"
+    threads: 3
+    conda:
+        "envs/base.yaml"
+    log:
+        "logs/{single}.download.log"
+    conda:
+        "envs/sra.yaml"
+    shell:
+        "fasterq-dump {wildcards.single} --split-files -O {params.download_folder} 2> {log}"
 
 rule bwa_index:
     input:
@@ -74,7 +92,8 @@ rule bwa_index:
 rule finished_download:
     input:
         fai = "Indexed",
-        fqs = expand("fastas/{srafiles}_{ext}.fastq", srafiles=SRAFILES, ext=[1,2])
+        fqs = expand("fastas/{paired}_{ext}.fastq", paired=PAIRED_SRA, ext=[1,2]),
+        sqs = expand("fastas/{single}.fastq", single = SINGLE_SRA)
     output:
         temp(touch('FinishedDownload'))
 
@@ -96,7 +115,8 @@ rule temp_aggregate:
 rule finished_aggregate:
     input:
         fai = "Indexed",
-        fqs = expand("fastas/{srafiles}_{ext}.fastq", srafiles=SRAFILES, ext=[1,2]),
+        fqs = expand("fastas/{paired}_{ext}.fastq", paired=PAIRED_SRA, ext=[1,2]),
+        sqs = expand("fastas/{single}.fastq", single = SINGLE_SRA),
         bams = expand("mapped/{samples}.merged.bam", samples=SAMPLES)
     output:
         temp(touch('FinishedAggregate'))
