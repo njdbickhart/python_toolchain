@@ -14,8 +14,8 @@ def getAssemblyName(v):
     return os.path.basename(v).replace('.fa', '')
 
 SAMPLES = set([v[1] for v in config["samples"].values()])
-PAIRED_SRA = [v[0] for v in config["samples"].items() if v[1] == "P"]
-SINGLE_SRA = [v[0] for v in config["samples"].items() if v[1] == "S"]
+PAIRED_SRA = [v[0] for v in config["samples"].items() if v[1][0] == "P"]
+SINGLE_SRA = [v[0] for v in config["samples"].items() if v[1][0] == "S"]
 CALLERS = ["freebayes", "gatk"]
 
 localrules: all, finished_download, temp_aggregate, finished_aggregate
