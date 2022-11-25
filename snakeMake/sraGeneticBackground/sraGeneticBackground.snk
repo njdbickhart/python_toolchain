@@ -34,7 +34,8 @@ rule all:
     input:
         expand("calls/{callers}/{samples}.gvcf.gz",
             callers=CALLERS, samples = SAMPLES),
-        'FinishedAggregate'
+        'FinishedAggregate',
+        'FinishedDownload'
 
 rule download_paired:
     #input:
