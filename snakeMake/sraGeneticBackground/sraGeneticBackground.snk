@@ -17,6 +17,7 @@ SAMPLES = set([v[1] for v in config["samples"].values()])
 SRAFILES = [v[0] for v in config["samples"].values()]
 CALLERS = ["freebayes", "gatk"]
 
+localrules: all, finished_download, temp_aggregate, finished_aggregate
 
 wildcard_constraints:
     srafiles = "|".join(SRAFILES),
@@ -30,7 +31,8 @@ onerror:
 rule all:
     input:
         expand("calls/{callers}/{samples}.gvcf.gz",
-            callers=CALLERS, samples = SAMPLES)
+            callers=CALLERS, samples = SAMPLES),
+        'FinishedAggregate'
 
 rule download_srafiles:
     #input:
@@ -91,6 +93,14 @@ rule temp_aggregate:
             print(cmd)
             sp.call(cmd)
 
+rule finished_aggregate:
+    input:
+        fai = "Indexed",
+        fqs = expand("fastas/{srafiles}_{ext}.fastq", srafiles=SRAFILES, ext=[1,2]),
+        bams = expand("mapped/{samples}.merged.bam", samples=SAMPLES)
+    output:
+        temp(touch('FinishedAggregate'))
+
 rule aggregate_reads:
     input:
         sample = "mapped/{samples}",
@@ -111,6 +121,7 @@ rule aggregate_reads:
         """
         python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {input.sample} {params.fastdir} {input.reference} {log}
         """
+
 
 rule strelka:
     input:
@@ -146,7 +157,8 @@ rule freebayes:
         "envs/freebayes.yaml"
     params:
         extra="--min-repeat-entropy 1 --gvcf",
-        chunksize=1000000
+        chunksize=1000000,
+        mem="15000"
     threads: 10
     script:
         "scripts/freebayes_lift.py"
@@ -163,7 +175,7 @@ rule haplotype_caller:
     params:
         extra="",  # optional
         java_opts="",  # optional
-        mem=10000
+        mem="10000"
     threads: 10
     resources:
         mem_mb=2048
@@ -177,7 +189,7 @@ rule gzip_gvcfs:
         protected("calls/{callers}/{samples}.gvcf.gz")
     threads: 1
     params:
-        mem=1000
+        mem="1000"
     shell:
         """
         gzip {input}
