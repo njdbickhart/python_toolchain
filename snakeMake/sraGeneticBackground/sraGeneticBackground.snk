@@ -45,7 +45,7 @@ rule download_paired:
         temp("fastas/{paired}_2.fastq")
     params:
         download_folder = "fastas",
-        mem="4000"
+        mem="6000"
     threads: 3
     conda:
         "envs/base.yaml"
@@ -61,7 +61,7 @@ rule download_single:
         temp("fastas/{single}.fastq")
     params:
         download_folder = "fastas",
-        mem="4000"
+        mem="6000"
     threads: 3
     conda:
         "envs/base.yaml"
@@ -70,7 +70,7 @@ rule download_single:
     conda:
         "envs/sra.yaml"
     shell:
-        "fasterq-dump {wildcards.single} --split-files -O {params.download_folder} 2> {log}"
+        "fasterq-dump {wildcards.single} -O {params.download_folder} 2> {log}"
 
 rule bwa_index:
     input:
