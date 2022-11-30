@@ -100,7 +100,7 @@ def getAllFQs(wildcards):
 
 rule finished_download:
     input:
-        fai = "Indexed",
+        "Indexed",
         getAllFQs
     output:
         temp(touch('FinishedDownload'))
