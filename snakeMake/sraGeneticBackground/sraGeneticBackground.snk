@@ -90,11 +90,18 @@ rule bwa_index:
         samtools faidx {input} 2> {log}
         """
 
+def getAllFQs(wildcards):
+    files = []
+    if len(PAIRED_SRA) > 0:
+        files.extend(expand("fastas/{paired}_{ext}.fastq", paired=PAIRED_SRA, ext=[1,2]))
+    if len(SINGLE_SRA) > 0:
+        files.extend(expand("fastas/{single}.fastq", single = SINGLE_SRA))
+    return files
+
 rule finished_download:
     input:
         fai = "Indexed",
-        fqs = expand("fastas/{paired}_{ext}.fastq", paired=PAIRED_SRA, ext=[1,2]),
-        sqs = expand("fastas/{single}.fastq", single = SINGLE_SRA)
+        getAllFQs
     output:
         temp(touch('FinishedDownload'))
 
