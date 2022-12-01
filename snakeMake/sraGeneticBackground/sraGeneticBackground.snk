@@ -16,13 +16,14 @@ def getAssemblyName(v):
 SAMPLES = set([v[1] for v in config["samples"].values()])
 PAIRED_SRA = [v[0] for v in config["samples"].items() if v[1][0] == "P"]
 SINGLE_SRA = [v[0] for v in config["samples"].items() if v[1][0] == "S"]
+SRA_TOTAL = [v[0] for v in config["samples"].items()]
 CALLERS = ["freebayes", "gatk"]
 
 localrules: all, finished_download, temp_aggregate, finished_aggregate
 
 wildcard_constraints:
-    paired = "|".join(PAIRED_SRA),
-    single = "|".join(SINGLE_SRA),
+    paired = "|".join(SRA_TOTAL),
+    single = "|".join(SRA_TOTAL),
     callers = "|".join(CALLERS)
 
 onerror:
