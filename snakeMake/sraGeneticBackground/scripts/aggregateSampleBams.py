@@ -34,7 +34,7 @@ fastqs = defaultdict(list)
 nfiles = 0
 for i in sranames:
     tfiles = None
-    if pairedInfo == 'P':
+    if pairedInfo[i] == 'P':
         tfiles = glob.glob(f'{sys.argv[3]}/{i}_*.fastq')
     else:
         tfiles = glob.glob(f'{sys.argv[3]}/{i}.fastq')
@@ -49,8 +49,8 @@ os.makedirs(f'mapped/', exist_ok=True)
 mergefiles = []
 # Begin alignment
 for k, l in fastqs.items():
-    tfile = f'mapped/{k}.temp.bam'
-    sfiles = " ".join(l)
+    tfile = f'mapped/{sys.argv[2]}.{k}.temp.bam'
+    sfiles = " ".join(l[0])
     cmd = f'bwa mem -t 8 -R "@RG\tID:{k}\tSM:{sys.argv[2]}\tLB:{k}\tPL:ILLUMINA" {sys.argv[4]} {sfiles} 2>> {sys.argv[5]} | samtools sort - > {tfile} 2>> {sys.argv[5]}'
     logging.info(f'CMD: {cmd}')
     mergefiles.append(tfile)
