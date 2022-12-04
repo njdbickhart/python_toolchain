@@ -144,11 +144,12 @@ rule aggregate_reads:
         "envs/base.yaml"
     params:
         mem = "9000",
+        sname = "{samples}",
         config = "default.json",
         fastdir = "fastas"
     shell:
         """
-        python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {input.sample} {params.fastdir} {input.reference} {log}
+        python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {params.sname} {params.fastdir} {input.reference} {log}
         """
 
 
