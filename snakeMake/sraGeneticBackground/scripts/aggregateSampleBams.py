@@ -19,8 +19,10 @@ config = json.load(open(sys.argv[1], 'r'))
 
 # Get the sample name
 sampleToSRA = defaultdict(list)
+pairedInfo = dict()
 for k, v in config["samples"].items():
-    sampleToSRA[v[1]].append(v[0])
+    sampleToSRA[v[1]].append(k)
+    pairedInfo[k] = v[0]
 sranames = sampleToSRA.get(sys.argv[2], [])
 
 if len(sranames) == 0:
@@ -31,7 +33,11 @@ if len(sranames) == 0:
 fastqs = defaultdict(list)
 nfiles = 0
 for i in sranames:
-    tfiles = glob.glob(f'{sys.argv[3]}/{i}*.fastq')
+    tfiles = None
+    if pairedInfo == 'P':
+        tfiles = glob.glob(f'{sys.argv[3]}/{i}_*.fastq')
+    else:
+        tfiles = glob.glob(f'{sys.argv[3]}/{i}.fastq')
     fastqs[i].append(tfiles)
     nfiles += len(tfiles)
 
