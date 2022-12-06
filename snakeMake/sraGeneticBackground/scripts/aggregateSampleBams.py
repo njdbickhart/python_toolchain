@@ -46,6 +46,7 @@ logging.info(f'Beginning alignment')
 
 os.makedirs(f'mapped/', exist_ok=True)
 
+tempfiles = []
 mergefiles = []
 # Begin alignment
 for k, l in fastqs.items():
@@ -53,35 +54,53 @@ for k, l in fastqs.items():
     sfiles = " ".join(l[0])
     cmd = f'bwa mem -t 8 -R "@RG\\tID:{k}\\tSM:{sys.argv[2]}\\tLB:{k}\\tPL:ILLUMINA" {sys.argv[4]} {sfiles} 2>> {sys.argv[5]} | samtools sort - > {tfile} 2>> {sys.argv[5]}'
     logging.info(f'CMD: {cmd}')
-    mergefiles.append(tfile)
+    tempfiles.append(tfile)
 
     shell(cmd)
     cmd = f'samtools index {tfile}'
     logging.info(f'CMD: {cmd}')
 
     shell(cmd)
+    # Mark Duplicates
+
+    dfile = f'mapped/{sys.argv[2]}.{k}.dedup.bam'
+    stats = f'mapped/{sys.argv[2]}.{k}.dedup.stats'
+    cmd = f'java -jar picard.jar MarkDuplicates I={tfile} O={dfile} M={stats} REMOVE_DUPLICATES=true\n'
+    cmd = f'samtools index {dfile}'
+
+    logging.info(f'CMD: {cmd}')
+
+    shell(cmd)
+    mergefiles.append(dfile)
+    tempfiles.append(dfile)
+    tempfiles.append(tfile + '.bai')
+    tempfiles.append(dfile + '.bai')
 
 # If merger, then run the following
 outfile = f'mapped/{sys.argv[2]}.merged.bam'
 if len(mergefiles) > 1:
     fstring = " ".join(mergefiles)
-    cmd = f'samtools merge -@ 8 {outfile} {fstring}; samtools index {outfile} 2>> {sys.argv[5]}'
+    cmd = f'samtools merge -@ 8 {outfile} {fstring}\n samtools index {outfile} 2>> {sys.argv[5]}'
     logging.info(f'CMD: {cmd}')
 
     shell(cmd)
 
     # Delete temporary files if finished
     if os.path.exists(outfile):
-        for i in mergefiles:
+        for i in tempfiles:
             cmd = f'rm {i}'
             logging.info(f'Deleting {cmd}')
             shell(cmd)
 else:
-    cmd = f'mv {mergefiles[0]} {outfile}; samtools index {outfile}'
+    cmd = f'mv {mergefiles[0]} {outfile}\n'
+    cmd += f'samtools index {outfile}'
     logging.info(f'Only one file, so changing name\nCMD: {cmd}')
 
     shell(cmd)
 
-
+# Deleting temp files 
+for f in tempfiles:
+    cmd = f'rm {f}'
+    logging.info(f'Deleting {f} {cmd}')
 
 logging.info("Finished!")
