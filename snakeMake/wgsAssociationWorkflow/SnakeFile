@@ -1,0 +1,37 @@
+import os
+import subprocess as sp
+
+shell.executable("/usr/bin/bash")
+
+configfile : "default.json"
+
+os.makedirs("fastas", exist_ok=True)
+os.makedirs("logs", exist_ok=True)
+
+os.makedirs("final", exist_ok=True)
+
+def getAssemblyName(v):
+    return os.path.basename(v).replace('.fa', '')
+
+localrules: all, finished_download, temp_aggregate, finished_aggregate
+
+wildcard_constraints:
+    paired = "|".join(SRA_TOTAL),
+    single = "|".join(SRA_TOTAL),
+    callers = "|".join(CALLERS)
+
+onerror:
+    print("Error! Mailing log...")
+    shell("tail -n 100 {log} | mail -s 'sraGeneticBackgroundError' derek.bickhart@hendrix-genetics.com")
+    print("Done")
+
+rule all:
+    input:
+        expand("calls/{callers}/{samples}.gvcf.gz",
+            callers=CALLERS, samples = SAMPLES),
+        'FinishedAggregate',
+        'FinishedDownload'
+
+rule generate_gvcfs:
+
+rule run_concordance:
