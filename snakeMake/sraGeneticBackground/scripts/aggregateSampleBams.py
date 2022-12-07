@@ -65,7 +65,7 @@ for k, l in fastqs.items():
 
     dfile = f'mapped/{sys.argv[2]}.{k}.dedup.bam'
     stats = f'mapped/{sys.argv[2]}.{k}.dedup.stats'
-    cmd = f'java -jar picard.jar MarkDuplicates I={tfile} O={dfile} M={stats} REMOVE_DUPLICATES=true\n'
+    cmd = f'picard MarkDuplicates I={tfile} O={dfile} M={stats} REMOVE_DUPLICATES=true\n'
     cmd += f'samtools index {dfile}'
 
     logging.info(f'CMD: {cmd}')
