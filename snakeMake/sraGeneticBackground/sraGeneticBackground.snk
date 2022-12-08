@@ -4,10 +4,11 @@ import subprocess as sp
 shell.executable("/usr/bin/bash")
 
 configfile : "default.json"
+WKDIR = os.getcwd()
 
 os.makedirs("fastas", exist_ok=True)
 os.makedirs("logs", exist_ok=True)
-
+os.makedirs("TEMP", exist_ok=True)
 os.makedirs("final", exist_ok=True)
 
 def getAssemblyName(v):
@@ -89,6 +90,7 @@ rule bwa_index:
         """
         bwa index {input} 2> {log}
         samtools faidx {input} 2> {log}
+        picard CreateSequenceDictionary R={input}
         """
 
 def getAllFQs(wildcards):
@@ -178,7 +180,7 @@ rule strelka:
 rule freebayes:
     input:
         ref= config["assembly"],
-        samples="mapped/{samples}.merged.bam"
+        samples=["mapped/{samples}.merged.bam"]
     output:
         "calls/freebayes/{samples}.gvcf"
     log:
@@ -203,7 +205,7 @@ rule haplotype_caller:
     log:
         "logs/gatk/{samples}.log",
     params:
-        extra="",  # optional
+        extra=f'--tmp-dir {WKDIR}',  # optional
         java_opts="",  # optional
         mem="10000"
     threads: 10
