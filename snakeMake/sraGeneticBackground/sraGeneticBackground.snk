@@ -180,7 +180,8 @@ rule strelka:
 rule freebayes:
     input:
         ref= config["assembly"],
-        samples=["mapped/{samples}.merged.bam"]
+        samples=["mapped/{samples}.merged.bam"],
+        bai = "mapped/{samples}.merged.bam.bai"
     output:
         "calls/freebayes/{samples}.gvcf"
     log:
@@ -199,6 +200,7 @@ rule haplotype_caller:
     input:
         # single or list of bam files
         bam="mapped/{samples}.merged.bam",
+        bai = "mapped/{samples}.merged.bam.bai",
         ref=config["assembly"]
     output:
         gvcf = "calls/gatk/{samples}.gvcf"
