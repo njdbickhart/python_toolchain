@@ -100,8 +100,11 @@ else:
 
 # Deleting temp files
 for f in tempfiles:
-    cmd = f'rm {f}'
-    logging.info(f'Deleting {f} {cmd}')
-    shell(cmd)
+    if os.path.exists(f):
+        cmd = f'rm {f}'
+        logging.info(f'Deleting {f} {cmd}')
+        shell(cmd)
+    else:
+        logging.info(f'Did not delete {f} as it does not exist')
 
 logging.info("Finished!")
