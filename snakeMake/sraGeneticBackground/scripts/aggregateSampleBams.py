@@ -102,5 +102,6 @@ else:
 for f in tempfiles:
     cmd = f'rm {f}'
     logging.info(f'Deleting {f} {cmd}')
+    shell(cmd)
 
 logging.info("Finished!")

@@ -7,7 +7,7 @@ configfile : "default.json"
 
 os.makedirs("fastas", exist_ok=True)
 os.makedirs("logs", exist_ok=True)
-
+os.makedirs("TEMP", exist_ok=True)
 os.makedirs("final", exist_ok=True)
 
 def getAssemblyName(v):
