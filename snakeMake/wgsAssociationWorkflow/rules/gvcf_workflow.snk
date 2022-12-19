@@ -1,0 +1,120 @@
+rule bwa_index:
+    input:
+        config["assembly"]
+    output:
+        temp(touch("Indexed"))
+    log:
+        "../logs/assembly_indexing.log"
+    conda:
+        "../envs/base.yaml"
+    params:
+        mem = "8000"
+    threads: 1
+    shell:
+        """
+        bwa index {input} 2> {log}
+        samtools faidx {input} 2> {log}
+        picard CreateSequenceDictionary R={input}
+        """
+
+# Trick rule to create empty files for snakemake organization
+rule temp_aggregate:
+    input:
+        finished = 'FinishedDownload'
+    output:
+        expand("mapped/{samples}", samples=SAMPLES)
+    params:
+        samples = SAMPLES
+    run:
+        os.makedirs("mapped", exist_ok=True)
+        for i in params["samples"]:
+            cmd = ['touch', 'mapped/' + i]
+            print(cmd)
+            sp.call(cmd)
+
+rule finished_aggregate:
+    input:
+        fai = "Indexed",
+        fqs = expand("fastas/{paired}_{ext}.fastq", paired=PAIRED_SRA, ext=[1,2]),
+        sqs = expand("fastas/{single}.fastq", single = SINGLE_SRA),
+        bams = expand("mapped/{samples}.merged.bam", samples=SAMPLES)
+    output:
+        temp(touch('FinishedAggregate'))
+
+rule aggregate_reads:
+    input:
+        sample = "mapped/{samples}",
+        reference = config["assembly"]
+    output:
+        temp("mapped/{samples}.merged.bam"),
+        temp("mapped/{samples}.merged.bam.bai")
+    log:
+        "../logs/{samples}_aggregate.log"
+    threads: 8
+    conda:
+        "../envs/base.yaml"
+    params:
+        mem = "9000",
+        sname = "{samples}",
+        config = "default.json",
+        fastdir = "fastas"
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {params.sname} {params.fastdir} {input.reference} {log}
+        """
+
+rule freebayes:
+    input:
+        ref= config["assembly"],
+        samples=["mapped/{samples}.merged.bam"],
+        bai = "mapped/{samples}.merged.bam.bai"
+    output:
+        "calls/freebayes/{samples}.gvcf"
+    log:
+        "../logs/freebayes.{samples}.log"
+    conda:
+        "../envs/freebayes.yaml"
+    params:
+        extra="--min-repeat-entropy 1 --gvcf",
+        chunksize=1000000,
+        mem="15000"
+    threads: 10
+    script:
+        "../scripts/freebayes_lift.py"
+
+rule haplotype_caller:
+    input:
+        # single or list of bam files
+        bam="mapped/{samples}.merged.bam",
+        bai = "mapped/{samples}.merged.bam.bai",
+        ref=config["assembly"]
+    output:
+        gvcf = "calls/gatk/{samples}.gvcf"
+    log:
+        "../logs/gatk/{samples}.log",
+    params:
+        extra=f'--tmp-dir {WKDIR}/TEMP',  # optional
+        java_opts="",  # optional
+        mem="10000"
+    threads: 10
+    resources:
+        mem_mb=2048
+    script:
+        "../scripts/haplotypecaller.py"
+
+rule gzip_gvcfs:
+    input:
+        "calls/{callers}/{samples}.gvcf"
+    output:
+        protected("calls/{callers}/{samples}.gvcf.gz")
+    threads: 1
+    params:
+        mem="1000"
+    shell:
+        """
+        gzip {input}
+        """
+
+rule gvcf_workflow_finished:
+    input:
+        expand("calls/{callers}/{samples}.gvcf.gz")
