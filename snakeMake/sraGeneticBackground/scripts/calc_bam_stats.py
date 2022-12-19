@@ -93,4 +93,4 @@ for chr, size in zip(list_chrs, list_sizes):
     print("Finished with {} {} {} {} {} {} {} {}".format(chr, bp, nbp, mean, q25, median, q75, std))
 
 with open(output, 'w') as final:
-    final.write(sname + "\t" + "\t".join(worker.values()) + "\n")
+    final.write(sname + "\t" + "\t".join([str(x) for x in worker.values()]) + "\n")
