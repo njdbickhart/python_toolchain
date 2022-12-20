@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import pysam
 import time
@@ -14,7 +15,14 @@ def get_chromosomes_names(input):
     list_chromosomes = bamfile.references
     list_length = bamfile.lengths
     bamfile.close()
-    return list_chromosomes, list_length
+    listc = list()
+    listl = list()
+    # This is to remove nonAutosomes from the list of estimates
+    for i, k in enumerate(list_chromosomes):
+        if not re.search(r'([Cc]hr)?[XYZWmMtT]', k):
+            listc.append(list_chromosomes[i])
+            listl.append(list_length[i])
+    return listc, listl
 
 
 def count_depth(chr_name, size, threshold, input):
