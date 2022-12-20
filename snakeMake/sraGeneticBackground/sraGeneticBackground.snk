@@ -37,6 +37,7 @@ rule all:
         expand("calls/{callers}/{samples}.gvcf.gz",
             callers=CALLERS, samples = SAMPLES),
         "final/combined_bam_stats.tab",
+        "final/combined_bam_stats.pdf",
         'FinishedAggregate',
         'FinishedDownload'
 
