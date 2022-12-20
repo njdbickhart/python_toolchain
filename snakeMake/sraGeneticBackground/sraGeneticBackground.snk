@@ -253,10 +253,10 @@ rule haplotype_caller:
     params:
         extra=f'--tmp-dir {WKDIR}/TEMP',  # optional
         java_opts="",  # optional
-        mem="10000"
-    threads: 10
+        mem="20000"
+    threads: 20
     resources:
-        mem_mb=2048
+        mem_mb=4096
     script:
         "scripts/haplotypecaller.py"
 
