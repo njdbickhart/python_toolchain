@@ -259,14 +259,17 @@ rule haplotype_caller:
         "logs/gatk/{samples}.log",
     params:
         extra=f'--tmp-dir {WKDIR}/TEMP',  # optional
-        java_opts="",  # optional
-        mem="20000",
-        time="4-0"
-    threads: 20
+        java_opts="-Xmx25G -XX:+UseParallelGC -XX:ParallelGCThreads=4",  # optional
+        mem="25000",
+        time="4-0",
+        outputbase="calls/gatk/{samples}"
+    threads: 21
     resources:
         mem_mb=4096
-    script:
-        "scripts/haplotypecaller.py"
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/haplotypecaller.py {input.bam} {input.ref} {params.extra} {params.java_opts} {params.outputbase} {output.gvcf} {threads} 2> {log}
+        """
 
 rule gzip_gvcfs:
     input:

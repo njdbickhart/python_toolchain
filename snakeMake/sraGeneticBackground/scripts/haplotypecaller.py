@@ -5,32 +5,38 @@ __license__ = "MIT"
 # I had to modify this script to comply with cluster-specific limitations on the temp file
 
 import os
+import sys
+import logging
+from multiprocessing import Pool
 from snakemake.shell import shell
-from snakemake_wrapper_utils.java import get_java_opts
+#from snakemake_wrapper_utils.java import get_java_opts
 
-extra = snakemake.params.get("extra", "")
-java_opts = get_java_opts(snakemake)
+usage = f'python3 {sys.argv[0]} <input bams> <input ref> <extra> <java_opts> <outputbase> <output> <threads>'
 
-bams = snakemake.input.bam
+reference = sys.argv[2]
+extra = sys.argv[3]
+java_opts = sys.argv[4]
+
+bams = sys.argv[1].split(',')
 if isinstance(bams, str):
     bams = [bams]
 bams = list(map("--input {}".format, bams))
 
-intervals = snakemake.input.get("intervals", "")
-if not intervals:
-    intervals = snakemake.params.get("intervals", "")
-if intervals:
-    intervals = "--intervals {}".format(intervals)
+#intervals = snakemake.input.get("intervals", "")
+#if not intervals:
+#    intervals = snakemake.params.get("intervals", "")
+#if intervals:
+#    intervals = "--intervals {}".format(intervals)
 
-known = snakemake.input.get("known", "")
-if known:
-    known = "--dbsnp " + str(known)
-
-vcf_output = snakemake.output.get("vcf", "")
+#known = snakemake.input.get("known", "")
+#if known:
+#    known = "--dbsnp " + str(known)
+output = ""
+vcf_output = sys.argv[6] if sys.argv[6].endswith('.vcf') else ""
 if vcf_output:
     output = " --output " + str(vcf_output)
 
-gvcf_output = snakemake.output.get("gvcf", "")
+gvcf_output = sys.argv[6] if sys.argv[6].endswith('.gvcf') else ""
 if gvcf_output:
     output = " --emit-ref-confidence GVCF " + " --output " + str(gvcf_output)
 
@@ -42,21 +48,18 @@ if (vcf_output and gvcf_output) or (not gvcf_output and not vcf_output):
     else:
         raise ValueError("please set one of vcf or gvcf as output (not both)!")
 
-bam_output = snakemake.output.get("bam", "")
+bam_output = sys.argv[6] if sys.argv[6].endswith('.bam') else ""
 if bam_output:
     bam_output = " --bam-output " + str(bam_output)
 
-log = snakemake.log_fmt_shell(stdout=True, stderr=True)
+threads = int(sys.argv[7]) - 4
 
 shell(
     "gatk --java-options '{java_opts}' HaplotypeCaller"
-    " --native-pair-hmm-threads {snakemake.threads}"
+    " --native-pair-hmm-threads {threads}"
     " {bams}"
-    " --reference {snakemake.input.ref}"
-    " {intervals}"
-    " {known}"
+    " --reference {reference}"
     " {extra}"
     " {output}"
     " {bam_output}"
-    " {log}"
 )
