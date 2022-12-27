@@ -182,7 +182,7 @@ rule consolidate_stats:
     output:
         "final/combined_bam_stats.tab"
     run:
-        with open(output, 'w') as outfile:
+        with open(output[0], 'w') as outfile:
             outfile.write("SNAME\tThreshBp\tZbp\tMean\tQ25\tMedian\tQ75\tStdev\n")
             for i in input:
                 with open(i, 'r') as infile:
