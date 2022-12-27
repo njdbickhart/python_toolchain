@@ -7,7 +7,8 @@
     "partition" : "main",
     "qos" : "std",
     "jobname" : "{rule}",
-    "output" : "{rule}_%A.out"
+    "output" : "{rule}_%A.out",
+    "time" : "{params.time}"
   },
 
 }

@@ -49,7 +49,8 @@ rule download_paired:
         temp("fastas/{paired}_2.fastq")
     params:
         download_folder = "fastas",
-        mem="6000"
+        mem="6000",
+        time="1-0"
     threads: 3
     conda:
         "envs/base.yaml"
@@ -65,7 +66,8 @@ rule download_single:
         temp("fastas/{single}.fastq")
     params:
         download_folder = "fastas",
-        mem="6000"
+        mem="6000",
+        time="1-0"
     threads: 3
     conda:
         "envs/base.yaml"
@@ -86,7 +88,8 @@ rule bwa_index:
     conda:
         "envs/base.yaml"
     params:
-        mem = "8000"
+        mem = "8000",
+        time = "1-0"
     threads: 1
     shell:
         """
@@ -150,7 +153,8 @@ rule aggregate_reads:
         mem = "9000",
         sname = "{samples}",
         config = "default.json",
-        fastdir = "fastas"
+        fastdir = "fastas",
+        time="2-0"
     shell:
         """
         python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {params.sname} {params.fastdir} {input.reference} {log}
@@ -170,7 +174,8 @@ rule get_bam_stats:
     params:
         mem = "5000",
         sname = "{samples}",
-        threshold = 4
+        threshold = 4,
+        time="2:00:00"
     shell:
         """
         python3 {workflow.basedir}/scripts/calc_bam_stats.py {input.bam} {params.threshold} {params.sname} {output.stats}
@@ -214,6 +219,7 @@ rule strelka:
         mem= "50000",
         concatfiles = lambda wildcards, input: " ".join([f'--bam {x}' for x in input.bams]),
         outputfolder = "calls/strelka",
+        time="1-0"
     shell:
         """
         configureStrelkaGermlineWorkflow.py {params.concatfiles} --referenceFasta {input.reference} --runDir {params.outputfolder}
@@ -235,7 +241,8 @@ rule freebayes:
     params:
         extra="--min-repeat-entropy 1 --gvcf",
         chunksize=1000000,
-        mem="15000"
+        mem="15000",
+        time="2-0"
     threads: 10
     script:
         "scripts/freebayes_lift.py"
@@ -253,7 +260,8 @@ rule haplotype_caller:
     params:
         extra=f'--tmp-dir {WKDIR}/TEMP',  # optional
         java_opts="",  # optional
-        mem="20000"
+        mem="20000",
+        time="4-0"
     threads: 20
     resources:
         mem_mb=4096
@@ -267,7 +275,8 @@ rule gzip_gvcfs:
         protected("calls/{callers}/{samples}.gvcf.gz")
     threads: 1
     params:
-        mem="1000"
+        mem="1000",
+        time="2:00:00"
     shell:
         """
         gzip {input}
