@@ -56,6 +56,7 @@ threads = int(sys.argv[7]) - 4
 
 shell(
     "gatk --java-options '{java_opts}' HaplotypeCaller"
+    " --pair-hmm-implementation AVX_LOGLESS_CACHING_OMP"
     " --native-pair-hmm-threads {threads}"
     " {bams}"
     " --reference {reference}"
