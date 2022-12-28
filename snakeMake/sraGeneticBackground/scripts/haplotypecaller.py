@@ -60,6 +60,7 @@ shell(
     " --native-pair-hmm-threads {threads}"
     " {bams}"
     " --reference {reference}"
+    " --verbosity DEBUG"
     " {extra}"
     " {output}"
     " {bam_output}"
