@@ -69,7 +69,7 @@ threads = int(sys.argv[7]) - 4
 cmd = ['gatk', '--java-options', f'{java_opts}', 'HaplotypeCaller',
     '--pair-hmm-implementation', 'AVX_LOGLESS_CACHING_OMP',
     '--native-pair-hmm-threads', f'{threads}',
-    f'{bams}',
+    " ".join(bams),
     '--reference', f'{reference}',
     '--verbosity', 'DEBUG',
     f'{extra}',
