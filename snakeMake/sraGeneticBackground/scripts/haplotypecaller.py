@@ -55,7 +55,7 @@ if bam_output:
 threads = int(sys.argv[7]) - 4
 
 shell(
-    "taskset -c 0-{threads} gatk --java-options '{java_opts}' HaplotypeCaller"
+    "gatk --java-options '{java_opts}' HaplotypeCaller"
     " --native-pair-hmm-threads {threads}"
     " {bams}"
     " --reference {reference}"
