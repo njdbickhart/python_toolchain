@@ -7,6 +7,7 @@ __license__ = "MIT"
 import os
 import sys
 import logging
+import subprocess as sp
 from multiprocessing import Pool
 from snakemake.shell import shell
 #from snakemake_wrapper_utils.java import get_java_opts
@@ -54,14 +55,26 @@ if bam_output:
 
 threads = int(sys.argv[7]) - 4
 
-shell(
-    "gatk --java-options '{java_opts}' HaplotypeCaller"
-    " --pair-hmm-implementation AVX_LOGLESS_CACHING_OMP"
-    " --native-pair-hmm-threads {threads}"
-    " {bams}"
-    " --reference {reference}"
-    " --verbosity DEBUG"
-    " {extra}"
-    " {output}"
-    " {bam_output}"
-)
+#shell(
+#    "gatk --java-options '{java_opts}' HaplotypeCaller"
+#    " --pair-hmm-implementation AVX_LOGLESS_CACHING_OMP"
+#    " --native-pair-hmm-threads {threads}"
+#    " {bams}"
+#    " --reference {reference}"
+#    " --verbosity DEBUG"
+#    " {extra}"
+#    " {output}"
+#    " {bam_output}"
+#)
+cmd = ['gatk', '--java-options', f'{java_opts}', 'HaplotypeCaller',
+    '--pair-hmm-implementation', 'AVX_LOGLESS_CACHING_OMP',
+    '--native-pair-hmm-threads', f'{threads}',
+    f'{bams}',
+    '--reference', f'{reference}',
+    '--verbosity', 'DEBUG',
+    f'{extra}',
+    f'{output}',
+    f'{bam_output}'
+    ]
+print(cmd)
+proc = sp.Popen(" ".join(cmd), shell=True, stdout=sys.stdout)
