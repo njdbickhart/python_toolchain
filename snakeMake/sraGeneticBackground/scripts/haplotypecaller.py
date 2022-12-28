@@ -66,7 +66,7 @@ threads = int(sys.argv[7]) - 4
 #    " {output}"
 #    " {bam_output}"
 #)
-cmd = ['gatk', '--java-options', f'{java_opts}', 'HaplotypeCaller',
+cmd = ['gatk', '--java-options', f'\'{java_opts}\'', 'HaplotypeCaller',
     '--pair-hmm-implementation', 'AVX_LOGLESS_CACHING_OMP',
     '--native-pair-hmm-threads', f'{threads}',
     " ".join(bams),
