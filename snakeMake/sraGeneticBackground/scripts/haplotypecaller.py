@@ -77,4 +77,7 @@ cmd = ['gatk', '--java-options', f'\'{java_opts}\'', 'HaplotypeCaller',
     f'{bam_output}'
     ]
 print(cmd)
+print(" ".join(cmd))
 proc = sp.Popen(" ".join(cmd), shell=True, stdout=sys.stdout, stderr=sys.stderr)
+
+print(proc)
