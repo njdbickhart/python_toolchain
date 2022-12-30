@@ -268,7 +268,7 @@ rule haplotype_caller:
         mem_mb=4096
     shell:
         """
-        python3 {workflow.basedir}/scripts/haplotypecaller.py {input.bam} {input.ref} {params.extra} {params.java_opts} {params.outputbase} {output.gvcf} {threads} 2> {log}
+        python3 {workflow.basedir}/scripts/haplotypecaller.py {input.bam} {input.ref} '{params.extra}' '{params.java_opts}' {params.outputbase} {output.gvcf} {threads} 2> {log}
         """
 
 rule gzip_gvcfs:
