@@ -7,6 +7,7 @@ __license__ = "MIT"
 import os
 import sys
 import logging
+import argparse
 import subprocess as sp
 from multiprocessing import Pool
 from snakemake.shell import shell
@@ -14,11 +15,48 @@ from snakemake.shell import shell
 
 usage = f'python3 {sys.argv[0]} <input bams> <input ref> <extra> <java_opts> <outputbase> <output> <threads>'
 
-reference = sys.argv[2]
-extra = sys.argv[3]
-java_opts = sys.argv[4]
+def parse_user_input():
+    parser = argparse.ArgumentParser(
+            description = "Generate summary information and PDF plots of Fastq Stats. Version:" + version
+            )
+    parser.add_argument('-b', '--bam',
+                        help="An indexed bam file comma separated",
+                        type=str, required=True
+                        )
+    parser.add_argument('-F', '--fasta',
+                        help="The reference fasta file",
+                        type=str, required=True
+                        )
+    parser.add_argument('-e', '--extra',
+                        help="Extra inputs",
+                        action='append', default=[]
+                        )
+    parser.add_argument('-j', '--java',
+                        help="java options",
+                        action='append', default=[]
+                        )
+    parser.add_argument('-o', '--outbase',
+                        help="output base name and path",
+                        type=str, required=True
+                        )
+    parser.add_argument('-v', '--vcf',
+                        help="output vcf file name",
+                        type=str, required=True
+                        )
+    parser.add_argument('-t', '--threads',
+                        help="threads",
+                        type=int, required=True
+                        )
 
-bams = sys.argv[1].split(',')
+    return parser.parse_args()
+
+args = parse_user_input()
+
+reference = args.fasta
+extra = " ".join([f'--{x}' for x in args.extra])
+java_opts = " ".join([f'-{x}' for x in args.java])
+
+bams = args.bam
 if isinstance(bams, str):
     bams = [bams]
 bams = list(map("--input {}".format, bams))
@@ -33,11 +71,11 @@ bams = list(map("--input {}".format, bams))
 #if known:
 #    known = "--dbsnp " + str(known)
 output = ""
-vcf_output = sys.argv[6] if sys.argv[6].endswith('.vcf') else ""
+vcf_output = args.vcf if args.vcf.endswith('.vcf') else ""
 if vcf_output:
     output = " --output " + str(vcf_output)
 
-gvcf_output = sys.argv[6] if sys.argv[6].endswith('.gvcf') else ""
+gvcf_output = args.vcf if args.vcf.endswith('.gvcf') else ""
 if gvcf_output:
     output = " --emit-ref-confidence GVCF " + " --output " + str(gvcf_output)
 
@@ -49,11 +87,11 @@ if (vcf_output and gvcf_output) or (not gvcf_output and not vcf_output):
     else:
         raise ValueError("please set one of vcf or gvcf as output (not both)!")
 
-bam_output = sys.argv[6] if sys.argv[6].endswith('.bam') else ""
+bam_output = args.vcf if args.vcf.endswith('.bam') else ""
 if bam_output:
     bam_output = " --bam-output " + str(bam_output)
 
-threads = int(sys.argv[7]) - 4
+threads = int(args.threads) - 4
 
 #shell(
 #    "gatk --java-options '{java_opts}' HaplotypeCaller"
