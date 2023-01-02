@@ -17,7 +17,7 @@ usage = f'python3 {sys.argv[0]} <input bams> <input ref> <extra> <java_opts> <ou
 
 def parse_user_input():
     parser = argparse.ArgumentParser(
-            description = "Generate summary information and PDF plots of Fastq Stats. Version:" + version
+            description = "Generate summary information and PDF plots of Fastq Stats"
             )
     parser.add_argument('-b', '--bam',
                         help="An indexed bam file comma separated",
