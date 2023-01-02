@@ -28,8 +28,8 @@ def parse_user_input():
                         type=str, required=True
                         )
     parser.add_argument('-e', '--extra',
-                        help="Extra inputs",
-                        action='append', default=[]
+                        help="Temp directory",
+                        type=str, required=True
                         )
     parser.add_argument('-j', '--java',
                         help="java options",
@@ -53,7 +53,7 @@ def parse_user_input():
 args = parse_user_input()
 
 reference = args.fasta
-extra = " ".join([f'--{x}' for x in args.extra])
+extra = f'--tmp-dir {args.extra}'
 java_opts = " ".join([f'-{x}' for x in args.java])
 
 bams = args.bam
@@ -109,7 +109,6 @@ cmd = ['gatk', '--java-options', f'\'{java_opts}\'', 'HaplotypeCaller',
     '--native-pair-hmm-threads', f'{threads}',
     " ".join(bams),
     '--reference', f'{reference}',
-    '--verbosity', 'DEBUG',
     f'{extra}',
     f'{output}',
     f'{bam_output}'
