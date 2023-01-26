@@ -72,8 +72,10 @@ def main(args):
 
 def smartFile(filename : str, mode : str = 'r'):
     fh = None
-    if filename.endswith('.gz'):
+    if filename.endswith('.gz') and mode == 'r':
         fh = gzip.open(filename, mode='rt')
+    elif filename.endswith('.gz') and mode == 'w':
+        fh = gzip.open(filename, mode='wt')
     else:
         fh = open(filename, mode)
     return fh
