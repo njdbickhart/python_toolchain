@@ -48,6 +48,9 @@ def main(args, parser):
     # Process the taxID file
     worker.filter_taxid()
     
+    # Identify valid reads
+    worker.identify_valid_reads(args.centrifuge)
+    
     # Now filter the input fastq and print out the results
     worker.filter_fastq(args.fastq, args.output)
  
@@ -97,23 +100,24 @@ class tax_traversal:
         
     def process_nodes(self):
         self.graph = nx.DiGraph()
-        fields = re.compile(r'\t|\t')
+        fields = re.compile(r'\t\|\t')
         with open(self.nodes_file, 'r') as input:
             for l in input:
                 s = re.split(fields, l)
-                self.graph.add_edge((s[1], s[0]))
+                self.graph.add_edge(s[1], s[0])
                 
         # QC and validity testing
-        if not nx.is_directed_acyclic_graph(self.graph):
-            print('Error! Nodes.dmp Graph did not validate as a DAG!')
-            sys.exit(-1)
-        else:
-            print('Nodes graph loaded')
+        #if not nx.is_directed_acyclic_graph(self.graph):
+        #    print('Error! Nodes.dmp Graph did not validate as a DAG!')
+        #    sys.exit(-1)
+        #else:
+        #    print('Nodes graph loaded')
       
     def filter_taxid(self):
         for i in self.taxlist:
             if self.graph.has_node(i):
-                nset = self.graph.descendants(i)
+                nset = nx.descendants(self.graph, i)
+                nset.add(i)
                 print(f'Identified {len(nset)} descendants from taxid {i}')
                 self.set.update(nset)
         print(f'Total set entries comprise {len(self.set)} elements.')
@@ -129,7 +133,7 @@ class tax_traversal:
                     self.rids.add(s[0])
                     
         prop = len(self.rids) / rtotal * 100.0
-        print(f'Retained {len(self.rids)} from {rtotal} reads \({prop})\%\)')
+        print(f'Retained {len(self.rids)} from {rtotal} reads ({prop:.2f})%)')
             
     def filter_fastq(self, fastq, outfile):
         ftotal = 0
@@ -138,13 +142,13 @@ class tax_traversal:
         output = smartFile(outfile, 'w')
         for head, seq, qual in fastq_reader_fh(input):
             totreads += 1
-            if head[1:] in self.rid:
+            if head[1:] in self.rids:
                 output.write(f'{head}\n{seq}\n+\n{qual}\n')
             else:
                 ftotal += 1
         input.close()
         output.close()
-        print(f'Filtered {ftotal} reads out of a total of {totreads} \({ftotal / totreads}\)')
+        print(f'Filtered {ftotal} reads out of a total of {totreads} ({ftotal / totreads:.2f})')
         
     
 if __name__ == "__main__":
