@@ -12,9 +12,11 @@ import numpy as np
 import scipy.stats as stats
 from collections import defaultdict
 
+revdict = {'T' : 'A', 'G' : 'C', 'C' : 'G'}
+
 class Marker:
     
-    def __init__(self, snpID, Ref, Alt, Chr, Pos, population):
+    def __init__(self, snpID, Ref, Alt, Chr, Pos, population, reverse = False):
         # Defining attributes for later filling
         self.snpID = snpID
         self.Ref = Ref
@@ -22,21 +24,27 @@ class Marker:
         self.Chr = Chr
         self.Pos = Pos
         self.population = population
+        self.reverse = reverse        
+                
+        if reverse:
+            self.Ref = revdict.get(self.Ref, self.Ref)
+            self.Alt = revdict.get(self.Alt, self.Alt)
         
 class Genotype:
     
-    def __init__(self, marker, allele):
+    def __init__(self, marker, allele, reverse = False):
         # Defining attributes for later filling
         self.marker = marker
-        self.variantState = self._determineVariantState(allele)
+        self.variantState = self._determineVariantState(allele, reverse)
         
-    def  _determineVariantState(self, allele):
+    def  _determineVariantState(self, allele, reverse=False):
+
         if allele == "0" or allele == "1" or allele == "2" or allele == "5":
             if allele == '5':
                 return '.'
             else:
                 return allele
-        elif re.search(r'^\d{1}\/\d{1}\:', allele):
+        elif re.search(r'^.\/.\:', allele):
             asegs = re.split(r'[:\/]', allele)
             var = 0
             for x in range(2):
@@ -45,21 +53,28 @@ class Genotype:
                 elif asegs[x] == '1':
                     var += 1
                 else:
-                    var = '.' # Multivariant sites in VCF files will not be handled right now
+                    var = '' # Multivariant sites in VCF files will not be handled right now
             return str(var)
+        else:
+            asegs = allele.split()
+            var = "".join(asegs)
+            if reverse:
+                var = "".join(revdict.get(base, base) for base in var)
+            return var
         
     def isConcordant(self, genotype):
         return self.variantState == genotype.variantState
     
 class GenotypeFactory:
     
-    def __init__(self, markerInfoFile):
+    def __init__(self, markerInfoFile, skiplist = []):
         self.markerInfoFile = markerInfoFile
         self.MarkerList = list()
         self.MarkerByID = dict()
         # Data structure to identify genotypes from VCF files
         self.MarkerByCoord = dict()
         
+        self.skip = set(skiplist)
         self.dsNameList = list()
         self.individualSet = set()
         # Keys: dataset -> animal -> SNPID
@@ -72,7 +87,10 @@ class GenotypeFactory:
             for l in input:
                 s = l.rstrip().split()
                 loaded += 1
-                m = Marker(s[1], s[4], s[5], s[0], s[3], population)
+                rev = False
+                if len(s) == 7:
+                    rev = True if s[6] == '1' else False
+                m = Marker(s[1], s[4], s[5], s[0], s[3], population, reverse=rev)
                 self.MarkerList.append(m)
                 self.MarkerByID[s[1]] = m
                 self.MarkerByCoord[f'{s[0]}:{s[3]}'] = m
@@ -82,22 +100,26 @@ class GenotypeFactory:
     # Convert a BED file to a PED file:
     # plink --bfile template/LW_HyporGeno2 --recode --tab --out LW_test --extract test_markers.list
     # PED files are tab delimited but have space delmited genotypes
-    def loadPED(self, pedfile, dsName):
+    def loadPED(self, pedfile, dsName, runReverse = False):
         self.dsNameList.append(dsName)
         with open(pedfile, 'r') as input:
             icount = 0
             msum = 0
+            firstelement = True
+            fixmarker = False
             for l in input:
                 s = l.rstrip().split("\t")
+                if s[0] in self.skip:
+                    continue
                 self.individualSet.add(s[0])
-                firstelement = True
-                fixmarker = False
+                
                 allele = ''
                 icount += 1
                 msum += len(s) - 6
                 for i in range(6, len(s)):
                     if firstelement:
-                        if re.search(r'\d \d', s[i]):
+                        if re.search(r'\d+ \d+', s[i]):
+                            print(s[i])
                             fixmarker = True
                         firstelement = False
                     if fixmarker:
@@ -109,7 +131,9 @@ class GenotypeFactory:
                         allele = str(tallele)
                     else:
                         allele = str(s[i])
-                    g = Genotype(self.MarkerList[i - 6], allele)
+                    marker = self.MarkerList[i - 6]
+                    rev = True if runReverse and marker.reverse else False
+                    g = Genotype(marker, allele, reverse=rev)
                     self.GenotypeKeys[dsName][s[0]][self.MarkerList[i - 6].snpID] = g
             print(f'PED: Out of {icount} individuals, had an average of {msum / icount} markers per individual')
             
@@ -118,6 +142,7 @@ class GenotypeFactory:
         self.dsNameList.append(dsName)
         icount = 0
         msum = 0
+        skipCols = set()
         with open(vcffile, 'r') as input:
             # Animal IDs start at the 10th (9 - 0-base) column
             header = list()
@@ -127,8 +152,11 @@ class GenotypeFactory:
                 elif l.startswith('#'):
                     header = l.rstrip().split()
                     icount = len(header) - 10
-                    for anim in header[9:]:
-                        self.individualSet.add(anim)
+                    for i, anim in enumerate(header[9:]):
+                        if anim in self.skip:
+                            skipCols.add(i + 9)
+                        else:
+                            self.individualSet.add(anim)
                     continue
                 s = l.rstrip().split()
                 coord = f'{s[0]}:{s[1]}'
@@ -136,6 +164,8 @@ class GenotypeFactory:
                     msum += 1
                     m = self.MarkerByCoord[coord]
                     for i in range(9, len(header)):
+                        if i in skipCols:
+                            continue
                         anim = header[i]
                         allele = s[i]
                         g = Genotype(m, allele)

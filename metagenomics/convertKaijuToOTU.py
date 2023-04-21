@@ -17,6 +17,10 @@ def arg_parse():
                         help="Input Kaiju count file. Can be specified more than once. Must be accompanied by an '-s' tag",
                         action="append", default=[]
                         )
+    parser.add_argument('-r', '--read', 
+                        help="Input Kaiju read file. Can be specified more than once. Must be accompanied by an '-s' tag",
+                        action="append", default=[]
+                        )
     parser.add_argument('-s', '--sample', 
                         help="Kaiju count file sample name. Can be specified more than once. Must be accompanied by an '-f' tag",
                         action="append", default=[]
@@ -28,10 +32,10 @@ def arg_parse():
     return parser.parse_args(), parser
 
 def main(args, parser):
-    print("hey")
     # Check the argument requirements
     proceed = False
-    if len(args.file) == len(args.sample) and len(args.file) > 0:
+    total_files = len(args.file) + len(args.read)
+    if total_files == len(args.sample) and len(args.file) > 0:
         proceed = True
     
     if not proceed:

@@ -41,6 +41,14 @@ rule all:
         'FinishedAggregate',
         'FinishedDownload'
 
+rule freebayes:
+    input:
+        expand("calls/freebayes/{samples}.gvcf.gz", samples = SAMPLES),
+        "final/combined_bam_stats.tab",
+        "final/combined_bam_stats.pdf",
+        'FinishedAggregate',
+        'FinishedDownload'
+
 rule download_paired:
     #input:
     #    lambda wildcards: config["samples"][wildcards.srafiles][0]
