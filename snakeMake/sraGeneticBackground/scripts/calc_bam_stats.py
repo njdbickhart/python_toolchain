@@ -50,7 +50,7 @@ def count_depth(chr_name, size, threshold, input):
     max = np.max(bases)
     mean = np.mean(bases) if count > 0 else 0
     median = np.median(bases) if count > 0 else 0
-    values, vcounts = np.unique(np.digitize(bases, [1, 15, 30, max]), return_counts = True)
+    values, vcounts = np.unique(np.digitize(bases, [1, 15, 30, max if max >30 else 31]), return_counts = True)
     vdict = dict(zip(values, vcounts))
     nZbp = nbp
     hmCells = [vdict[x] for x in range(1,4)]
