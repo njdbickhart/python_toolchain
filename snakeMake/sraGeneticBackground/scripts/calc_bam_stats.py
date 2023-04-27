@@ -46,8 +46,8 @@ def count_depth(chr_name, size, threshold, input):
     n25 = np.quantile(bases, 0.25)
     n75 = np.quantile(bases, 0.75)
 
-    min = min(bases)
-    max = max(bases)
+    min = np.min(bases)
+    max = np.max(bases)
     mean = np.mean(bases) if count > 0 else 0
     median = np.median(bases) if count > 0 else 0
     values, vcounts = np.unique(np.digitize(bases, [1, 15, 30, max]), return_counts = True)
