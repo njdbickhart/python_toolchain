@@ -51,7 +51,7 @@ ax.set_title("Interquartile coverage values", loc="left")
 ax.set_xlabel("Samples")
 ax.set_ylabel("Coverage")
 boxes = [{'label' : r['SNAME'], 'whislo' : 3.0, 'q1' : r['Q25'], 'med' : r['Median'],
-'q3' : r['Q75'], 'whishi' : r['Max'], 'fliers' : []} for i, r in df.iterrows()]
+'q3' : r['Q75'], 'whishi' : r['Q75'] * 1.5, 'fliers' : []} for i, r in df.iterrows()]
 #df[["SNAME", "Q25", "Median", "Q75"]].plot(x= "SNAME", ax=ax)
 ax.bxp(boxes, showfliers=False)
 ax.set_xticks(ax.get_xticks(), ax.get_xticklabels(), rotation=45, ha='right')
@@ -68,7 +68,7 @@ ax.set_xlabel("Samples")
 tdf = df[["SNAME", 'Zbp', 'sub15', 'sub30', 'gt30']].set_index('SNAME').copy()
 tdf.index = [''.join(col) for col in tdf.index.values]
 tdf = tdf.T
-sns.heatmap(tdf, cbar_kws = dict(use_gridspec=False,location="top"), ax=ax)
+sns.heatmap(tdf, cbar_kws = dict(use_gridspec=False,location="horizontal"), ax=ax)
 
 plt.subplots_adjust(left=0.2, wspace=1.0, top=2.8)
 fig.set_size_inches(21,12)
