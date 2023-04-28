@@ -68,7 +68,7 @@ ax.set_xlabel("Samples")
 tdf = df[["SNAME", 'Zbp', 'sub15', 'sub30', 'gt30']].set_index('SNAME').copy()
 tdf.index = [''.join(col) for col in tdf.index.values]
 tdf = tdf.T
-sns.heatmap(tdf, cbar_kws = dict(use_gridspec=False,location="horizontal"), ax=ax)
+sns.heatmap(tdf, cbar_kws = dict(use_gridspec=False,location="bottom"), ax=ax)
 
 plt.subplots_adjust(left=0.2, wspace=1.0, top=2.8)
 fig.set_size_inches(21,12)
