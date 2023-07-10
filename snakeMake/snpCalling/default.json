@@ -1,0 +1,17 @@
+{
+  "assembly" : "/my/assembly/path/assembly.fa",
+  "crams" : "True",
+  "stats" : "True",
+  "callers" : ["freebayes", "gatk"],
+  "samples" : {
+    "samplea" :[
+      ["read1", "read2"],
+      ["read1", "read2"]
+    ],
+    "sampleb" : [
+      ["read1", "read2"]
+    ]
+
+  }
+
+}

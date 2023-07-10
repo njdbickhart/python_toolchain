@@ -1,69 +1,270 @@
-import re
+import os
+import subprocess as sp
 
+shell.executable("/usr/bin/bash")
 
-configfile : "bams.json"
+configfile : "default.json"
+WKDIR = os.getcwd()
+
+os.makedirs("logs", exist_ok=True)
+os.makedirs("TEMP", exist_ok=True)
+os.makedirs("final", exist_ok=True)
+
+def getAssemblyName(v):
+    return os.path.basename(v).replace('.fa', '')
+
+SAMPLES = set([v[1] for v in config["samples"].values()])
+CALLERS = config['callers']
+
+extrafiles = []
+calcstatsfirst = ''
+
+if config["stats"] == "True":
+    extrafiles.extend(["final/combined_bam_stats.tab","final/combined_bam_stats.pdf"]),
+    calcstatsfirst = expand("final/{callers}.gvcf.stats", callers=CALLERS)
+
+if config["crams"] == "True":
+    extrafiles.extend(expand("mapped/{samples}.merged.cram", samples = SAMPLES))
+
+localrules: all, finished_download, temp_aggregate, consolidate_stats, plot_stats
+
+wildcard_constraints:
+    callers = "|".join(CALLERS)
+
+onerror:
+    print("Error! Mailing log...")
+    shell("tail -n 100 {log} | mail -s 'SNP Calling Error' derek.bickhart@hendrix-genetics.com")
+    print("Done")
 
 rule all:
-  input: "vcfs/total.merged.vcf.gz"
+    input:
+        expand("calls/{callers}/{samples}.gvcf.gz",
+            callers=CALLERS, samples = SAMPLES),
+        extrafiles,
+        'FinishedAggregate'
 
-rule index_bams:
-  input:
-    bam = lambda wildcards: config["samples"][wildcards.sample]
-  output:
-    idx = "{bam}.bai"
-  shell:
-    """
-    module load samtools
-    samtools index {input.bam}
-    """
+rule freebayes_only:
+    input:
+        expand("calls/freebayes/{samples}.gvcf.gz", samples = SAMPLES),
+        extrafiles,
+        'FinishedAggregate'
 
-def format_name(seg):
-  return re.sub("(.+):(\d+)-(\d+)", "\\1\_\\2\_\\3", seg, 0, re.DOTALL)
+rule bwa_index:
+    input:
+        config["assembly"]
+    output:
+        temp(touch("Indexed"))
+    log:
+        "logs/assembly_indexing.log"
+    conda:
+        "envs/base.yaml"
+    params:
+        mem = "8000",
+        time = "1-0"
+    threads: 1
+    shell:
+        """
+        bwa index {input} 2> {log}
+        samtools faidx {input} 2> {log}
+        picard CreateSequenceDictionary R={input}
+        """
 
-rule create_bcfs:
-  input:
-    idx = "{bam}.bai",
-    segs = config["segments"]
-  params:
-    bamlist = config["blist"],
-    fasta = config["fasta"]
-  output:
-    bcf = expand("bcfs/bcf_{rseg}.bcf", rseg=format_name(config["segments"]))
-  shell:
-    """
-    module load bcftools/1.9
-    bcftools mpileup -Ob -r {input.segs} -o {output.bcf} -f {params.fasta} --threads 3 -b {params.bamlist}
-    """
+# Trick rule to create empty files for snakemake organization
+rule temp_aggregate:
+    input:
+        indexed = 'Indexed'
+    output:
+        temp(expand("mapped/{samples}", samples=SAMPLES))
+    params:
+        samples = SAMPLES
+    run:
+        os.makedirs("mapped", exist_ok=True)
+        for i in params["samples"]:
+            cmd = ['touch', 'mapped/' + i]
+            print(cmd)
+            sp.call(cmd)
 
-rule call_variants:
-  input:
-    bcf = expand("bcfs/bcf_{rseg}.bcf", rseg=format_name(config["segments"])),
-    segs = config["segments"]
-  output:
-    vcf = expand("vcfs/bcf_{rseg}.vcf.gz", rseg=format_name(config["segments"]))
-  shell:
-    """
-    module load bcftools/1.9
-    bcftools call -vmO z -r {input.segs} -o {output.vcf} --threads 3 {input.bcf}
-    """
 
-rule create_vcf_file:
-  input:
-    vcf = expand("vcfs/bcf_{rseg}.vcf.gz", rseg=format_name(config["segments"]))
-  output:
-    "vcfs/vcf_list"
-  run:
-    with open("vcfs/vcf_list", 'w') as out:
-      for v in snakemake.input["vcf"]:
-        out.write(f'{v}\n')
+rule aggregate_reads:
+    input:
+        sample = "mapped/{samples}",
+        reference = config["assembly"]
+    output:
+        temp("mapped/{samples}.merged.bam"),
+        temp("mapped/{samples}.merged.bam.bai")
+    log:
+        "logs/{samples}_aggregate.log"
+    threads: 8
+    conda:
+        "envs/base.yaml"
+    params:
+        mem = "9000",
+        sname = "{samples}",
+        config = "default.json",
+        fastdir = "fastas",
+        time="2-0"
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {params.sname} {input.reference} {log}
+        """
 
-rule merge_vcfs:
-  input:
-    vcflist = "vcfs/vcf_list"
-  output:
-    "vcfs/total.merged.vcf.gz"
-  shell:
-    """
-    module load bcftools/1.9
-    bcftools concat -a -d all -f {input.vcflist} -O -z -o {output} --threads 3
-    """
+rule convert_to_cram:
+    input:
+        bam = "mapped/{samples}.merged.bam",
+        ref = config["assembly"]
+    output:
+        "mapped/{samples}.merged.cram"
+    log:
+        "logs/{samples}_cram.log"
+    threads: 1
+    conda:
+        "envs/base.yml"
+    params:
+        mem= "9000",
+        time= "4:00:00"
+    shell:
+        """
+        samtools view -T {input.ref} -C -o {output} {input.bam}
+        """
+
+rule get_bam_stats:
+    input:
+        bam = "mapped/{samples}.merged.bam",
+        bai = "mapped/{samples}.merged.bam.bai",
+        reference = config["assembly"],
+        fai = "Indexed",
+    output:
+        stats = temp("final/{samples}.stats.tab")
+    log:
+        "logs/{samples}_stats.log"
+    threads: 2
+    params:
+        mem = "5000",
+        sname = "{samples}",
+        threshold = 4,
+        time="2:00:00"
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/calc_bam_stats.py {input.bam} {params.threshold} {params.sname} {output.stats}
+        """
+
+rule consolidate_stats:
+    input:
+        expand("final/{samples}.stats.tab", samples=SAMPLES)
+    output:
+        "final/combined_bam_stats.tab"
+    run:
+        with open(output[0], 'w') as outfile:
+            outfile.write("SNAME\tThreshBp\tZbp\tMean\tQ25\tMedian\tQ75\tMax\tStdev\tsub15\tsub30\tgt30\n")
+            for i in input:
+                with open(i, 'r') as infile:
+                    for l in infile:
+                        outfile.write(l)
+
+rule plot_stats:
+    input:
+        "final/combined_bam_stats.tab"
+    output:
+        "final/combined_bam_stats.pdf"
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/plot_bam_stats.py {input} {output}
+        """
+
+rule strelka:
+    input:
+        bams = expand("mapped/{samples}.merged.bam", samples=SAMPLES),
+        reference = config["assembly"]
+    output:
+        "calls/strelka/variants.vcf.gz"
+    log:
+        "logs/strelka.log"
+    threads: 20
+    conda:
+        "envs/strelka.yaml"
+    params:
+        mem= "50000",
+        concatfiles = lambda wildcards, input: " ".join([f'--bam {x}' for x in input.bams]),
+        outputfolder = "calls/strelka",
+        time="1-0"
+    shell:
+        """
+        configureStrelkaGermlineWorkflow.py {params.concatfiles} --referenceFasta {input.reference} --runDir {params.outputfolder}
+
+        {params.outputfolder}/runWorkflow.py -m local -j 20
+        """
+
+rule freebayes:
+    input:
+        ref= config["assembly"],
+        samples=["mapped/{samples}.merged.bam"],
+        bai = "mapped/{samples}.merged.bam.bai"
+    output:
+        "calls/freebayes/{samples}.gvcf"
+    log:
+        "logs/freebayes.{samples}.log"
+    conda:
+        "envs/freebayes.yaml"
+    params:
+        extra="--min-repeat-entropy 1 --gvcf",
+        chunksize=1000000,
+        mem="15000",
+        time="2-0"
+    threads: 10
+    script:
+        "scripts/freebayes_lift.py"
+
+rule haplotype_caller:
+    input:
+        # single or list of bam files
+        bam="mapped/{samples}.merged.bam",
+        bai = "mapped/{samples}.merged.bam.bai",
+        ref=config["assembly"]
+    output:
+        gvcf = "calls/gatk/{samples}.gvcf"
+    log:
+        "logs/gatk/{samples}.log",
+    params:
+        extra=f'{WKDIR}/TEMP',  # optional
+        java_opts="-j Xmx25G -j XX:+UseParallelGC -j XX:ParallelGCThreads=4",  # optional
+        mem="25000",
+        time="4-0",
+        outputbase="calls/gatk/{samples}"
+    threads: 21
+    resources:
+        mem_mb=4096
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/haplotypecaller.py -b {input.bam} -F {input.ref} -e {params.extra} {params.java_opts} -o {params.outputbase} -v {output.gvcf} -t {threads} 2> {log}
+        """
+
+rule bcfstats:
+    input:
+        expand("calls/{{callers}}/{samples}.gvcf", samples = SAMPLES)
+    output:
+        "final/{callers}.gvcf.stats"
+    log:
+        "logs/bcfstats.{callers}.log",
+    params:
+        mem="9000",
+        time="4:00:00",
+    threads: 10
+    shell:
+        """
+        bcftools stats --threads {threads} {input} > {output} 2> {log}
+        """
+
+
+rule gzip_gvcfs:
+    input:
+        "calls/{callers}/{samples}.gvcf"
+    output:
+        protected("calls/{callers}/{samples}.gvcf.gz")
+    threads: 1
+    params:
+        mem="1000",
+        time="2:00:00"
+    shell:
+        """
+        gzip {input}
+        """

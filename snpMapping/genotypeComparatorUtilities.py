@@ -44,7 +44,7 @@ class Genotype:
                 return '.'
             else:
                 return allele
-        elif re.search(r'^.\/.\:', allele):
+        elif re.search(r'^.\/.', allele):
             asegs = re.split(r'[:\/]', allele)
             var = 0
             for x in range(2):
@@ -57,9 +57,16 @@ class Genotype:
             return str(var)
         else:
             asegs = allele.split()
-            var = "".join(asegs)
-            if reverse:
-                var = "".join(revdict.get(base, base) for base in var)
+            var = 0
+            for a in asegs:
+                if a == self.marker.Ref:
+                    var += 1 if reverse else 0
+                elif a == self.marker.Alt:
+                    var += 0 if reverse else 1
+            
+            #var = "".join(asegs)
+            #if reverse:
+            #    var = "".join(revdict.get(base, base) for base in var)
             return var
         
     def isConcordant(self, genotype):
@@ -76,7 +83,8 @@ class GenotypeFactory:
         
         self.skip = set(skiplist)
         self.dsNameList = list()
-        self.individualSet = set()
+        self.individualSetA = set()
+        self.individualSetB = set()
         # Keys: dataset -> animal -> SNPID
         self.GenotypeKeys = defaultdict(lambda: defaultdict(dict))
         
@@ -111,7 +119,7 @@ class GenotypeFactory:
                 s = l.rstrip().split("\t")
                 if s[0] in self.skip:
                     continue
-                self.individualSet.add(s[0])
+                self.individualSetA.add(s[0])
                 
                 allele = ''
                 icount += 1
@@ -138,7 +146,7 @@ class GenotypeFactory:
             print(f'PED: Out of {icount} individuals, had an average of {msum / icount} markers per individual')
             
     # Load VCF entries assuming non phased encodings
-    def loadVCF(self, vcffile, dsName):
+    def loadVCF(self, vcffile, dsName, runReverse = False):
         self.dsNameList.append(dsName)
         icount = 0
         msum = 0
@@ -156,19 +164,31 @@ class GenotypeFactory:
                         if anim in self.skip:
                             skipCols.add(i + 9)
                         else:
-                            self.individualSet.add(anim)
+                            self.individualSetB.add(anim)
                     continue
                 s = l.rstrip().split()
                 coord = f'{s[0]}:{s[1]}'
                 if coord in self.MarkerByCoord:
                     msum += 1
                     m = self.MarkerByCoord[coord]
+                    rev = True if runReverse and m.reverse else False
                     for i in range(9, len(header)):
                         if i in skipCols:
                             continue
                         anim = header[i]
                         allele = s[i]
-                        g = Genotype(m, allele)
+                        g = Genotype(m, allele, reverse=rev)
+                        self.GenotypeKeys[dsName][anim][m.snpID] = g
+                elif s[2] in self.MarkerByID:
+                    msum += 1
+                    m = self.MarkerByID[s[2]]
+                    rev = True if runReverse and m.reverse else False
+                    for i in range(9, len(header)):
+                        if i in skipCols:
+                            continue
+                        anim = header[i]
+                        allele = s[i]
+                        g = Genotype(m, allele, reverse=rev)
                         self.GenotypeKeys[dsName][anim][m.snpID] = g
         print(f'VCF: Out of {icount} individuals, had an average of {msum / icount} markers per individual')
      
@@ -182,7 +202,7 @@ class GenotypeFactory:
         byanimal = defaultdict(list)
         
         # Prepare the contingency table and homozygote proportion                    
-        for anim in self.individualSet:
+        for anim in self.individualSetB:
             aHomCount = defaultdict(int)
             totCount = defaultdict(int)
             for m in self.MarkerList:                
@@ -193,11 +213,13 @@ class GenotypeFactory:
                     contingency[ds].append(gtype)
                     if gtype == "0" or gtype == "2":
                         aHomCount[ds] += 1
+                    else:
+                        aHomCount[ds] += 0
                     totCount[ds] += 1
             for d, v in aHomCount.items():
                 byanimal[f'{d}_hom'].append(v / totCount[d])
         
-        byanimal['Animal'].extend([x for x in self.individualSet])
+        byanimal['Animal'].extend([x for x in self.individualSetB])
         
         # Create contingency table
         dss = list(self.dsNameList)
