@@ -40,14 +40,12 @@ rule all:
     input:
         expand("calls/{callers}/{samples}.gvcf.gz",
             callers=CALLERS, samples = SAMPLES),
-        extrafiles,
-        'FinishedAggregate'
+        extrafiles
 
 rule freebayes_only:
     input:
         expand("calls/freebayes/{samples}.gvcf.gz", samples = SAMPLES),
-        extrafiles,
-        'FinishedAggregate'
+        extrafiles
 
 rule bwa_index:
     input:
