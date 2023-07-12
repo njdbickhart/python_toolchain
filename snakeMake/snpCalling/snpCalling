@@ -115,8 +115,6 @@ rule convert_to_cram:
     log:
         "logs/{samples}_cram.log"
     threads: 1
-    conda:
-        "envs/base.yml"
     params:
         mem= "9000",
         time= "4:00:00"
