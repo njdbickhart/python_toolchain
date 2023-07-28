@@ -15,7 +15,8 @@ config = {
 "ncbidb" : "/project/rumen_longread_metagenome_assembly/assemblies/protists/blob_ncbi.db",
 "checkm_dataroot": "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/checkmdb",
 "assemblies" : [
-"/project/rumen_longread_metagenome_assembly/assemblies/rumen_ccs/rumenccs.fasta"
+"/project/rumen_longread_metagenome_assembly/assemblies/rumen_ccs/rumenccs.fasta",
+"/project/rumen_longread_metagenome_assembly/assembly/protist/protist_100um/protistccs.fasta"
 ],
 "hifi" : "/project/rumen_longread_metagenome_assembly/sequence/rumen_CCS/cattle_rumen_CCS.fastq.gz",
 "bin3c" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/bin3C/bin3C.py",
@@ -50,7 +51,7 @@ rule all:
         "figures/contig_facet_cov_by_comp_scatter.pdf",
         "figures/contig_top80_cov_by_comp.pdf",
         "figures/contig_ridge_top95_coverage.pdf",
-        #"figures/summary_taxonomic_plot.pdf"
+        "figures/summary_taxonomic_plot.pdf"
 
 # Take configuration assemblies and softlink them
 rule link_assemblies:
@@ -439,7 +440,7 @@ def ctg_interlace(input):
 
 rule contig_cov_by_comp_plot:
     input:
-        comp = "tables/{assembly_group}.ctg_cov_by_comp.tab"
+        comp = expand("tables/{assembly_group}.ctg_cov_by_comp.tab", assembly_group=getAssemblyBaseName(config["assemblies"]))
     output:
         "figures/contig_facet_cov_by_comp_scatter.pdf",
         "figures/contig_top80_cov_by_comp.pdf",
@@ -497,7 +498,7 @@ rule binCovCompTable:
 
 rule binCovPlot:
     input:
-        comp = "tables/{assembly_group}.bin_cov_by_comp.tab"
+        comp = expand("tables/{assembly_group}.bin_cov_by_comp.tab", assembly_group=getAssemblyBaseName(config["assemblies"]))
     output:
         "figures/bin_facet_cov_by_comp_scatter.pdf",
         "figures/bin_top80_cov_by_comp.pdf",
