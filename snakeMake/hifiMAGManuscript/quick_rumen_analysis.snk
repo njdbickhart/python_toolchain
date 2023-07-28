@@ -50,7 +50,7 @@ rule all:
         "figures/contig_facet_cov_by_comp_scatter.pdf",
         "figures/contig_top80_cov_by_comp.pdf",
         "figures/contig_ridge_top95_coverage.pdf",
-        "figures/summary_taxonomic_plot.pdf"
+        #"figures/summary_taxonomic_plot.pdf"
 
 # Take configuration assemblies and softlink them
 rule link_assemblies:
