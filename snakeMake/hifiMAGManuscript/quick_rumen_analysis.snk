@@ -439,7 +439,7 @@ def ctg_interlace(input):
 
 rule contig_cov_by_comp_plot:
     input:
-        comp = expand("tables/{assembly_group}.ctg_cov_by_comp.tab", assembly_group=getAssemblyBaseName(config["assemblies"]))
+        comp = "tables/{assembly_group}.ctg_cov_by_comp.tab"
     output:
         "figures/contig_facet_cov_by_comp_scatter.pdf",
         "figures/contig_top80_cov_by_comp.pdf",
@@ -497,7 +497,7 @@ rule binCovCompTable:
 
 rule binCovPlot:
     input:
-        comp = expand("tables/{assembly_group}.bin_cov_by_comp.tab", assembly_group=getAssemblyBaseName(config["assemblies"]))
+        comp = "tables/{assembly_group}.bin_cov_by_comp.tab"
     output:
         "figures/bin_facet_cov_by_comp_scatter.pdf",
         "figures/bin_top80_cov_by_comp.pdf",
