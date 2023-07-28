@@ -262,7 +262,7 @@ rule blobtools_taxify:
 
 rule blobtools_cov:
     input:
-        bams = "mapping/{assembly_group}.ccs.bam"
+        bams = "mapping/{assembly_group}.ccs.bam",
         fasta = "assembly/{assembly_group}.fa"
     output:
         cov = "blobtools/{assembly_group}.bam.cov"
