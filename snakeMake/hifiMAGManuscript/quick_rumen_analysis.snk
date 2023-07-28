@@ -41,6 +41,7 @@ localrules: link_assemblies, modify_bin3c, separate_contigs, cov_by_comp_table
 
 wildcard_constraints:
     assembly_group = ".{1,7}ccs"
+
 rule all:
     input:
         #expand("mash/{assembly_group}.msh", assembly_group=getAssemblyBaseName(config["assemblies"])),
