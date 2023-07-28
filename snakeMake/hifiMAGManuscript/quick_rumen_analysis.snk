@@ -9,43 +9,21 @@ shell.executable("/usr/bin/bash")
 BINS = ["bin3c"]
 
 config = {
-"logdir" : "/lustre/project/forage_assemblies/sheep_project/complete_flye/clr3_rerun/logs",
-"diamonddb" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.diamond.dmnd",
-"diamondtaxid" : "/lustre/project/rumen_longread_metagenome_assembly/assemblies/protists/uniprot_ref_proteomes.taxids",
+"logdir" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/logs",
+"diamonddb" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/uniprot_ref_proteomes.diamond.dmnd",
+"diamondtaxid" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/uniprot_ref_proteomes.taxids",
 "ncbidb" : "/project/rumen_longread_metagenome_assembly/assemblies/protists/blob_ncbi.db",
-"checkm_dataroot": "/lustre//project/forage_assemblies/sheep_project/pipeline_test/checkmdb",
-"sourmash_gbk" : "/lustre/project/forage_assemblies/sheep_project/pipeline_test/sourdb/genbank-d2-k31.sbt.json",
+"checkm_dataroot": "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/checkmdb",
 "assemblies" : [
-"/lustre/project/forage_assemblies/sheep_project/complete_flye/flye4.contigs.fasta",
-"/lustre/project/forage_assemblies/sheep_project/complete_flye/clr1.contigs.fasta",
-"/lustre/project/forage_assemblies/sheep_project/complete_flye/clr2.contigs.fasta",
-"/lustre/project/rumen_longread_metagenome_assembly/assemblies/sheep/clr3.contigs.fasta"
+"/project/rumen_longread_metagenome_assembly/assemblies/rumen_ccs/rumenccs.fasta"
 ],
-"samples" : {
-"Lib101_L1" : [
-      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L001_R1_001.fastq.gz",
-      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L001_R2_001.fastq.gz"
-    ],
-    "Lib101_L2" : [
-      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L002_R1_001.fastq.gz",
-      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L002_R2_001.fastq.gz"
-    ],
-    "Lib101_L3" : [
-      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L003_R1_001.fastq.gz",
-      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L003_R2_001.fastq.gz"
-    ],
-    "Lib101_L4" : [
-      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L004_R1_001.fastq.gz",
-      "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/illumina_wgs/LIB101996_S4_L004_R2_001.fastq.gz"
-    ]
-},
-"hifi" : "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/sheep_poop_sequel_combined_CCS.fasta.gz",
-"bin3c" : "/lustre/project/forage_assemblies/sheep_project/bin3C/bin3C.py",
-"blobtools" : "/lustre/project/forage_assemblies/sheep_project/blobtools/blobtools",
+"hifi" : "/project/rumen_longread_metagenome_assembly/sequence/rumen_CCS/cattle_rumen_CCS.fastq.gz",
+"bin3c" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/bin3C/bin3C.py",
+"blobtools" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/blobtools/blobtools",
 "hic" : {
 "Sau3AI" : [
-  "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/hic_data/Smith_Sheep_63_HC_S2_L001_R1_001.fastq.gz",
-  "/lustre/project/rumen_longread_metagenome_assembly/sheep_poop/hic_data/Smith_Sheep_63_HC_S2_L001_R2_001.fastq.gz"
+  "/project/rumen_longread_metagenome_assembly/sequence/protist_hic/rumen_7201_qc_S3HiC_R1.fastq.gz",
+  "/project/rumen_longread_metagenome_assembly/sequence/protist_hic/rumen_7201_qc_S3HiC_R2.fastq.gz"
 ]
 }
 }
@@ -105,30 +83,6 @@ rule bwa_index:
         samtools faidx {input} 2> {log}
         """
 
-rule bwa_mem:
-    input:
-        amb = "assembly/{assembly_group}.fa.amb",
-        ann = "assembly/{assembly_group}.fa.ann",
-        bwt = "assembly/{assembly_group}.fa.bwt",
-        pac = "assembly/{assembly_group}.fa.pac",
-        sa = "assembly/{assembly_group}.fa.sa",
-        reference = "assembly/{assembly_group}.fa",
-        r1 = lambda wildcards: config["samples"][wildcards.sample][0],
-        r2 = lambda wildcards: config["samples"][wildcards.sample][1],
-    output:
-        "mapping/{assembly_group}/{sample}.bam"
-    log:
-        config['logdir'] + "/bwa/{assembly_group}_{sample}.log"
-    params:
-        extra="",
-        #pipe_cmd = "samtools sort -o {output} -",
-        threads = 8
-    conda:
-        "envs/overall.yaml"
-    shell:
-        """
-        bwa mem -t {params.threads} {params.extra} {input.reference} {input.r1} {input.r2} | samtools sort -o {output} - >> {log} 2>&1
-        """
 
 rule ccs_align:
     input:
@@ -147,17 +101,6 @@ rule ccs_align:
         samtools index {output}
         """
 
-rule create_bam_index:
-    input:
-        "mapping/{assembly_group}/{file}.bam"
-    output:
-        "mapping/{assembly_group}/{file}.bam.bai"
-    threads:
-        1
-    conda:
-        "envs/overall.yaml"
-    shell:
-        "samtools index {input}"
 
 rule align_hic:
     input:
@@ -181,6 +124,7 @@ rule align_hic:
         bwa mem -t {threads} -5SP {input.reference} {input.r1} {input.r2} | \
         samtools view -F 0x904 -bS - | \
         samtools sort -o {output} -n - 2> {log}
+        samtools index {output}
         """
 
 rule bin3c_contact:
@@ -318,11 +262,10 @@ rule blobtools_taxify:
 
 rule blobtools_cov:
     input:
-        bams = "mapping/{assembly_group}/{sample}.bam",
-        bais = "mapping/{assembly_group}/{sample}.bam.bai",
+        bams = "mapping/{assembly_group}.ccs.bam"
         fasta = "assembly/{assembly_group}.fa"
     output:
-        cov = "blobtools/{assembly_group}.{sample}.bam.cov"
+        cov = "blobtools/{assembly_group}.bam.cov"
     params:
         outbase = "blobtools/{assembly_group}",
         blobtools = config['blobtools']
@@ -339,12 +282,12 @@ def getCovStr(covs):
 rule blobtools_create:
     input:
         contigs = "assembly/{assembly_group}.fa",
-        covs = expand("blobtools/{{assembly_group}}.{sample}.bam.cov",  sample=config["samples"]),
+        covs = "blobtools/{assembly_group}.bam.cov",
         tax = "blobtools/taxify.{assembly_group}.diamondout.tsv.taxified.out"
     output:
         blobdb = "blobtools/{assembly_group}.blobDB.json"
     params:
-        cstr = getCovStr(expand("blobtools/{{assembly_group}}.{sample}.bam.cov",  sample=config["samples"])),
+        cstr = getCovStr("blobtools/{assembly_group}.bam.cov"),
         outpre = "blobtools/{assembly_group}",
         db = config["ncbidb"],
         blobtools = config['blobtools']
