@@ -7,7 +7,16 @@ import numpy as np
 usage = f'python3 {sys.argv[0]} <input bam> <min coverage thresh> <sample name> <output stats>'
 
 def get_chromosomes_names(input):
-
+    """
+    Get the names of the chromosomes from an input bam file
+    -----
+    Parameters :
+        input: (str) name of the bam file
+    -----
+    Returns :
+        list: (str) chromosome names
+        list: (int) chromosome sizes 
+    """
     # opening the bam file with pysam
     bamfile = pysam.AlignmentFile(input, 'rb')
     # query all the names of  the chromosomes in a list
