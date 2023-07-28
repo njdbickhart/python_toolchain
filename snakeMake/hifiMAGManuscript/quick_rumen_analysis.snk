@@ -98,7 +98,7 @@ rule ccs_align:
         "envs/overall.yaml"
     shell:
         """
-        minimap2 -ax asm20 -R '@RG\tID:CCS\tSM:CCS' {input.reference} {input.reads} | samtools sort -T {params.temp} -o {output} -
+        minimap2 -ax asm20 -R '@RG\\tID:CCS\\tSM:CCS' {input.reference} {input.reads} | samtools sort -T {params.temp} -o {output} -
         samtools index {output}
         """
 
