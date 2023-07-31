@@ -125,7 +125,7 @@ rule align_hic:
         bwa mem -t {threads} -5SP {input.reference} {input.r1} {input.r2} | \
         samtools view -F 0x904 -bS - | \
         samtools sort -o {output} -n - 2> {log}
-        samtools index {output}
+
         """
 
 rule bin3c_contact:
@@ -254,11 +254,13 @@ rule blobtools_taxify:
         tax = config['diamondtaxid'],
         blobtools = config['blobtools'],
         outbase = "blobtools/taxify"
+    log:
+        "logs/{assembly_group}.blobtools_taxify.out"
     conda:
         "envs/overall.yaml"
     shell:
         """
-        {params.blobtools} taxify -f {input} -m {params.tax} -s 0 -t 2 -o {params.outbase}
+        {params.blobtools} taxify -f {input} -m {params.tax} -s 0 -t 2 -o {params.outbase} 2> {log}
         """
 
 rule blobtools_cov:
@@ -272,9 +274,11 @@ rule blobtools_cov:
         blobtools = config['blobtools']
     conda:
         "envs/overall.yaml"
+    log:
+        "logs/{assembly_group}.blobtools_cov.out"
     shell:
         """
-        {params.blobtools} map2cov -i {input.fasta} -b {input.bams} -o {params.outbase}
+        {params.blobtools} map2cov -i {input.fasta} -b {input.bams} -o {params.outbase} 2> {log}
         """
 
 def getCovStr(covs):
