@@ -3,6 +3,7 @@ import os
 import json
 import logging
 import glob
+import re
 from collections import defaultdict
 from snakemake import shell
 
@@ -17,8 +18,33 @@ logging.basicConfig(filename=sys.argv[4], encoding='utf-8', level=logging.DEBUG)
 # load configfile
 config = json.load(open(sys.argv[1], 'r'))
 
+pairingre = re.compile(r'(^.+)_(R.)_(.+)\..+')
+class readpairer:
+    def __init__(self, file):
+        self.path = file
+        self.base = os.path.basename(file)
+
+    def get_id(self):
+        m = re.search(pairingre, self.base)
+        return (m.group(1), m.group(2), m.group(3))
+
+def associate_paired_read_files(input):
+    sorter = defaultdict(lambda: defaultdict(list))
+    for x in input:
+        t = readpairer(x)
+        (id, rp, num) = t.get_id()
+        sorter[id][num].append(t)
+
+    final = []
+    for i, d in sorter.items():
+        for n, f in d.items():
+            l = [x.path for x in f]
+            l.sort()
+            final.append([l[0], l[1]])
+    return final
+
 # Get the sample name
-sampleFQs = config["samples"].get(sys.argv[2], [])
+sampleFQs = associate_paired_read_files(config["samples"].get(sys.argv[2], []))
 if len(sampleFQs) == 0:
     logging.error(f'Could not find any fastqs for sample {sys.argv[2]}!')
     sys.exit(-1)
