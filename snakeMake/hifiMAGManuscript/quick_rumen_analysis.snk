@@ -377,7 +377,7 @@ rule separate_contigs:
                 chrs[s[0]] = int(s[1])
         chrs = {k: v for k, v in sorted(chrs.items(), key=lambda item: item[1])}
         for k in chrs.keys():
-            shell(f'samtools faidx {input[0]} {s[0]} > {output[0]}/{s[0]}.fasta')
+            shell(f'samtools faidx {input[0]} {k} > {output[0]}/{k}.fasta')
             count += 1
             if count >= 1000:
                 break
