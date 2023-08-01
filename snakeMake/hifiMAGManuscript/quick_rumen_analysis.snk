@@ -142,7 +142,7 @@ rule bin3c_contact:
         bin3c = config["bin3c"]
     shell:
         """
-        python2 {params.bin3c} mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
+        python {params.bin3c} mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
         """
 
 
@@ -160,7 +160,7 @@ rule bin3c_cluster:
         "envs/bin3c.yaml"
     shell:
         """
-        python2 {params.bin3c} cluster --no-plot -v {input}/contact_map.p.gz {params.outfolder}
+        python {params.bin3c} cluster --no-plot -v {input}/contact_map.p.gz {params.outfolder}
         mv {params.outfolder}/clustering.mcl {params.realout}/
         rm -r {params.outfolder}
         """
