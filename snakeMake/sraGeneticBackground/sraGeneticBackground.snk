@@ -57,7 +57,7 @@ rule download_paired:
         temp("fastas/{paired}_2.fastq")
     params:
         download_folder = "fastas",
-        mem="6000",
+        mem="9000",
         time="1-0"
     threads: 3
     conda:
