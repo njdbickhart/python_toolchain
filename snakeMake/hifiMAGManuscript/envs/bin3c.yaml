@@ -20,3 +20,4 @@ dependencies:
     - sparse
     - tqdm
     - typing
+    - decorator=4.2.1
