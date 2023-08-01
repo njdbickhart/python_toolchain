@@ -21,6 +21,7 @@ config = {
 "hifi" : "/project/rumen_longread_metagenome_assembly/sequence/rumen_CCS/cattle_rumen_CCS.fastq.gz",
 "bin3c" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/bin3C/bin3C.py",
 "blobtools" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/blobtools/blobtools",
+"hicbin" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/HiCBin/hicbin.py",
 "hic" : {
 "Sau3AI" : [
   "/project/rumen_longread_metagenome_assembly/sequence/protist_hic/rumen_7201_qc_S3HiC_R1.fastq.gz",
@@ -52,6 +53,13 @@ rule all:
         "figures/contig_top80_cov_by_comp.pdf",
         "figures/contig_ridge_top95_coverage.pdf",
         "figures/summary_taxonomic_plot.pdf"
+
+rule blob_only:
+    input:
+        "figures/summary_taxonomic_plot.pdf",
+        "figures/contig_facet_cov_by_comp_scatter.pdf",
+        "figures/contig_top80_cov_by_comp.pdf",
+        "figures/contig_ridge_top95_coverage.pdf"
 
 # Take configuration assemblies and softlink them
 rule link_assemblies:
@@ -127,6 +135,24 @@ rule align_hic:
         samtools sort -o {output} -n - 2> {log}
 
         """
+
+rule jgi_depth:
+    input:
+        "mapping/{assembly_group}/hic/hic_{enzyme}.bam"
+    output:
+        depth = "mapping/{assembly_group}.{enzyme}.depth.txt",
+        paired = "mapping/{assembly_group}.{enzyme}.paired.txt"
+    threads: 1
+    conda:
+        "envs/metabat2.yaml"
+    log:
+        config['logdir'] + "/assembly_group}.{enzyme}.jgidepth.log"
+    shell:
+        """
+        jgi_summarize_bam_contig_depths --outputDepth {output.depth} --pairedContigs {output.paired} {input} 2> {log}
+        """
+
+
 
 rule bin3c_contact:
     input:
@@ -271,7 +297,8 @@ rule blobtools_cov:
         cov = "blobtools/{assembly_group}.bam.cov"
     params:
         outbase = "blobtools/{assembly_group}",
-        blobtools = config['blobtools']
+        blobtools = config['blobtools'],
+        tempout = "blobtools/{assembly_group}.{assembly_group}.ccs.bam.cov"
     conda:
         "envs/overall.yaml"
     log:
@@ -279,6 +306,7 @@ rule blobtools_cov:
     shell:
         """
         python {params.blobtools} map2cov -i {input.fasta} -b {input.bams} -o {params.outbase} 2> {log}
+        mv {params.tempout} {output.cov}
         """
 
 def getCovStr(covs):
@@ -375,11 +403,11 @@ rule separate_contigs:
             for l in fai:
                 s = l.rstrip().split()
                 chrs[s[0]] = int(s[1])
-        chrs = {k: v for k, v in sorted(chrs.items(), key=lambda item: item[1])}
+        chrs = {k: v for k, v in sorted(chrs.items(), reverse=True, key=lambda item: item[1])}
         for k in chrs.keys():
             shell(f'samtools faidx {input[0]} {k} > {output[0]}/{k}.fasta')
             count += 1
-            if count >= 1000:
+            if count >= 2000:
                 break
 
 rule checkm_contigs:
