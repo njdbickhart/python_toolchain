@@ -30,10 +30,13 @@ class readpairer:
 
 def associate_paired_read_files(input):
     sorter = defaultdict(lambda: defaultdict(list))
+    if len(input) < 1:
+        return input
     for x in input:
-        t = readpairer(x)
-        (id, rp, num) = t.get_id()
-        sorter[id][num].append(t)
+        for y in x:
+            t = readpairer(y)
+            (id, rp, num) = t.get_id()
+            sorter[id][num].append(t)
 
     final = []
     for i, d in sorter.items():
