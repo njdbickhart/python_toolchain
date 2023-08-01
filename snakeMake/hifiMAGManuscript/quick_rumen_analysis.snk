@@ -320,7 +320,7 @@ rule blobtools_create:
     output:
         blobdb = "blobtools/{assembly_group}.blobDB.json"
     params:
-        cstr = getCovStr("blobtools/{assembly_group}.bam.cov"),
+        cstr = "-c " + "blobtools/{assembly_group}.bam.cov",
         outpre = "blobtools/{assembly_group}",
         db = config["ncbidb"],
         blobtools = config['blobtools']
