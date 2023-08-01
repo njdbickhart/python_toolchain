@@ -260,7 +260,7 @@ rule blobtools_taxify:
         "envs/overall.yaml"
     shell:
         """
-        {params.blobtools} taxify -f {input} -m {params.tax} -s 0 -t 2 -o {params.outbase} 2> {log}
+        python {params.blobtools} taxify -f {input} -m {params.tax} -s 0 -t 2 -o {params.outbase} 2> {log}
         """
 
 rule blobtools_cov:
@@ -278,7 +278,7 @@ rule blobtools_cov:
         "logs/{assembly_group}.blobtools_cov.out"
     shell:
         """
-        {params.blobtools} map2cov -i {input.fasta} -b {input.bams} -o {params.outbase} 2> {log}
+        python {params.blobtools} map2cov -i {input.fasta} -b {input.bams} -o {params.outbase} 2> {log}
         """
 
 def getCovStr(covs):
@@ -301,7 +301,7 @@ rule blobtools_create:
     shell:
         """
         echo "using {params.cstr}"
-        {params.blobtools} create -i {input.contigs} {params.cstr} -t {input.tax} -o {params.outpre} --db {params.db}
+        python {params.blobtools} create -i {input.contigs} {params.cstr} -t {input.tax} -o {params.outpre} --db {params.db}
         """
 
 rule blobtools_viewplot:
@@ -317,10 +317,10 @@ rule blobtools_viewplot:
         "envs/overall.yaml"
     shell:
         """
-        {params.blobtools} plot -i {input.blobdb} --notitle --format pdf -r superkingdom -o blobtools/supkingdom
-        {params.blobtools} plot -i {input.blobdb} --notitle --format pdf -r phylum -o blobtools/phylum
+        python {params.blobtools} plot -i {input.blobdb} --notitle --format pdf -r superkingdom -o blobtools/supkingdom
+        python {params.blobtools} plot -i {input.blobdb} --notitle --format pdf -r phylum -o blobtools/phylum
 
-        {params.blobtools} view -i {input.blobdb} -o blobtools/table -r all
+        python {params.blobtools} view -i {input.blobdb} -o blobtools/table -r all
         """
 
 rule blobtab_condense:
