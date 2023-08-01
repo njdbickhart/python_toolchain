@@ -146,7 +146,7 @@ rule jgi_depth:
     conda:
         "envs/metabat2.yaml"
     log:
-        config['logdir'] + "/assembly_group}.{enzyme}.jgidepth.log"
+        config['logdir'] + "/{assembly_group}.{enzyme}.jgidepth.log"
     shell:
         """
         jgi_summarize_bam_contig_depths --outputDepth {output.depth} --pairedContigs {output.paired} {input} 2> {log}
