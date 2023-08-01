@@ -142,7 +142,7 @@ rule bin3c_contact:
         bin3c = config["bin3c"]
     shell:
         """
-        {params.bin3c} mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
+        python2 {params.bin3c} mkmap -e {params.enzyme} -v {input.reference} {input.bam} {output}
         """
 
 
