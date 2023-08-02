@@ -48,7 +48,7 @@ def iq_values(ax):
     'q3' : r['Q75'], 'whishi' : r['Q75'] * 1.5, 'fliers' : []} for i, r in df.iterrows()]
     #df[["SNAME", "Q25", "Median", "Q75"]].plot(x= "SNAME", ax=ax)
 
-    ax.set_xticks(ax.get_xticks(), ax.get_xticklabels(), rotation=45, ha='right')
+    ax.set_xticks(ax.get_xticks(), ax.get_xticklabels())
     ax.yaxis.set_major_formatter(FuncFormatter(number_formatter))
     ax.bxp(boxes, showfliers=False)
     ax.set_xlabel("")
@@ -115,7 +115,7 @@ ax = axis[3,0]
 heatmap_plot(ax, axis[3,1])
 
 fig.set_size_inches(21,12)
-fig.tight_layout()
+#fig.tight_layout()
 
 plt.savefig(sys.argv[2])
 
