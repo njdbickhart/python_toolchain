@@ -96,7 +96,7 @@ for i in ('sub15', 'sub30', 'gt30'):
 
 print(df)
 
-(fig, axis) = plt.subplots(ncols=2, nrows=4, sharex='col', gridspec_kw={'width_ratios' : [100, 1]})
+(fig, axis) = plt.subplots(ncols=2, nrows=4, sharex='col', constrained_layout=True, gridspec_kw={'width_ratios' : [100, 1]})
 
 axis[0,1].remove()
 axis[1,1].remove()
