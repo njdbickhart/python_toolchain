@@ -50,7 +50,7 @@ def iq_values(ax):
 
     ax.set_xticks(ax.get_xticks(), ax.get_xticklabels(), rotation=45, ha='right')
     ax.yaxis.set_major_formatter(FuncFormatter(number_formatter))
-    ax.bxp(boxes, showfliers=False)
+    ax.bxp(boxes, positions=[x for x in range(len(ax.get_xticks()))], showfliers=False)
     ax.set_xlabel("")
 
 def cov_plot(ax):
