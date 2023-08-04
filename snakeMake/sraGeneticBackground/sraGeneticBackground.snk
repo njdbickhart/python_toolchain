@@ -158,7 +158,7 @@ rule aggregate_reads:
     conda:
         "envs/base.yaml"
     params:
-        mem = "9000",
+        mem = "10000",
         sname = "{samples}",
         config = "default.json",
         fastdir = "fastas",
