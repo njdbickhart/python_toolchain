@@ -15,7 +15,8 @@ config = {
 "ncbidb" : "/project/rumen_longread_metagenome_assembly/assemblies/protists/blob_ncbi.db",
 "checkm_dataroot": "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/checkmdb",
 "assemblies" : [
-"/project/rumen_longread_metagenome_assembly/assemblies/rumen_ccs/rumenccs.fasta",
+"/project/rumen_longread_metagenome_assembly/assemblies/rumen_ccs/flyerumenccs.fasta",
+"/project/rumen_longread_metagenome_assembly/assembly/hifiasmrumenccs.fasta",
 "/project/rumen_longread_metagenome_assembly/assembly/protist/protist_100um/protistccs.fasta"
 ],
 "hifi" : "/project/rumen_longread_metagenome_assembly/sequence/rumen_CCS/cattle_rumen_CCS.fastq.gz",
@@ -41,7 +42,7 @@ def getAssemblyBaseName(files):
 localrules: link_assemblies, modify_bin3c, separate_contigs, cov_by_comp_table
 
 wildcard_constraints:
-    assembly_group = ".{1,7}ccs"
+    assembly_group = ".{1,14}ccs"
 
 rule all:
     input:
