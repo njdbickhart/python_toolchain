@@ -1,6 +1,7 @@
 # This script is designed to run on a samtools indexed fai file
 import numpy as np
 import sys
+import os
 #from collections import defaultdict
 
 if len(sys.argv) < 2:
@@ -8,11 +9,13 @@ if len(sys.argv) < 2:
     sys.exit(-1)
 
 
-print("File\tCount\tSum\tMean\tMedian\tStdev\tContigN50\tMax\tMin")
+print("File\tCount\tOver1Mbp\tSum\tMean\tMedian\tStdev\tContigN50\tMax\tMin")
 files = sys.argv[1:]
 for f in files:
-    sample = f
+    sample = os.path.basename(f)
     sizes = list()
+
+    over1mp = 0
 
     # Now read file and store fasta length lists
     with open(f, 'r') as input:
@@ -20,6 +23,8 @@ for f in files:
             l = l.rstrip()
             lsegs = l.split()
             sizes.append(int(lsegs[1]))
+            if int(lsegs[1]) > 1000000:
+                over1mp += 1
 
     sizes.sort(reverse=True)
 
@@ -39,4 +44,4 @@ for f in files:
 
     n50 = sizes[int(c50idx[0])]
 
-    print(f'{sample}\t{count}\t{sum}\t{mean:.2f}\t{median:.2f}\t{stdev:.2f}\t{n50}\t{maximum}\t{minimum}')
+    print(f'{sample}\t{count}\t{over1mp}\t{sum}\t{mean:.2f}\t{median:.2f}\t{stdev:.2f}\t{n50}\t{maximum}\t{minimum}')
