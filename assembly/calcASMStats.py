@@ -24,8 +24,8 @@ for f in files:
     sizes.sort(reverse=True)
 
     # Calculate stats and print
-    max = np.max(sizes)
-    min = np.min(sizes)
+    maximum = np.max(sizes)
+    minimum = np.min(sizes)
     count = len(sizes)
     sum = np.sum(sizes) if count > 0 else 0
     mean = np.mean(sizes) if count > 0 else 0
@@ -39,4 +39,4 @@ for f in files:
 
     n50 = sizes[int(c50idx[0])]
 
-    print(f'{sample}\t{count}\t{sum}\t{mean:.2f}\t{median:.2f}\t{stdev:.2f}\t{n50}\t{max}\t{min}')
+    print(f'{sample}\t{count}\t{sum}\t{mean:.2f}\t{median:.2f}\t{stdev:.2f}\t{n50}\t{maximum}\t{minimum}')
