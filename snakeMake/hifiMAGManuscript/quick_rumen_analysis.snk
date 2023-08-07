@@ -12,7 +12,7 @@ config = {
 "logdir" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/logs",
 "diamonddb" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/uniprot_ref_proteomes.diamond.dmnd",
 "diamondtaxid" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/uniprot_ref_proteomes.taxids",
-"ncbidb" : "/project/rumen_longread_metagenome_assembly/assemblies/protists/blob_ncbi.db",
+"ncbidb" : "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/blob_ncbi.db",
 "checkm_dataroot": "/project/rumen_longread_metagenome_assembly/analysis/rumen_ccs/checkmdb",
 "assemblies" : [
 "/project/rumen_longread_metagenome_assembly/assemblies/rumen_ccs/flyerumenccs.fasta",
