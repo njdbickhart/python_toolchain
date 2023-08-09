@@ -23,7 +23,7 @@
 
   "ccs_align":
   {
-    "mem" : "15000",
+    "mem" : "35000",
     "ntasks-per-node" : "{threads}",
   },
 
