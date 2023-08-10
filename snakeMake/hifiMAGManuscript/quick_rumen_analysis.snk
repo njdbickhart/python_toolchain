@@ -337,8 +337,8 @@ rule blobtools_viewplot:
     input:
         blobdb = "blobtools/{assembly_group}.blobDB.json"
     output:
-        supplot = "blobtools/supkingdom.{assembly_group}.blobDB.json.bestsum.superkingdom.p8.span.100.blobplot.covsum.pdf",
-        phylumplot = "blobtools/phylum.{assembly_group}.blobDB.json.bestsum.phylum.p8.span.100.blobplot.covsum.pdf",
+        #supplot = "blobtools/supkingdom.{assembly_group}.blobDB.json.bestsum.superkingdom.p8.span.100.blobplot.cov0.pdf",
+        #phylumplot = "blobtools/phylum.{assembly_group}.blobDB.json.bestsum.phylum.p8.span.100.blobplot.cov0.pdf",
         table = "blobtools/table.{assembly_group}.blobDB.table.txt"
     params:
         blobtools = config['blobtools']
