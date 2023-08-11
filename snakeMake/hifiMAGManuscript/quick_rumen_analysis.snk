@@ -456,7 +456,7 @@ rule cov_by_comp_table:
                 if l.startswith('#'):
                     s = l.rstrip().split('\t')
                     for i, x in enumerate(s):
-                        if x == "cov_sum":
+                        if x == "cov0":
                             covidx = i
                             break
                 s = l.rstrip().split('\t')
