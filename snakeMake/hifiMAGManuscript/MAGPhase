@@ -51,6 +51,7 @@ rule filterBam:
         filtidx = "mapping/assembly.filtered.bam.bai"
     log:
         "logs/filterBam.out"
+    threads: 2
     params:
         script = magphaseloc + "sequence/filter_bam_by_coverage.py",
         cov = "0.9",
@@ -73,6 +74,7 @@ rule MAGPhase:
         read = "phase/{asm}/{asm}.{ext}.human_readable_by_read.txt"
     log:
         "logs/{asm}/MAGPhase.{asm}.{ext}.out"
+    threads: 4
     params:
         bhFDR = "0.01",
         outname = "phase/{asm}/{asm}.{ext}",
@@ -91,6 +93,7 @@ rule MergeMAGPhase:
         long = "consolidate/{asm}/{asm}.{ext}.long"
     log:
         "logs/{asm}/MergeMAGPhase.{asm}.{ext}.out"
+    threads: 2
     params:
         folder = "phase/{asm}/",
         prefix = "{asm}.{ext}",
