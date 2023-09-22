@@ -147,7 +147,7 @@ rule finished_aggregate:
 
 rule aggregate_reads:
     input:
-        sample = "mapped/{samples}",
+        sample = ancient("mapped/{samples}"),
         reference = config["assembly"]
     output:
         temp("mapped/{samples}.merged.bam"),
@@ -158,7 +158,7 @@ rule aggregate_reads:
     conda:
         "envs/base.yaml"
     params:
-        mem = "21000",
+        mem = "30000",
         sname = "{samples}",
         config = "default.json",
         fastdir = "fastas",
@@ -170,8 +170,8 @@ rule aggregate_reads:
 
 rule get_bam_stats:
     input:
-        bam = "mapped/{samples}.merged.bam",
-        bai = "mapped/{samples}.merged.bam.bai",
+        bam = ancient("mapped/{samples}.merged.bam"),
+        bai = ancient("mapped/{samples}.merged.bam.bai"),
         reference = config["assembly"],
         fai = "Indexed",
     output:
@@ -180,7 +180,7 @@ rule get_bam_stats:
         "logs/{samples}_stats.log"
     threads: 2
     params:
-        mem = "5000",
+        mem = "9000",
         sname = "{samples}",
         threshold = 4,
         time="2:00:00"
@@ -238,7 +238,7 @@ rule strelka:
 rule freebayes:
     input:
         ref= config["assembly"],
-        samples=["mapped/{samples}.merged.bam"],
+        samples= ["mapped/{samples}.merged.bam"],
         bai = "mapped/{samples}.merged.bam.bai"
     output:
         "calls/freebayes/{samples}.gvcf"

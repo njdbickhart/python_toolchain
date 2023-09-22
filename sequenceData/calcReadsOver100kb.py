@@ -1,7 +1,7 @@
 import os
 import sys
 import numpy as np
-import contextlib
+import gzip
 
 def fastq_reader_fh(infile):
     name = infile.readline().rstrip()
@@ -25,23 +25,19 @@ def fastq_reader_fh(infile):
             yield name, seq, qual
             return
 
-@contextlib.contextmanager
+
 def smartFile(filename : str, mode : str = 'r'):
-    if filename == 'stdin' or filename == 'stdout':
-        if filename == 'stdin':
-            fh = sys.stdin
-        else:
-            fh = sys.stdout
+    fh = None
+    if filename.endswith('.gz') and mode == 'r':
+        fh = gzip.open(filename, mode='rt')
+    elif filename.endswith('.gz') and mode == 'w':
+        fh = gzip.open(filename, mode='wt')
     else:
         fh = open(filename, mode)
-    try:
-        yield fh
-    finally:
-        if filename != 'stdin' and filename != 'stdout':
-            fh.close()
+    return fh
 
 if len(sys.argv) < 2:
-    print("Usage = python3 calcReadsOver100kb.py <input fastq file or 'stdin' [can use wildcards for bulk processing]>")
+    print("Usage = python3 calcReadsOver100kb.py <input fastq files or fastq.gz>")
     # If the number of input arguments is less than 1, exit the program
     sys.exit()
 
