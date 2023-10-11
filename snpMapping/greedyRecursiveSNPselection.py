@@ -380,28 +380,25 @@ class chrIdeogramPlot:
 
         qvals = np.quantile(density, (0.0, 0.25, 0.75, 0.95, 1.0))
         print(f'Quartiles: {qvals}')
-        qcols = ['#EAF2F8','#EAF2F8', '#E2E73C', '#E74C3C']
+        qcols = ['#FFFFFF','#EAF2F8', '#6BE73C', '#E2E73C', '#E74C3C']
 
         ## TODO rewrite!
-        with open(args.bed, 'w') as bed:
-            for c, l in window.items():
-                for j, v in enumerate(l):
-                    gtable['chrom'].append(c)
-                    gtable['start'].append(j * winsize)
-                    gtable['end'].append((j * winsize) + winsize)
-                    color = '#EAF2F8'
-                    for i, q in enumerate(qvals):
-                        if i == 0:
-                            continue
-                        if v <= int(qvals[i]) and v >= int(qvals[i-1]):
-                            color = qcols[i-1]
-                        if i == len(qvals) - 1:
-                            # The last quartile range
-                            start = j * winsize
-                            end = start + winsize
-                            bed.write(f'{c}\t{start}\t{end}\t{v}\n')
-                    gtable['colors'].append(color)
-        return gtable
+        for c, l in window.items():
+            for j, v in enumerate(l):
+                gtable['chrom'].append(c)
+                gtable['start'].append(j * winsize)
+                gtable['end'].append((j * winsize) + winsize)
+                color = '#FFFFFF'
+                for i, q in enumerate(qvals):
+                    if i == 0:
+                        continue
+                    elif v == 0:
+                        break
+                    elif v <= int(qvals[i]) and v >= int(qvals[i-1]):
+                        color = qcols[i]
+                        break
+                gtable['colors'].append(color)
+        return pd.DataFrame(gtable)
 
     def straight_segment_df(self, bedsegs, colors = None):
         gtable = defaultdict(list)
