@@ -290,5 +290,5 @@ rule gzip_gvcfs:
         time="2:00:00"
     shell:
         """
-        bggzip {input}
+        bgzip {input}
         """
