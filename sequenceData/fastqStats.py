@@ -159,7 +159,7 @@ def plot_length_binned(ax, df, num_bins = 1000):
     ax.set_xlabel("Lengths")
     ax.set_ylabel("Count (Log)")
     ax.hist(df.seq_length, num_bins)
-    ax.set_yscale('log', nonposy='clip')
+    ax.set_yscale('log')
     xlabel_pos_right(ax)
 
 def plot_length_percentile(ax, df, percentile=80):
@@ -168,7 +168,7 @@ def plot_length_percentile(ax, df, percentile=80):
     ax.set_title("Histogram of Sequence Lengths from 0 to " + str(cutoff) + " (" + str(percentile) + "%ile) in " + str(num_bins) + " bins", loc="left")
     ax.set_xlabel("Length")
     ax.set_ylabel("Count (Log)")
-    ax.set_yscale('log', nonposy='clip')
+    ax.set_yscale('log')
     xlabel_pos_right(ax)
     ax.hist(df.seq_length, num_bins, range=(0,cutoff))
 
