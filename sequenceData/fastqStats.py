@@ -150,9 +150,9 @@ def plot_nt_content(ax, df):
     s = np.sum((nt['A'], nt['T'], nt['G'], nt['C'], nt['U']))
     for k,v in nt.items(): nt[k] = (v / s) * 100
     if nt['U'] > 0:
-        sns.barplot(['G', 'C', 'A', 'U'], [nt['G'], nt['C'], nt['A'], nt['U']], ax=ax)
+        sns.barplot(x=['G', 'C', 'A', 'U'], y=[nt['G'], nt['C'], nt['A'], nt['U']], ax=ax)
     else:
-        sns.barplot(['G', 'C', 'A', 'T'], [nt['G'], nt['C'], nt['A'], nt['T']], ax=ax)
+        sns.barplot(x=['G', 'C', 'A', 'T'], y=[nt['G'], nt['C'], nt['A'], nt['T']], ax=ax)
 
 def plot_length_binned(ax, df, num_bins = 1000):
     ax.set_title("Histogram of sequence lengths 1000 bins", loc="left")
