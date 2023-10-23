@@ -37,8 +37,9 @@ def main(args):
     conversion = dict()
     if len(args.chr) > 0:
         modchr = True
-        for o, n in args.chr.split(','):
-            conversion[o] = n
+        for c in args.chr:
+            for o, n in c.split(','):
+                conversion[o] = n
 
     # open the VCF and start processing
     fh = smartFile(args.file)
@@ -57,7 +58,8 @@ def main(args):
                 s = l.rstrip().split()
                 if s[4] == '<*>':
                     continue
-                out.write(l)
+                s[0] = conversion.get(s[0], s[0])
+                out.write('\t'.join(s) + '\n')
 
     fh.close()
 
