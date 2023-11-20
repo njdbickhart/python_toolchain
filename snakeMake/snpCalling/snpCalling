@@ -190,6 +190,31 @@ rule strelka:
         {params.outputfolder}/runWorkflow.py -m local -j 20
         """
 
+rule deepvariant:
+    input:
+        bam = "mapped/{samples}.merged.bam",
+        reference = config["assembly"]
+    output:
+        gvcf = "calls/deepvariant/{samples}.gvcf",
+        vcf = "calls/deepvariant/{samples}.vcf"
+    log:
+        "logs/deepvariant.{samples}.log"
+    conda: "envs/freebayes.yaml"
+    threads: 10
+    params:
+        mem="15000",
+        time="2-0"
+    shell:
+        """
+        run_deepvariant \
+          --model_type=WGS \
+          --ref={input.reference} \
+          --reads={input.bam} \
+          --output_vcf={output.vcf} \
+          --output_gvcf={output.gvcf} \
+          --num_shards={threads}
+        """
+
 rule freebayes:
     input:
         ref= config["assembly"],
