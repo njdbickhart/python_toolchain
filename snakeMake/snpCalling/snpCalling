@@ -42,6 +42,11 @@ rule all:
             callers=CALLERS, samples = SAMPLES),
         extrafiles
 
+rule deepvariant_only:
+    input:
+        expand("calls/deepvariant/{samples}.gvcf.gz", samples = SAMPLES),
+        extrafiles
+
 rule freebayes_only:
     input:
         expand("calls/freebayes/{samples}.gvcf.gz", samples = SAMPLES),
@@ -199,7 +204,7 @@ rule deepvariant:
         vcf = "calls/deepvariant/{samples}.vcf"
     log:
         "logs/deepvariant.{samples}.log"
-    conda: "envs/freebayes.yaml"
+    singularity: "docker://google/deepvariant"
     threads: 10
     params:
         mem="15000",
@@ -287,5 +292,5 @@ rule gzip_gvcfs:
         time="2:00:00"
     shell:
         """
-        gzip {input}
+        bgzip {input}
         """
