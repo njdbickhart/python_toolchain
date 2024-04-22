@@ -18,6 +18,6 @@ singularity-args: "--bind {workflow.workdir}"
 # Job resources
 # For some reasons time needs quotes to be read by snakemake
 default-resources:
-  - mem_mb="{params.mem}"
-  - runtime="{params.time}"
-  - threads="{threads}"
+  - mem_mb=1000
+  - runtime="01:00:00"
+  - threads=1
