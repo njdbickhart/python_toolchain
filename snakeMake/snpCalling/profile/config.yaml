@@ -14,6 +14,7 @@ cluster: "sbatch --output=\"logs/{rule}/slurm_%x_%j.out\" --error=\"logs/{rule}/
 cluster-status: "./profile/status-sacct.sh" #  Use to handle timeout exception, do not forget to chmod +x
 # singularity
 use-singularity: True
+# This does not work, so I need to change it each time 
 singularity-args: "--bind {workflow.workdir}"
 # Job resources
 # For some reasons time needs quotes to be read by snakemake

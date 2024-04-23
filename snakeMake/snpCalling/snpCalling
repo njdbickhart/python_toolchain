@@ -64,6 +64,10 @@ rule bwa_index:
     params:
         mem = "8000",
         time = "1-0"
+    resources:
+        mem_mb=8000
+        runtime="1-0"
+        threads=1
     threads: 1
     shell:
         """
@@ -106,6 +110,10 @@ rule aggregate_reads:
         config = "default.json",
         fastdir = "fastas",
         time="2-0"
+    resources:
+        mem_mb=9000
+        runtime="2-0"
+        threads=8
     shell:
         """
         python3 {workflow.basedir}/scripts/aggregateSampleBams.py {params.config} {params.sname} {input.reference} {log}
@@ -123,6 +131,10 @@ rule convert_to_cram:
     params:
         mem= "9000",
         time= "4:00:00"
+    resources:
+        mem_mb=9000
+        runtime="04:00:00"
+        threads=1
     shell:
         """
         samtools view -T {input.ref} -C -o {output} {input.bam}
@@ -144,6 +156,10 @@ rule get_bam_stats:
         sname = "{samples}",
         threshold = 4,
         time="2:00:00"
+    resources:
+        mem_mb=5000
+        runtime="02:00:00"
+        threads=2
     shell:
         """
         python3 {workflow.basedir}/scripts/calc_bam_stats.py {input.bam} {params.threshold} {params.sname} {output.stats}
@@ -188,6 +204,10 @@ rule strelka:
         concatfiles = lambda wildcards, input: " ".join([f'--bam {x}' for x in input.bams]),
         outputfolder = "calls/strelka",
         time="1-0"
+    resources:
+        mem_mb=50000
+        runtime="1-0"
+        threads=20
     shell:
         """
         configureStrelkaGermlineWorkflow.py {params.concatfiles} --referenceFasta {input.reference} --runDir {params.outputfolder}
@@ -209,6 +229,10 @@ rule deepvariant:
     params:
         mem="15000",
         time="2-0"
+    resources:
+        mem_mb=15000
+        runtime="2-0"
+        threads=10
     shell:
         """
         run_deepvariant \
@@ -236,6 +260,10 @@ rule freebayes:
         chunksize=1000000,
         mem="15000",
         time="2-0"
+    resources:
+        mem_mb=15000
+        runtime="2-0"
+        threads=10
     threads: 10
     script:
         "scripts/freebayes_lift.py"
@@ -256,6 +284,10 @@ rule haplotype_caller:
         mem="25000",
         time="4-0",
         outputbase="calls/gatk/{samples}"
+    resources:
+        mem_mb=25000
+        runtime="4-0"
+        threads=21
     threads: 21
     resources:
         mem_mb=4096
@@ -273,7 +305,11 @@ rule bcfstats:
         "logs/bcfstats.{callers}.log",
     params:
         mem="9000",
-        time="4:00:00",
+        time="4:00:00"
+    resources:
+        mem_mb=9000
+        runtime="04:00:00"
+        threads=10
     threads: 10
     shell:
         """
@@ -290,6 +326,10 @@ rule gzip_gvcfs:
     params:
         mem="1000",
         time="2:00:00"
+    resources:
+        mem_mb=1000
+        runtime="02:00:00"
+        threads=1
     shell:
         """
         bgzip {input}
