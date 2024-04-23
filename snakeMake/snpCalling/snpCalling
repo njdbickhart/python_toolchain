@@ -65,8 +65,8 @@ rule bwa_index:
         mem = "8000",
         time = "1-0"
     resources:
-        mem_mb=8000
-        runtime="1-0"
+        mem_mb=8000,
+        runtime="1-0",
         threads=1
     threads: 1
     shell:
@@ -111,8 +111,8 @@ rule aggregate_reads:
         fastdir = "fastas",
         time="2-0"
     resources:
-        mem_mb=9000
-        runtime="2-0"
+        mem_mb=9000,
+        runtime="2-0",
         threads=8
     shell:
         """
@@ -132,8 +132,8 @@ rule convert_to_cram:
         mem= "9000",
         time= "4:00:00"
     resources:
-        mem_mb=9000
-        runtime="04:00:00"
+        mem_mb=9000,
+        runtime="04:00:00",
         threads=1
     shell:
         """
@@ -157,8 +157,8 @@ rule get_bam_stats:
         threshold = 4,
         time="2:00:00"
     resources:
-        mem_mb=5000
-        runtime="02:00:00"
+        mem_mb=5000,
+        runtime="02:00:00",
         threads=2
     shell:
         """
@@ -205,8 +205,8 @@ rule strelka:
         outputfolder = "calls/strelka",
         time="1-0"
     resources:
-        mem_mb=50000
-        runtime="1-0"
+        mem_mb=50000,
+        runtime="1-0",
         threads=20
     shell:
         """
@@ -230,8 +230,8 @@ rule deepvariant:
         mem="15000",
         time="2-0"
     resources:
-        mem_mb=15000
-        runtime="2-0"
+        mem_mb=15000,
+        runtime="2-0",
         threads=10
     shell:
         """
@@ -261,8 +261,8 @@ rule freebayes:
         mem="15000",
         time="2-0"
     resources:
-        mem_mb=15000
-        runtime="2-0"
+        mem_mb=15000,
+        runtime="2-0",
         threads=10
     threads: 10
     script:
@@ -285,8 +285,8 @@ rule haplotype_caller:
         time="4-0",
         outputbase="calls/gatk/{samples}"
     resources:
-        mem_mb=25000
-        runtime="4-0"
+        mem_mb=25000,
+        runtime="4-0",
         threads=21
     threads: 21
     resources:
@@ -307,8 +307,8 @@ rule bcfstats:
         mem="9000",
         time="4:00:00"
     resources:
-        mem_mb=9000
-        runtime="04:00:00"
+        mem_mb=9000,
+        runtime="04:00:00",
         threads=10
     threads: 10
     shell:
@@ -327,8 +327,8 @@ rule gzip_gvcfs:
         mem="1000",
         time="2:00:00"
     resources:
-        mem_mb=1000
-        runtime="02:00:00"
+        mem_mb=1000,
+        runtime="02:00:00",
         threads=1
     shell:
         """
