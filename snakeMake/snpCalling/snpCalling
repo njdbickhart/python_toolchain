@@ -228,7 +228,10 @@ rule deepvariant:
     threads: 10
     params:
         mem="15000",
-        time="2-0"
+        time="2-0",
+        ## NOTE!!: With this implementation, the reference fasta must be in
+        # The base directory where singularity is being run!
+        fasta= lambda wildcards, input: os.path.basename(input.reference)
     resources:
         mem_mb=15000,
         runtime="2-0",
@@ -237,7 +240,7 @@ rule deepvariant:
         """
         run_deepvariant \
           --model_type=WGS \
-          --ref={input.reference} \
+          --ref={params.fasta} \
           --reads={input.bam} \
           --output_vcf={output.vcf} \
           --output_gvcf={output.gvcf} \

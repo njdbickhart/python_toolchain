@@ -7,44 +7,61 @@ Created on Tue May 21 11:09:21 2024
 
 import argparse
 from collections import defaultdict
+import sys
 
 def arg_parse():
     parser = argparse.ArgumentParser(
             description = "A command line script to compare the contents of two files"
             )
     parser.add_argument('-f', '--file', 
-                        help="Iput Comparison file",
+                        help="Input Comparison file",
                         action='append', default=[]
                         )
     parser.add_argument('-o', '--output',
-                        help="Output type [stdout, upset]",
+                        help="Output type [stdout, catlist, upset]",
                         default='stdout', type=str,
+                        )
+    parser.add_argument('-c', '--category',
+                        help="Must be included with catlist output type! Underscore category to print to STDOUT",
+                        default='None', type=str,
                         )
     return parser.parse_args(), parser
 
 def main(args, parser):
     # Make sure that the input conforms to expectations
-    if len(args.file < 2):
+    if len(args.file) < 2:
         print('Must provide more than 1 file for comparison')
         print(f'Only {len(args.file)} files were given!')
         print(parser.print_usage())
+        sys.exit(-1)
+    elif args.output == 'catlist' and args.category == 'None':
+        print('Must provide an underscored category for printing if using catlist')
+        print(parser.print_usage())
+        sys.exit(-1)
     
     # Create workhorse object
-    manager = entryManager(args.file)
+    manager = entryManager(args.file, args.output)
     
     # Update entries from list of files
     for f in args.file:
         manager.update_entries(f)
         
-    # Print to Stdout for now
-    manager.printStdout()
+    # Change output categories
+    if args.output == 'catlist':
+        manager.printCatList(args.category)
+    else:
+        # Print to STDOUT by default
+        manager.printStdout()
     
 class entryManager():
     
-    def __init__(self, filelist):
+    def __init__(self, filelist, outtype):
         self.fileconverter = {v : k for k, v in enumerate(filelist)}
         self.filelist = filelist
         self.entrydict = dict()
+        self.outtype = outtype
+        
+        self.delimiter = '_' if self.outtype == 'catlist' else ';'
         
         # Output specific lists
         self.categories = defaultdict(int)
@@ -56,7 +73,7 @@ class entryManager():
                 # Assuming just the first column is used for now
                 s = l.rstrip().split()
                 if s[0] not in self.entrydict:
-                    self.entrydict(entry(s[0],filenum))
+                    self.entrydict[s[0]] = entry(s[0],filenum, self.delimiter)
                 else:
                     self.entrydict[s[0]].add(filenum)
     
@@ -80,20 +97,34 @@ class entryManager():
         cats.sort()
         for c in cats:
             print(f'{c}\t{self.categories[c]}')
+            
+    def printCatList(self, cat):
+        # Create the category data set
+        categories = set()
+        for k, v in self.entrydict.items():
+            if v.get_ownerstring() == cat:
+                categories.add(k)
+                
+        # Print them out
+        for s in categories:
+            print(s)
+                
+        
         
     
 class entry():
     
-    def __init__(self, name, filenum):
+    def __init__(self, name, filenum, delimiter):
         self.name = name
         self.owners = [filenum]
+        self.delimiter = delimiter
         
     def add(self, filenum):
         self.owners.append(filenum)
         
     def get_ownerstring(self):
         self.owners.sort()
-        return ";".join(self.owners)
+        return self.delimiter.join([str(i) for i in self.owners])
 
 if __name__ == "__main__":
     (args, parser) = arg_parse()
