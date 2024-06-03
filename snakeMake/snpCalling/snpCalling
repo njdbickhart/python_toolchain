@@ -238,9 +238,10 @@ rule deepvariant:
         threads=10
     shell:
         """
+        mkdir -p calls/deepvariant
         run_deepvariant \
           --model_type=WGS \
-          --ref={params.fasta} \
+          --ref={input.reference} \
           --reads={input.bam} \
           --output_vcf={output.vcf} \
           --output_gvcf={output.gvcf} \
