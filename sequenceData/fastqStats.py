@@ -12,7 +12,7 @@ import argparse
 
 version = "0.2"
 
-plt.style.use("seaborn-colorblind")
+#plt.style.use("seaborn-colorblind")
 
 matplotlib.rcParams['axes.titlesize']=13
 matplotlib.rcParams['axes.labelsize']=12
