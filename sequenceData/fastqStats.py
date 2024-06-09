@@ -122,7 +122,7 @@ def fastq_reader_fh(infile):
     for q in infile:
       if len(qual) > 0 and  q[0] == '@':
         yield name, seq, qual
-        name = q.rstrip()
+        name = q.rstrip().split()[0]
         break
       else:
         qual += q.rstrip()
