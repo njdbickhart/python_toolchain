@@ -110,7 +110,7 @@ def get_fastq_info(filename, fqinfo):
     return fqinfo
 
 def fastq_reader_fh(infile):
-  name = infile.readline().rstrip()
+  name = infile.readline().rstrip().split()[0]
   while True:
     seq = ""
     for s in infile:
