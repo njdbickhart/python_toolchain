@@ -3,7 +3,8 @@ import os
 KING = ["full", "euk"]
 BINS = ["metabat2", "concoct"]
 if config.get("hic"):
-    BINS.append("bin3c")
+    #BINS.append("bin3c")
+    BINS.append('HiCBin')
 
 wildcard_constraints:
     king = "(full|euk)"

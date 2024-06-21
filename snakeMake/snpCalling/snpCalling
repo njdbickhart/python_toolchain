@@ -128,6 +128,8 @@ rule convert_to_cram:
     log:
         "logs/{samples}_cram.log"
     threads: 1
+    conda:
+        "envs/base.yaml"
     params:
         mem= "9000",
         time= "4:00:00"
@@ -151,6 +153,8 @@ rule get_bam_stats:
     log:
         "logs/{samples}_stats.log"
     threads: 2
+    conda:
+        "envs/base.yaml"
     params:
         mem = "5000",
         sname = "{samples}",
@@ -315,6 +319,8 @@ rule bcfstats:
         runtime="04:00:00",
         threads=10
     threads: 10
+    conda:
+        "envs/freebayes.yaml"
     shell:
         """
         bcftools stats --threads {threads} {input} > {output} 2> {log}
@@ -327,6 +333,8 @@ rule gzip_gvcfs:
     output:
         protected("calls/{callers}/{samples}.gvcf.gz")
     threads: 1
+    conda:
+        "envs/freebayes.yaml"
     params:
         mem="1000",
         time="2:00:00"
