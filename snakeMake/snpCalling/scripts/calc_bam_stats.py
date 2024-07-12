@@ -15,7 +15,7 @@ def get_chromosomes_names(input):
     -----
     Returns :
         list: (str) chromosome names
-        list: (int) chromosome sizes 
+        list: (int) chromosome sizes
     """
     # opening the bam file with pysam
     bamfile = pysam.AlignmentFile(input, 'rb')
@@ -51,6 +51,10 @@ def count_depth(chr_name, size, threshold, input):
         bases.append(depth)
     bamfile.close()
     count = len(bases)
+
+    # Put in place to avoid scaffolds/chromosomes with no mapped reads
+    if count == 0:
+        return (bp, nbp, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
     n25 = np.quantile(bases, 0.25)
     n75 = np.quantile(bases, 0.75)
