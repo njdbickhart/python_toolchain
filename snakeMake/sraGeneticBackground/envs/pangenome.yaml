@@ -1,0 +1,16 @@
+channels:
+    - anaconda
+    - bioconda
+dependencies:
+    - numpy
+    - pandas
+    - seaborn
+    - snakemake
+    - samtools
+    - bioconda::gatk
+    - bioconda::vg
+    - bioconda::elprep
+    - bcftools
+    - minimap2
+    - sra-tools>=2.11.0
+    - bedtools

@@ -1,0 +1,254 @@
+import os
+import subprocess as sp
+
+shell.executable("/usr/bin/bash")
+
+configfile : "default.json"
+WKDIR = os.getcwd()
+
+os.makedirs("fastas", exist_ok=True)
+os.makedirs("logs", exist_ok=True)
+os.makedirs("TEMP", exist_ok=True)
+os.makedirs("final", exist_ok=True)
+
+def getAssemblyName(v):
+    return os.path.basename(v).replace('.fa', '')
+
+SAMPLES = set([v[1] for v in config["samples"].values()])
+PAIRED_SRA = [v[0] for v in config["samples"].items() if v[1][0] == "P"]
+#SINGLE_SRA = [v[0] for v in config["samples"].items() if v[1][0] == "S"]
+#SRA_TOTAL = [v[0] for v in config["samples"].items()]
+MAPPERS = ["minimap", "giraffe"]
+
+localrules: consolidate_stats, plot_stats
+
+onerror:
+    print("Error! Mailing log...")
+    shell("tail -n 100 {log} | mail -s 'pangeomeAnalysis' derek.bickhart@hendrix-genetics.com")
+    print("Done")
+
+rule all:
+    input:
+        expand("final/{mapper}.vcf.gz", mapper=MAPPERS),
+        "final/combined_bam_stats.tab",
+        "final/combined_bam_stats.pdf"
+
+rule download_paired:
+    #input:
+    #    lambda wildcards: config["samples"][wildcards.srafiles][0]
+    output:
+        temp("fastas/{paired}_1.fastq"),
+        temp("fastas/{paired}_2.fastq")
+    params:
+        download_folder = "fastas",
+        mem="9000",
+        time="1-0"
+    threads: 3
+    resources:
+        mem_mb=9000,
+        runtime="1-0",
+        threads=3
+    conda:
+        "envs/base.yaml"
+    log:
+        "logs/{paired}.download.log"
+    conda:
+        "envs/sra.yaml"
+    shell:
+        "fasterq-dump {wildcards.paired} --split-files -O {params.download_folder} 2> {log}"
+
+rule get_bam_stats:
+    input:
+        bam = ancient("mapped/{samples}.merged.bam"),
+        bai = ancient("mapped/{samples}.merged.bam.bai"),
+        reference = config["assembly"],
+        fai = "Indexed",
+    output:
+        stats = temp("final/{samples}.stats.tab")
+    log:
+        "logs/{samples}_stats.log"
+    threads: 2
+    resources:
+        mem_mb=9000,
+        runtime="2:00:00",
+        threads=2
+    params:
+        mem = "9000",
+        sname = "{samples}",
+        threshold = 4,
+        time="2:00:00"
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/calc_bam_stats.py {input.bam} {params.threshold} {params.sname} {output.stats}
+        """
+
+rule consolidate_stats:
+    input:
+        expand("final/{samples}.stats.tab", samples=SAMPLES)
+    output:
+        "final/combined_bam_stats.tab"
+    run:
+        with open(output[0], 'w') as outfile:
+            outfile.write("SNAME\tThreshBp\tZbp\tMean\tQ25\tMedian\tQ75\tMax\tStdev\tsub15\tsub30\tgt30\n")
+            for i in input:
+                with open(i, 'r') as infile:
+                    for l in infile:
+                        outfile.write(l)
+
+rule plot_stats:
+    input:
+        "final/combined_bam_stats.tab"
+    output:
+        "final/combined_bam_stats.pdf"
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/plot_bam_stats.py {input} {output}
+        """
+
+rule align_giraffe:
+    input:
+        fq1 = "fastas/{paired}_1.fastq",
+        fq2 = "fastas/{paired}_2.fastq",
+        gbz = "indicies/pangenome.gbz",
+        min = "indicies/pangenome.min",
+        dist = "indicies/pangenome.dist"
+    output:
+        gam = temp("mapped/{paired}.gam")
+    threads: 20
+    params:
+        sname = "{paired}"
+    log:
+        "logs/{paired}_giraffe.log"
+    resources:
+        mem_mb=50000,
+        runtime="1-0",
+        threads=20
+    shell:
+        """
+        vg giraffe -t {threads} -p \
+            -Z {input.gbz} \
+            -m {input.min} \
+            -d {input.dist} \
+            -f {input.fq1} \
+            -f {input.fq2} \
+            -N {params.sname} -R {params.sname} \
+            > {output.gam} 2> {log}
+        """
+
+rule align_minimap:
+    input:
+        fq1 = "fastas/{paired}_1.fastq",
+        fq2 = "fastas/{paired}_2.fastq",
+        ref = "indicies/genome.fasta"
+    output:
+        bam = "mapped/{paired}.minimap.bam"
+    threads: 10
+    params:
+        sname = "{paired}"
+    log:
+        "logs/{paired}_minimap.log"
+    resources:
+        mem_mb=25000,
+        runtime="1-0",
+        threads=10
+    shell:
+        """
+        minimap2 -t {threads} -ax sr \
+            -R "@RG\tID:{params.sname}\tSM:{params.sname}" \
+            {input.ref} \
+            {input.fq1} \
+            {input.fq2} \
+            | samtools view -bh - \
+            > {output.bam} 2> {log}
+        """
+
+rule surject:
+    input:
+        gam = "mapped/{paired}.gam",
+        gbz = "indicies/pangenome.gbz"
+    output:
+        bam = "mapped/{paired}.giraffe.bam"
+    threads: 10
+    params:
+        sname = "{paired}"
+    log:
+        "logs/{paired}_surject.log"
+    resources:
+        mem_mb=20000,
+        runtime="1-0",
+        threads=10
+    shell:
+        """
+        vg surject \
+            --threads {threads}} \
+            --xg-name {input.gbz} \
+            --bam-output \
+            {input.gam} \
+            | samtools reheader -c "sed s/bGalGal1b#0#//g'" - \
+            > {output.bam}
+        """
+# Needs its own special fasta format!
+rule elprep:
+    input:
+        ref = "indicies/genome.elfasta",
+        bam = "mapped/{paired}.{mapper}.bam"
+    output:
+        tempbam = temp("mapped/{paired}.{mapper}.elprep.bam"),
+        gvcf = "calls/{paired}.{mapper}.gvcf.gz"
+    threads: 20
+    params:
+        sname = "{paired}",
+        mapper = "{mapper}"
+    log:
+        "logs/{paired}_elprep.log"
+    resources:
+        mem_mb=100000,
+        runtime="1-0",
+        threads=20
+    shell:
+        """
+        elprep sfm \
+            {input.bam} \
+            {output.tempbam} \
+            --nr-of-threads {threads} \
+            --mark-duplicates \
+            --mark-optical-duplicates mapped/{params.sname}.{params.mapper}.metrics.txt \
+            --sorting-order coordinate \
+            --reference {input.ref} \
+            --haplotypecaller {output.gvcf} \
+            --intermediate-files-output-type sam \
+            --tmp-path ./TEMP
+
+        gatk IndexFeatureFile -I {output.gvcf}
+        """
+
+rule joint_genotyping:
+    input:
+        ref = "indicies/genome.fasta",
+        gvcfs = expand("calls/{paired}.{{mapper}}.gvcf.gz", paired=PAIRED_SRA)
+    output:
+        tempcombined = temp("calls/{mapper}.gvcf.gz"),
+        genotyped = "final/{mapper}.vcf.gz"
+    threads: 30
+    params:
+        mapper = "{mapper}",
+        inputs = lambda wildcards, input: " ".join([f'--variant {x}' for x in input.gvcfs])
+    log:
+        "logs/{mapper}_jgenotyping.log"
+    resources:
+        mem_mb=200000,
+        runtime="2-0",
+        threads=30
+    shell:
+        """
+        gatk CombineGVCFs \
+            -R {input.ref} \
+            {params.inputs} \
+            -O {output.tempcombined} \
+            --tmp-dir ./TEMP
+
+        gatk GenotypeGVCFs \
+            -R {input.ref} \
+            -V {output.tempcombined} \
+            -O {output.genotyped}
+        """

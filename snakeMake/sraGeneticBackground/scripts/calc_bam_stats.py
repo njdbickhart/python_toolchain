@@ -52,8 +52,9 @@ def count_depth(chr_name, size, threshold, input):
     bamfile.close()
     count = len(bases)
 
+    # Put in place to avoid scaffolds/chromosomes with no mapped reads
     if count == 0:
-        return(-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        return (bp, nbp, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
     n25 = np.quantile(bases, 0.25)
     n75 = np.quantile(bases, 0.75)
@@ -67,8 +68,7 @@ def count_depth(chr_name, size, threshold, input):
     nZbp = nbp
     hmCells = [vdict.get(x, 0) for x in range(1,4)] if len(values) >= 3 else [0,0,0]
     stdev = np.std(bases) if count > 0 else 0
-    return (bp, nZbp, mean, n25, median, n75, max, stdev,
-        hmCells[0], hmCells[1], hmCells[2])
+    return (bp, nZbp, mean, n25, median, n75, max, stdev, hmCells[0], hmCells[1], hmCells[2])
 
 if len(sys.argv) != 5:
     print(usage)
@@ -121,8 +121,6 @@ print("Found {} chromosomes to count".format(len(list_chrs)))
 
 for chr, size in zip(list_chrs, list_sizes):
     (bp, nZbp, mean, n25, median, n75, max, stdev, hcell1, hcell2, hcell3) = count_depth(chr, size, threshold, bam)
-    if bp == -1:
-        continue # There were no aligned reads, so skip this chromosome segment
     worker.add(bp, nZbp, mean, n25, median, n75, max, stdev, hcell1, hcell2, hcell3)
     print("Finished with {} {} {} {} {} {} {} {} {}".format(chr, bp, nZbp, mean, median, stdev, hcell1, hcell2, hcell3))
 
