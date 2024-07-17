@@ -7,9 +7,9 @@ dependencies:
     - seaborn
     - snakemake
     - samtools
-    - bioconda::gatk
-    - bioconda::vg
-    - bioconda::elprep
+    - gatk
+    - vg
+    - elprep
     - bcftools
     - minimap2
     - sra-tools>=2.11.0
