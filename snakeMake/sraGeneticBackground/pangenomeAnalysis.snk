@@ -200,7 +200,7 @@ rule elprep:
         sname = "{paired}",
         mapper = "{mapper}"
     log:
-        "logs/{paired}_elprep.log"
+        "logs/{paired}_{mapper}.elprep.log"
     resources:
         mem_mb=100000,
         runtime="1-0",
