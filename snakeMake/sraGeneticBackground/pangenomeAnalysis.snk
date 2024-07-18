@@ -24,7 +24,7 @@ wildcard_constraints:
     paired = "|".join(PAIRED_SRA),
     mapper = "|".join(MAPPERS)
 
-localrules: consolidate_stats, plot_stats
+localrules: consolidate_stats, plot_stats, faidx
 
 onerror:
     print("Error! Mailing log...")
@@ -61,12 +61,22 @@ rule download_paired:
     shell:
         "fasterq-dump {wildcards.paired} --split-files -O {params.download_folder} 2> {log}"
 
+rule faidx:
+    input:
+        "indicies/genome.fasta"
+    output:
+        "indicies/genome.fasta.fai"
+    shell:
+        """
+        samtools faidx {input}
+        """
+
 rule get_bam_stats:
     input:
         bam = "mapped/{paired}.minimap.bam",
         bai = "mapped/{paired}.minimap.bam.bai",
-        reference = config["assembly"],
-        fai = "Indexed",
+        reference = "indicies/genome.fasta",
+        refindex = "indicides/genome.fasta.fai"
     output:
         stats = temp("final/{paired}.stats.tab")
     log:
