@@ -63,14 +63,14 @@ rule download_paired:
 
 rule get_bam_stats:
     input:
-        bam = ancient("mapped/{samples}.merged.bam"),
-        bai = ancient("mapped/{samples}.merged.bam.bai"),
+        bam = ancient("mapped/{paired}.merged.bam"),
+        bai = ancient("mapped/{paired}.merged.bam.bai"),
         reference = config["assembly"],
         fai = "Indexed",
     output:
-        stats = temp("final/{samples}.stats.tab")
+        stats = temp("final/{paired}.stats.tab")
     log:
-        "logs/{samples}_stats.log"
+        "logs/{paired}_stats.log"
     threads: 2
     resources:
         mem_mb=9000,
@@ -78,7 +78,7 @@ rule get_bam_stats:
         threads=2
     params:
         mem = "9000",
-        sname = "{samples}",
+        sname = "{paired}",
         threshold = 4,
         time="2:00:00"
     shell:
@@ -88,7 +88,7 @@ rule get_bam_stats:
 
 rule consolidate_stats:
     input:
-        expand("final/{samples}.stats.tab", samples=SAMPLES)
+        expand("final/{paired}.stats.tab", paired=PAIRED_SRA)
     output:
         "final/combined_bam_stats.tab"
     run:
