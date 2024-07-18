@@ -196,7 +196,7 @@ rule surject:
     shell:
         """
         vg surject \
-            --threads {threads}} \
+            --threads {threads} \
             --xg-name {input.gbz} \
             --bam-output \
             {input.gam} \
