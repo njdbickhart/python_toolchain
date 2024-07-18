@@ -84,13 +84,13 @@ rule get_bam_stats:
     threads: 2
     resources:
         mem_mb=9000,
-        runtime="2:00:00",
+        runtime="2h",
         threads=2
     params:
         mem = "9000",
         sname = "{paired}",
         threshold = 4,
-        time="2h"
+        runtime="2h"
     shell:
         """
         python3 {workflow.basedir}/scripts/calc_bam_stats.py {input.bam} {params.threshold} {params.sname} {output.stats}
