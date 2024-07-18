@@ -22,7 +22,7 @@ MAPPERS = ["minimap", "giraffe"]
 
 wildcard_constraints:
     paired = "|".join(PAIRED_SRA),
-    maapper = "|".join(MAPPERS)
+    mapper = "|".join(MAPPERS)
 
 localrules: consolidate_stats, plot_stats
 
