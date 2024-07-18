@@ -14,3 +14,5 @@ dependencies:
     - minimap2
     - sra-tools>=2.11.0
     - bedtools
+    - snakemake-executor-plugin-slurm
+    - snakemake-executor-plugin-cluster-generic

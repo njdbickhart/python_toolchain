@@ -20,6 +20,10 @@ PAIRED_SRA = [v[0] for v in config["samples"].items() if v[1][0] == "P"]
 #SRA_TOTAL = [v[0] for v in config["samples"].items()]
 MAPPERS = ["minimap", "giraffe"]
 
+wildcard_constraints:
+    paired = "|".join(PAIRED_SRA),
+    maapper = "|".join(MAPPERS)
+
 localrules: consolidate_stats, plot_stats
 
 onerror:
