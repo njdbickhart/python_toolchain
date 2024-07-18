@@ -76,7 +76,7 @@ rule get_bam_stats:
         bam = "mapped/{paired}.minimap.bam",
         bai = "mapped/{paired}.minimap.bam.bai",
         reference = "indicies/genome.fasta",
-        refindex = "indicides/genome.fasta.fai"
+        refindex = "indicies/genome.fasta.fai"
     output:
         stats = temp("final/{paired}.stats.tab")
     log:
