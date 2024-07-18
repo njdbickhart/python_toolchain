@@ -50,7 +50,7 @@ rule download_paired:
     threads: 3
     resources:
         mem_mb=9000,
-        runtime="1-0",
+        runtime="1d",
         threads=3
     conda:
         "envs/base.yaml"
@@ -90,7 +90,7 @@ rule get_bam_stats:
         mem = "9000",
         sname = "{paired}",
         threshold = 4,
-        time="2:00:00"
+        time="2h"
     shell:
         """
         python3 {workflow.basedir}/scripts/calc_bam_stats.py {input.bam} {params.threshold} {params.sname} {output.stats}
@@ -135,7 +135,7 @@ rule align_giraffe:
         "logs/{paired}_giraffe.log"
     resources:
         mem_mb=50000,
-        runtime="1-0",
+        runtime="1d",
         threads=20
     shell:
         """
@@ -164,7 +164,7 @@ rule align_minimap:
         "logs/{paired}_minimap.log"
     resources:
         mem_mb=25000,
-        runtime="1-0",
+        runtime="1d",
         threads=10
     shell:
         """
@@ -191,7 +191,7 @@ rule surject:
         "logs/{paired}_surject.log"
     resources:
         mem_mb=20000,
-        runtime="1-0",
+        runtime="1d",
         threads=10
     shell:
         """
@@ -219,7 +219,7 @@ rule elprep:
         "logs/{paired}_{mapper}.elprep.log"
     resources:
         mem_mb=100000,
-        runtime="1-0",
+        runtime="1d",
         threads=20
     shell:
         """
@@ -253,7 +253,7 @@ rule joint_genotyping:
         "logs/{mapper}_jgenotyping.log"
     resources:
         mem_mb=200000,
-        runtime="2-0",
+        runtime="2d",
         threads=30
     shell:
         """
