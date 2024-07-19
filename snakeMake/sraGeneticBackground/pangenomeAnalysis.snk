@@ -139,7 +139,7 @@ rule align_giraffe:
         threads=20
     shell:
         """
-        vg giraffe -t {threads} -p \
+        vg giraffe -t 20 -p \
             -Z {input.gbz} \
             -m {input.min} \
             -d {input.dist} \
@@ -169,7 +169,7 @@ rule align_minimap:
     shell:
         """
         minimap2 -t {threads} -ax sr \
-            -R '@RG\tID:{params.sname}\tSM:{params.sname}' \
+            -R '@RG\\tID:{params.sname}\\tSM:{params.sname}' \
             {input.ref} \
             {input.fq1} \
             {input.fq2} \
