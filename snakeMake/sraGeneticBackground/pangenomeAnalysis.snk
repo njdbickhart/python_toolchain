@@ -135,7 +135,7 @@ rule align_giraffe:
         "logs/{paired}_giraffe.log"
     resources:
         mem_mb=50000,
-        runtime="1d",
+        runtime="2d",
         threads=20
     shell:
         """
@@ -173,7 +173,7 @@ rule align_minimap:
             {input.ref} \
             {input.fq1} \
             {input.fq2} \
-            | samtools view -bh - \
+            | samtools sort - \
             > {output.bam} 2> {log}
         samtools index {output.bam}
         """
