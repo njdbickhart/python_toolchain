@@ -128,18 +128,18 @@ rule align_giraffe:
         dist = "indicies/pangenome.dist"
     output:
         gam = temp("mapped/{paired}.gam")
-    threads: 20
+    threads: 35
     params:
         sname = "{paired}"
     log:
         "logs/{paired}_giraffe.log"
     resources:
-        mem_mb=50000,
-        runtime="2d",
-        threads=20
+        mem_mb=55000,
+        runtime="3d",
+        threads=35
     shell:
         """
-        vg giraffe -t 20 -p \
+        vg giraffe -t 35 -p \
             -Z {input.gbz} \
             -m {input.min} \
             -d {input.dist} \
@@ -200,7 +200,7 @@ rule surject:
             --xg-name {input.gbz} \
             --bam-output \
             {input.gam} \
-            | samtools reheader -c "sed s/bGalGal1b#0#//g'" - \
+            | samtools reheader -c "sed 's/bGalGal1b#0#//g'" - \
             > {output.bam}
         """
 # Needs its own special fasta format!
