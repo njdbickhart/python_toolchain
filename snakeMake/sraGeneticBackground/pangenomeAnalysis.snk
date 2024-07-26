@@ -52,7 +52,7 @@ rule download_paired:
         mem_mb=9000,
         runtime="1d",
         threads=3,
-        outstr="logs/download_paired/{paired}"
+        outstr=lambda wildcards: f'logs/download_paired/{wildcards.paired}'
     conda:
         "envs/base.yaml"
     log:
@@ -87,7 +87,8 @@ rule get_bam_stats:
         mem_mb=9000,
         runtime="2h",
         threads=2,
-        outstr="logs/get_bam_stats/{paired}"
+        outstr=lambda wildcards: f'logs/get_bam_stats/{wildcards.paired}'
+        #outstr="logs/get_bam_stats/{paired}"
     params:
         mem = "9000",
         sname = "{paired}",
@@ -139,7 +140,8 @@ rule align_giraffe:
         mem_mb=55000,
         runtime="3d",
         threads=35,
-        outstr="logs/align_giraffe/{paired}"
+        outstr=lambda wildcards: f'logs/align_giraffe/{wildcards.paired}'
+        #outstr="logs/align_giraffe/{paired}"
     shell:
         """
         vg giraffe -t 35 -p \
@@ -197,7 +199,8 @@ rule surject:
         mem_mb=20000,
         runtime="1d",
         threads=10,
-        outstr="logs/surject/{paired}"
+        outstr=lambda wildcards: f'logs/surject/{wildcards.paired}'
+        #outstr="logs/surject/{paired}"
     shell:
         """
         vg surject \
@@ -227,7 +230,8 @@ rule elprep:
         mem_mb=100000,
         runtime="1d",
         threads=20,
-        outstr="logs/elprep/{paired}.{mapper}"
+        outstr=lambda wildcards: f'logs/elprep/{wildcards.paired}.{wildcards.mapper}'
+        #outstr="logs/elprep/{paired}.{mapper}"
     shell:
         """
         elprep sfm \
@@ -242,7 +246,7 @@ rule elprep:
             --intermediate-files-output-type sam \
             --tmp-path ./TEMP
 
-        gatk IndexFeatureFile -I {output.gvcf}
+        gatk3 IndexFeatureFile -I {output.gvcf}
         """
 
 rule joint_genotyping:
@@ -262,16 +266,17 @@ rule joint_genotyping:
         mem_mb=200000,
         runtime="2d",
         threads=30,
-        outstr="logs/join_genotyping/{mapper}"
+        outstr=lambda wildcards: f'logs/join_genotyping/{wildcards.mapper}'
+        #outstr="logs/join_genotyping/{mapper}"
     shell:
         """
-        gatk CombineGVCFs \
+        gatk3 CombineGVCFs \
             -R {input.ref} \
             {params.inputs} \
             -O {output.tempcombined} \
             --tmp-dir ./TEMP
 
-        gatk GenotypeGVCFs \
+        gatk3 GenotypeGVCFs \
             -R {input.ref} \
             -V {output.tempcombined} \
             -O {output.genotyped}
