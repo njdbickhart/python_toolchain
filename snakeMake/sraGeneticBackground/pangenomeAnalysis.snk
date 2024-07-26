@@ -51,7 +51,8 @@ rule download_paired:
     resources:
         mem_mb=9000,
         runtime="1d",
-        threads=3
+        threads=3,
+        outstr="logs/download_paired/{paired}"
     conda:
         "envs/base.yaml"
     log:
@@ -85,7 +86,8 @@ rule get_bam_stats:
     resources:
         mem_mb=9000,
         runtime="2h",
-        threads=2
+        threads=2,
+        outstr="logs/get_bam_stats/{paired}"
     params:
         mem = "9000",
         sname = "{paired}",
@@ -136,7 +138,8 @@ rule align_giraffe:
     resources:
         mem_mb=55000,
         runtime="3d",
-        threads=35
+        threads=35,
+        outstr="logs/align_giraffe/{paired}"
     shell:
         """
         vg giraffe -t 35 -p \
@@ -155,8 +158,8 @@ rule align_minimap:
         fq2 = "fastas/{paired}_2.fastq",
         ref = "indicies/genome.fasta"
     output:
-        bam = "mapped/{paired}.minimap.bam",
-        bai = "mapped/{paired}.minimap.bam.bai"
+        bam = temp("mapped/{paired}.minimap.bam"),
+        bai = temp("mapped/{paired}.minimap.bam.bai")
     threads: 10
     params:
         sname = "{paired}"
@@ -165,7 +168,8 @@ rule align_minimap:
     resources:
         mem_mb=25000,
         runtime="1d",
-        threads=10
+        threads=10,
+        outstr="logs/align_minimap/{paired}"
     shell:
         """
         minimap2 -t {threads} -ax sr \
@@ -183,7 +187,7 @@ rule surject:
         gam = "mapped/{paired}.gam",
         gbz = "indicies/pangenome.gbz"
     output:
-        bam = "mapped/{paired}.giraffe.bam"
+        bam = temp("mapped/{paired}.giraffe.bam")
     threads: 10
     params:
         sname = "{paired}"
@@ -192,7 +196,8 @@ rule surject:
     resources:
         mem_mb=20000,
         runtime="1d",
-        threads=10
+        threads=10,
+        outstr="logs/surject/{paired}"
     shell:
         """
         vg surject \
@@ -209,24 +214,26 @@ rule elprep:
         ref = "indicies/genome.elfasta",
         bam = "mapped/{paired}.{mapper}.bam"
     output:
-        tempbam = temp("mapped/{paired}.{mapper}.elprep.bam"),
+        tempbam = "mapped/{paired}.{mapper}.elprep.bam",
         gvcf = "calls/{paired}.{mapper}.gvcf.gz"
     threads: 20
     params:
         sname = "{paired}",
-        mapper = "{mapper}"
+        mapper = "{mapper}",
+        threads = 20
     log:
         "logs/{paired}_{mapper}.elprep.log"
     resources:
         mem_mb=100000,
         runtime="1d",
-        threads=20
+        threads=20,
+        outstr="logs/elprep/{paired}.{mapper}"
     shell:
         """
         elprep sfm \
             {input.bam} \
             {output.tempbam} \
-            --nr-of-threads {threads} \
+            --nr-of-threads {params.threads} \
             --mark-duplicates \
             --mark-optical-duplicates mapped/{params.sname}.{params.mapper}.metrics.txt \
             --sorting-order coordinate \
@@ -254,7 +261,8 @@ rule joint_genotyping:
     resources:
         mem_mb=200000,
         runtime="2d",
-        threads=30
+        threads=30,
+        outstr="logs/join_genotyping/{mapper}"
     shell:
         """
         gatk CombineGVCFs \
