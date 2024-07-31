@@ -130,7 +130,7 @@ rule align_giraffe:
         min = "indicies/pangenome.min",
         dist = "indicies/pangenome.dist"
     output:
-        gam = temp("mapped/{paired}.gam")
+        gam = "mapped/{paired}.gam"
     threads: 35
     params:
         sname = "{paired}"
@@ -150,6 +150,7 @@ rule align_giraffe:
             -d {input.dist} \
             -f {input.fq1} \
             -f {input.fq2} \
+            -b fast \
             -N {params.sname} -R {params.sname} \
             > {output.gam} 2> {log}
         """
@@ -160,8 +161,8 @@ rule align_minimap:
         fq2 = "fastas/{paired}_2.fastq",
         ref = "indicies/genome.fasta"
     output:
-        bam = temp("mapped/{paired}.minimap.bam"),
-        bai = temp("mapped/{paired}.minimap.bam.bai")
+        bam = "mapped/{paired}.minimap.bam",
+        bai = "mapped/{paired}.minimap.bam.bai"
     threads: 10
     params:
         sname = "{paired}"
@@ -189,7 +190,7 @@ rule surject:
         gam = "mapped/{paired}.gam",
         gbz = "indicies/pangenome.gbz"
     output:
-        bam = temp("mapped/{paired}.giraffe.bam")
+        bam = "mapped/{paired}.giraffe.bam"
     threads: 10
     params:
         sname = "{paired}"
@@ -246,7 +247,7 @@ rule elprep:
             --intermediate-files-output-type sam \
             --tmp-path ./TEMP
 
-        gatk3 IndexFeatureFile -I {output.gvcf}
+        gatk IndexFeatureFile -I {output.gvcf}
         """
 
 rule joint_genotyping:
@@ -270,13 +271,13 @@ rule joint_genotyping:
         #outstr="logs/join_genotyping/{mapper}"
     shell:
         """
-        gatk3 CombineGVCFs \
+        gatk CombineGVCFs \
             -R {input.ref} \
             {params.inputs} \
             -O {output.tempcombined} \
             --tmp-dir ./TEMP
 
-        gatk3 GenotypeGVCFs \
+        gatk GenotypeGVCFs \
             -R {input.ref} \
             -V {output.tempcombined} \
             -O {output.genotyped}

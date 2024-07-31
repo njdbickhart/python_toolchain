@@ -7,7 +7,7 @@ dependencies:
     - seaborn
     - snakemake
     - samtools
-    - gatk
+    - gatk4
     - vg
     - elprep
     - bcftools
