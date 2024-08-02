@@ -188,9 +188,13 @@ rule align_minimap:
 rule surject:
     input:
         gam = "mapped/{paired}.gam",
-        gbz = "indicies/pangenome.gbz"
+        gbz = "indicies/pangenome.gbz",
+        fai = "indicies/genome.fasta.fai"
     output:
-        bam = "mapped/{paired}.giraffe.bam"
+        bam = "mapped/{paired}.giraffe.bam",
+        sort = temp("mapped/{paired}.sorted.bam"),
+        rehead = temp("mapped/{paired}.rehead.bam"),
+        bai = temp("mapped/{paired}.sorted.bam.bai")
     threads: 10
     params:
         sname = "{paired}"
@@ -205,12 +209,18 @@ rule surject:
     shell:
         """
         vg surject \
-            --threads {threads} \
+            --threads {resources.threads} \
+            -i \
             --xg-name {input.gbz} \
             --bam-output \
             {input.gam} \
-            | samtools reheader -c "sed 's/bGalGal1b#0#//g'" - \
-            > {output.bam}
+            | samtools reheader -c 'perl -pe "s/^(@SQ.*)(\tSN:)bGalGal1b#0#(chr)?(.+)/\$1\$2\$4/"' - \
+            | samtools sort -@ 5 -T {params.sname}.temp -o {output.sort} -
+
+        samtools index {output.sort}
+
+        samtools view -b --regions-file indicies/genome.regions -o {output.rehead} {output.sort}
+        samtools view {output.rehead} | samtools view -bt {input.fai} -o {output.bam} -
         """
 # Needs its own special fasta format!
 rule elprep:
@@ -247,7 +257,7 @@ rule elprep:
             --intermediate-files-output-type sam \
             --tmp-path ./TEMP
 
-        gatk IndexFeatureFile -I {output.gvcf}
+        gatk IndexFeatureFile -F {output.gvcf}
         """
 
 rule joint_genotyping:
@@ -272,12 +282,14 @@ rule joint_genotyping:
     shell:
         """
         gatk CombineGVCFs \
+            --java-options '-Xmx200g' \
             -R {input.ref} \
             {params.inputs} \
             -O {output.tempcombined} \
             --tmp-dir ./TEMP
 
         gatk GenotypeGVCFs \
+            --java-options '-Xmx200g' \
             -R {input.ref} \
             -V {output.tempcombined} \
             -O {output.genotyped}
