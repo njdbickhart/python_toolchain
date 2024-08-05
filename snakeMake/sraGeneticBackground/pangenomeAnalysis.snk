@@ -137,8 +137,8 @@ rule align_giraffe:
     log:
         "logs/{paired}_giraffe.log"
     resources:
-        mem_mb=55000,
-        runtime="3d",
+        mem_mb=70000,
+        runtime="5d",
         threads=35,
         outstr=lambda wildcards: f'logs/align_giraffe/{wildcards.paired}'
         #outstr="logs/align_giraffe/{paired}"
