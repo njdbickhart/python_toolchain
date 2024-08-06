@@ -5,6 +5,7 @@ dependencies:
     - numpy
     - pandas
     - seaborn
+    - plac=1.4.3
     - snakemake
     - samtools
     - openjdk

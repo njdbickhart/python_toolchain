@@ -257,7 +257,7 @@ rule elprep:
             --intermediate-files-output-type sam \
             --tmp-path ./TEMP
 
-        gatk IndexFeatureFile -F {output.gvcf}
+        gatk IndexFeatureFile -I {output.gvcf}
         """
 
 rule joint_genotyping:
