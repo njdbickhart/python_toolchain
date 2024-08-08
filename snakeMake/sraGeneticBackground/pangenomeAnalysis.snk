@@ -194,7 +194,8 @@ rule surject:
         bam = "mapped/{paired}.giraffe.bam",
         sort = temp("mapped/{paired}.sorted.bam"),
         rehead = temp("mapped/{paired}.rehead.bam"),
-        bai = temp("mapped/{paired}.sorted.bam.bai")
+        bai = temp("mapped/{paired}.sorted.bam.bai"),
+        reread = temp("mapped/{paired}.reread.bam")
     threads: 10
     params:
         sname = "{paired}"
@@ -220,7 +221,8 @@ rule surject:
         samtools index {output.sort}
 
         samtools view -b --regions-file indicies/genome.regions -o {output.rehead} {output.sort}
-        samtools view {output.rehead} | samtools view -bt {input.fai} -o {output.bam} -
+        samtools view {output.rehead} | samtools view -bt {input.fai} -o {output.reread} -
+        samtools addreplacerg -r '@RG\\tID:{params.sname}\\tSM:{params.sname}' -@ 10 -o {output.bam} {output.reread}
         """
 # Needs its own special fasta format!
 rule elprep:
