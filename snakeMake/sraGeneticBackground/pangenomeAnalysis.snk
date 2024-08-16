@@ -132,7 +132,7 @@ rule align_giraffe:
         min = "indicies/pangenome.min",
         dist = "indicies/pangenome.dist"
     output:
-        gam = "mapped/{paired}.gam"
+        gam = ancient("mapped/{paired}.gam")
     threads: 35
     params:
         sname = "{paired}"
@@ -163,8 +163,8 @@ rule align_minimap:
         fq2 = "fastas/{paired}_2.fastq",
         ref = "indicies/genome.fasta"
     output:
-        bam = "mapped/{paired}.minimap.bam",
-        bai = "mapped/{paired}.minimap.bam.bai"
+        bam = ancient("mapped/{paired}.minimap.bam"),
+        bai = ancient("mapped/{paired}.minimap.bam.bai")
     threads: 10
     params:
         sname = "{paired}"
@@ -192,7 +192,7 @@ rule surject:
         gbz = "indicies/pangenome.gbz",
         fai = "indicies/genome.fasta.fai"
     output:
-        bam = "mapped/{paired}.giraffe.bam",
+        bam = ancient("mapped/{paired}.giraffe.bam"),
         sort = temp("mapped/{paired}.sorted.bam"),
         rehead = temp("mapped/{paired}.rehead.bam"),
         bai = temp("mapped/{paired}.sorted.bam.bai"),
@@ -254,7 +254,7 @@ rule elprep:
         bam = "mapped/{paired}.{mapper}.bam"
     output:
         tempbam = "mapped/{paired}.{mapper}.elprep.bam",
-        gvcf = "calls/{paired}.{mapper}.gvcf.gz"
+        gvcf = ancient("calls/{paired}.{mapper}.gvcf.gz")
     threads: 20
     params:
         sname = "{paired}",
