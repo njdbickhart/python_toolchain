@@ -5,6 +5,7 @@ dependencies:
     - numpy
     - pandas
     - seaborn
+    - pysam
     - plac=1.4.3
     - snakemake
     - samtools
@@ -13,7 +14,7 @@ dependencies:
     - vg
     - elprep
     - bcftools
-    - minimap2
+    - minimap2=2.28
     - sra-tools>=2.11.0
     - bedtools
     - snakemake-executor-plugin-slurm
