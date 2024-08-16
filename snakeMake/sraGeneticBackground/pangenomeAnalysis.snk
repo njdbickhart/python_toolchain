@@ -188,7 +188,7 @@ rule align_minimap:
 
 rule surject:
     input:
-        gam = "mapped/{paired}.gam",
+        gam = ancient("mapped/{paired}.gam"),
         gbz = "indicies/pangenome.gbz",
         fai = "indicies/genome.fasta.fai"
     output:
@@ -228,7 +228,7 @@ rule surject:
 
 rule index_surject:
     input:
-        bam = "mapped/{paired}.giraffe.bam"
+        bam = ancient("mapped/{paired}.giraffe.bam")
     output:
         bai = "mapped/{paired}.giraffe.bam.bai"
     threads: 1
@@ -251,10 +251,10 @@ rule index_surject:
 rule elprep:
     input:
         ref = "indicies/genome.elfasta",
-        bam = "mapped/{paired}.{mapper}.bam"
+        bam = ancient("mapped/{paired}.{mapper}.bam")
     output:
         tempbam = "mapped/{paired}.{mapper}.elprep.bam",
-        gvcf = ancient("calls/{paired}.{mapper}.gvcf.gz")
+        gvcf = "calls/{paired}.{mapper}.gvcf.gz"
     threads: 20
     params:
         sname = "{paired}",
