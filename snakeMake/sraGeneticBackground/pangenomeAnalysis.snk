@@ -379,9 +379,6 @@ rule vg_svs:
         vcf = "calls/{paired}.giraffe.graph.vcf"
     log:
         "logs/{paired}_vgsvs.log"
-    params:
-        mapper = "{mapper}",
-        outdir = "calls"
     resources:
         mem_mb=100000,
         runtime="2d",
