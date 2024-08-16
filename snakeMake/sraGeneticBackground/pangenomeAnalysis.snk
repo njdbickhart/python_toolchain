@@ -126,8 +126,8 @@ rule plot_stats:
 
 rule align_giraffe:
     input:
-        fq1 = "fastas/{paired}_1.fastq",
-        fq2 = "fastas/{paired}_2.fastq",
+        fq1 = ancient("fastas/{paired}_1.fastq"),
+        fq2 = ancient("fastas/{paired}_2.fastq"),
         gbz = "indicies/pangenome.gbz",
         min = "indicies/pangenome.min",
         dist = "indicies/pangenome.dist"
@@ -159,8 +159,8 @@ rule align_giraffe:
 
 rule align_minimap:
     input:
-        fq1 = "fastas/{paired}_1.fastq",
-        fq2 = "fastas/{paired}_2.fastq",
+        fq1 = ancient("fastas/{paired}_1.fastq"),
+        fq2 = ancient("fastas/{paired}_2.fastq"),
         ref = "indicies/genome.fasta"
     output:
         bam = ancient("mapped/{paired}.minimap.bam"),
