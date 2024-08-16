@@ -354,7 +354,7 @@ rule smoove_merger:
     output:
         merged = "final/{mapper}.linear.sites.vcf.gz"
     log:
-        "logs/{paired}.{mapper}_smoove.log"
+        "logs/{mapper}_smoove_merger.log"
     params:
         mapper = "{mapper}",
         outdir = "calls"
@@ -378,7 +378,7 @@ rule vg_svs:
         pack = temp("mapped/{paired}.pack"),
         vcf = "calls/{paired}.giraffe.graph.vcf"
     log:
-        "logs/{paired}.{mapper}_smoove.log"
+        "logs/{paired}_vgsvs.log"
     params:
         mapper = "{mapper}",
         outdir = "calls"
