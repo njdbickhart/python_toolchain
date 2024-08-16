@@ -383,7 +383,7 @@ rule vg_svs:
         mem_mb=100000,
         runtime="2d",
         threads=30,
-        outstr=lambda wildcards: f'logs/vg_svs/{wildcards.mapper}'
+        outstr=lambda wildcards: f'logs/vg_svs/{wildcards.paired}'
     shell:
         """
         vg pack -x indicies/pangenome.gbz -t 30 -Q 5 -s 5 -o {output.pack} -g {input.gam}
