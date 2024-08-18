@@ -43,8 +43,8 @@ rule download_paired:
     #input:
     #    lambda wildcards: config["samples"][wildcards.srafiles][0]
     output:
-        temp("fastas/{paired}_1.fastq"),
-        temp("fastas/{paired}_2.fastq")
+        "fastas/{paired}_1.fastq",
+        "fastas/{paired}_2.fastq"
     params:
         download_folder = "fastas",
         mem="9000",
