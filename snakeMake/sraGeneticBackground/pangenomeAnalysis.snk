@@ -341,7 +341,6 @@ rule smoove_calling:
         #outstr="logs/join_genotyping/{mapper}"
     shell:
         """
-        module load 2023 Apptainer/1.3.2
         apptainer exec docker://brentp/smoove smoove call \
         --fasta {input.ref} --name {params.sname}.{params.mapper}.linear \
         --outdir {params.outdir} -p 10 --genotype {input.bam}
@@ -366,7 +365,6 @@ rule smoove_merger:
         #outstr="logs/join_genotyping/{mapper}"
     shell:
         """
-        module load 2023 Apptainer/1.3.2
         apptainer exec docker://brentp/smoove smoove merge --name {params.mapper}.linear -f {input.ref} \
         --outdir final calls/*{params.mapper}.linear*.genotyped.vcf.gz
         """
