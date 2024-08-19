@@ -328,7 +328,7 @@ rule smoove_calling:
         bai = "mapped/{paired}.{mapper}.bam.bai",
         ref = "indicies/genome.fasta"
     output:
-        vcf = "calls/{paired}_{mapper}-smoove.genotyped.vcf.gz"
+        vcf = "calls/{paired}-{mapper}-smoove.genotyped.vcf.gz"
     log:
         "logs/{paired}.{mapper}_smoove.log"
     params:
@@ -344,13 +344,13 @@ rule smoove_calling:
     shell:
         """
         apptainer exec docker://brentp/smoove smoove call \
-        --fasta {input.ref} --name {params.sname}_{params.mapper} \
+        --fasta {input.ref} --name {params.sname}-{params.mapper} \
         --outdir {params.outdir} -p 10 --genotype {input.bam}
         """
 
 rule smoove_merger:
     input:
-        vcfs = expand("calls/{paired}_{{mapper}}-smoove.genotyped.vcf.gz", paired=PAIRED_SRA),
+        vcfs = expand("calls/{paired}-{{mapper}}-smoove.genotyped.vcf.gz", paired=PAIRED_SRA),
         ref = "indicies/genome.fasta"
     output:
         merged = "final/{mapper}_linear.sites.vcf.gz"
