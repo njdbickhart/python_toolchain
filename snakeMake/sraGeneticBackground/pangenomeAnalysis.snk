@@ -302,7 +302,7 @@ rule joint_genotyping:
         "logs/{mapper}_jgenotyping.log"
     resources:
         mem_mb=250000,
-        runtime="2d",
+        runtime="4d",
         threads=70,
         outstr=lambda wildcards: f'logs/join_genotyping/{wildcards.mapper}'
         #outstr="logs/join_genotyping/{mapper}"
