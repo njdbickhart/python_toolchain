@@ -224,6 +224,8 @@ rule surject:
         samtools view -b --regions-file indicies/genome.regions -o {output.rehead} {output.sort}
         samtools view {output.rehead} | samtools view -bt {input.fai} -o {output.reread} -
         samtools addreplacerg -r '@RG\\tID:{params.sname}\\tSM:{params.sname}' -@ 10 -o {output.bam} {output.reread}
+        # NOTE for some weird reason, this deletes the SO @HD tag which causes smoove to break
+        # I need to add this back in in future versions of the pipeline
         """
 
 rule index_surject:
@@ -292,29 +294,29 @@ rule joint_genotyping:
     output:
         tempcombined = temp("calls/{mapper}.gvcf.gz"),
         genotyped = "final/{mapper}.vcf.gz"
-    threads: 30
+    threads: 70
     params:
         mapper = "{mapper}",
         inputs = lambda wildcards, input: " ".join([f'--variant {x}' for x in input.gvcfs])
     log:
         "logs/{mapper}_jgenotyping.log"
     resources:
-        mem_mb=200000,
+        mem_mb=250000,
         runtime="2d",
-        threads=30,
+        threads=70,
         outstr=lambda wildcards: f'logs/join_genotyping/{wildcards.mapper}'
         #outstr="logs/join_genotyping/{mapper}"
     shell:
         """
         gatk CombineGVCFs \
-            --java-options '-Xmx200g' \
+            --java-options '-Xmx250g' \
             -R {input.ref} \
             {params.inputs} \
             -O {output.tempcombined} \
             --tmp-dir ./TEMP
 
         gatk GenotypeGVCFs \
-            --java-options '-Xmx200g' \
+            --java-options '-Xmx250g' \
             -R {input.ref} \
             -V {output.tempcombined} \
             -O {output.genotyped}
@@ -326,7 +328,7 @@ rule smoove_calling:
         bai = "mapped/{paired}.{mapper}.bam.bai",
         ref = "indicies/genome.fasta"
     output:
-        vcf = "calls/{paired}.{mapper}.linear-smoove.genotyped.vcf.gz"
+        vcf = "calls/{paired}_{mapper}-smoove.genotyped.vcf.gz"
     log:
         "logs/{paired}.{mapper}_smoove.log"
     params:
@@ -342,16 +344,16 @@ rule smoove_calling:
     shell:
         """
         apptainer exec docker://brentp/smoove smoove call \
-        --fasta {input.ref} --name {params.sname}.{params.mapper}.linear \
+        --fasta {input.ref} --name {params.sname}_{params.mapper} \
         --outdir {params.outdir} -p 10 --genotype {input.bam}
         """
 
 rule smoove_merger:
     input:
-        vcfs = expand("calls/{paired}.{{mapper}}.linear-smoove.genotyped.vcf.gz", paired=PAIRED_SRA),
+        vcfs = expand("calls/{paired}_{{mapper}}-smoove.genotyped.vcf.gz", paired=PAIRED_SRA),
         ref = "indicies/genome.fasta"
     output:
-        merged = "final/{mapper}.linear.sites.vcf.gz"
+        merged = "final/{mapper}_linear.sites.vcf.gz"
     log:
         "logs/{mapper}_smoove_merger.log"
     params:
@@ -365,8 +367,8 @@ rule smoove_merger:
         #outstr="logs/join_genotyping/{mapper}"
     shell:
         """
-        apptainer exec docker://brentp/smoove smoove merge --name {params.mapper}.linear -f {input.ref} \
-        --outdir final calls/*{params.mapper}.linear*.genotyped.vcf.gz
+        apptainer exec docker://brentp/smoove smoove merge --name {params.mapper}_linear -f {input.ref} \
+        --outdir final calls/*{params.mapper}*.genotyped.vcf.gz
         """
 
 rule vg_svs:
