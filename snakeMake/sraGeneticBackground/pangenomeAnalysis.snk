@@ -34,7 +34,7 @@ onerror:
 rule all:
     input:
         expand("final/{mapper}.vcf.gz", mapper=MAPPERS),
-        expand("final/{mapper}.linear.sites.vcf.gz", mapper=MAPPERS),
+        expand("final/{mapper}_linear.sites.vcf.gz", mapper=MAPPERS),
         expand("calls/{paired}.giraffe.graph.vcf", paired=PAIRED_SRA),
         "final/combined_bam_stats.tab",
         "final/combined_bam_stats.pdf"
