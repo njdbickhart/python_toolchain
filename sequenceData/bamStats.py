@@ -144,9 +144,9 @@ class samStats:
 
 
     def _finalStats(self):
-        self.mapPerc = "{0:.3f}".format(self.mapReads / self.totReads)
-        self.rawX = "{0:.3f}".format((self.totReads * self.avgRLen) / self.gsize)
-        self.mapX = "{0:.3f}".format((self.mapReads * self.avgRLen) / self.gsize)
+        self.mapPerc = "{0:.6f}".format(self.mapReads / self.totReads)
+        self.rawX = "{0:.6f}".format((self.totReads * self.avgRLen) / self.gsize)
+        self.mapX = "{0:.6f}".format((self.mapReads * self.avgRLen) / self.gsize)
 
         clens = list(self.chrLens.values())
         maps = list(self.mapChrR.values())
@@ -159,8 +159,8 @@ class samStats:
             self.avgMapX = "0"
             self.avgMapPerc = "0"
             return
-        self.avgMapX = "{0:.3f}".format(np.mean(avgMX))
-        self.avgMapPerc = "{0:.3f}".format(np.mean(avgPC))
+        self.avgMapX = "{0:.6f}".format(np.mean(avgMX))
+        self.avgMapPerc = "{0:.6f}".format(np.mean(avgPC))
 
     def _pullStats(self):
         text = pysam.idxstats(self.file)
