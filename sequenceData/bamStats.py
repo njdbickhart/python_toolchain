@@ -48,7 +48,7 @@ def main(args):
 
     # Process files
     classes = list()
-    if args.list != "None":
+    if args.list == "None":
         for f in args.file:
             worker = samStats(f, args.reads)
             try:
