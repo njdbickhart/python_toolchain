@@ -122,14 +122,15 @@ def calc_concordance(sample_table: list[tuple[int, int]], line: str) -> float:
     if num_calls == 0:
         return -1
     else:
-        return num_agreements / num_calls
+        return (fields[0], fields[1], fields[4], (num_agreements / num_calls))
 
 
 def main():
     """main method of program"""
     args = parse_args()
+    print("Chr\tPos\tSVType\tConcordance")
     for concordance in parse_vcf(args.vcf):
-        print(concordance)
+        print("\t".join(concordance))
 
 
 if __name__ == "__main__":
