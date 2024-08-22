@@ -128,8 +128,8 @@ def calc_concordance(sample_table: list[tuple[int, int]], line: str) -> float:
     if num_calls == 0:
         return -1
     else:
-        return (fields[0], fields[1], fields[4], str(num_agreements / num_calls), 
-        strt(gcounts), str(gcounts / totalsamps), str(mcounts), str(mcounts / totalsamps))
+        return (fields[0], fields[1], fields[4], str(num_agreements / num_calls),
+        str(gcounts), str(gcounts / totalsamps), str(mcounts), str(mcounts / totalsamps))
 
 
 def main():
