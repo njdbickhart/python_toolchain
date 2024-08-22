@@ -114,10 +114,13 @@ def calc_concordance(sample_table: list[tuple[int, int]], line: str) -> float:
         giraffe_call = tuple(gt_seperator_re.split(calls[giraffe_call_index]))
         minimap_call = tuple(gt_seperator_re.split(calls[minimap_call_index]))
 
-        for counter, caller in zip([gcounts, mcounts], [giraffe_call, minimap_call]):
-            for a in caller:
-                if a != 0:
-                    counter += 1
+        for a in giraffe_call:
+            if a != "0":
+                gcounts += 1
+                
+        for a in minimap_call:
+            if a != "0":
+                mcounts += 1
 
         if not (giraffe_call == (".", ".") and minimap_call == (".", ".")):
             num_calls += 1
