@@ -109,26 +109,33 @@ def calc_concordance(sample_table: list[tuple[int, int]], line: str) -> float:
     genotype_field_index = fields[8].split(":").index("GT")
 
     calls = [s.split(":")[genotype_field_index] for s in fields[9:]]
-    num_calls, num_agreements = 0, 0
+    num_calls, num_agreements, gcounts, mcounts = 0, 0, 0, 0
     for giraffe_call_index, minimap_call_index in sample_table:
         giraffe_call = tuple(gt_seperator_re.split(calls[giraffe_call_index]))
         minimap_call = tuple(gt_seperator_re.split(calls[minimap_call_index]))
+
+        for counter, caller in zip([gcounts, mcounts], [giraffe_call, minimap_call]):
+            for a in caller:
+                if a != 0:
+                    counter += 1
 
         if not (giraffe_call == (".", ".") and minimap_call == (".", ".")):
             num_calls += 1
             if giraffe_call == minimap_call:
                 num_agreements += 1
 
+    totalsamps = len(fields) - 9
     if num_calls == 0:
         return -1
     else:
-        return (fields[0], fields[1], fields[4], str(num_agreements / num_calls))
+        return (fields[0], fields[1], fields[4], str(num_agreements / num_calls), 
+        strt(gcounts), str(gcounts / totalsamps), str(mcounts), str(mcounts / totalsamps))
 
 
 def main():
     """main method of program"""
     args = parse_args()
-    print("Chr\tPos\tSVType\tConcordance")
+    print("Chr\tPos\tSVType\tConcordance\tGiraffeCount\tGiraffeFreq\tMinimapCount\tMinimapFreq")
     for concordance in parse_vcf(args.vcf):
         print("\t".join(concordance))
 
