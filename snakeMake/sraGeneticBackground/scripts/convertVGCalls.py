@@ -30,9 +30,10 @@ def parse_vcf(vcf, converter):
                 pass # Skip missing chromosomes
             elif segs[6] != "PASS":
                 pass # Skip variants that do not pass filters
-            elif lref < 50 and lalt < 50 and lref != lalt:
+            elif lref < 50 and lalt < 50:
                 pass # Skip non-SV variants
-            yield convert_to_sv(chr, lref, lalt, segs)
+            else:
+                yield convert_to_sv(chr, lref, lalt, segs)
 
 def convert_to_sv(chr, lref, lalt, segs):
     svtype = "None"
@@ -58,6 +59,8 @@ with open(sys.argv[1], 'r') as input:
 vcfh = open(sys.argv[2], 'r')
 with open(sys.argv[3], 'w') as output:
     for rows in parse_vcf(vcfh, converter):
+        if rows[0] == "None" or rows[4] == "None" or rows[6] != "PASS":
+            continue
         output.write("\t".join(rows) + "\n")
 
 
