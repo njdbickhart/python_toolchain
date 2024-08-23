@@ -62,6 +62,14 @@ with open(sys.argv[3], 'w') as output:
     for rows in parse_vcf(vcfh, converter):
         if rows[0] == "None" or rows[4] == "None" or rows[6] != "PASS":
             continue
+        gtsegs = rows[9].split(':')
+        gtalleles = [int(x) for x in gtsegs[0].split('/')]
+        stop = False
+        for g in gtalleles:
+            if g > 1:
+                stop = True
+        if stop:
+            continue  # Do not count multialleles right now 
         output.write("\t".join(rows) + "\n")
 
 
