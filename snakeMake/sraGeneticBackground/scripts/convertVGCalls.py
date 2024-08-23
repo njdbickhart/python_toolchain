@@ -1,9 +1,9 @@
 import os
 import sys
 
-usage = f'python3 {sys.argv[0]} <input chrconverter tab file> <input vcf> <output vcf>'
+usage = f'python3 {sys.argv[0]} <input chrconverter tab file> <input vcf> <output vcf> <sample name>'
 
-if len(sys.argv) != 4:
+if len(sys.argv) != 5:
     print(usage)
     sys.exit(-1)
 
@@ -58,6 +58,7 @@ with open(sys.argv[1], 'r') as input:
 # Parse vcf file line by line to create a headerless vcf
 vcfh = open(sys.argv[2], 'r')
 with open(sys.argv[3], 'w') as output:
+    output.write(f'#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sys.argv[4]}\n')
     for rows in parse_vcf(vcfh, converter):
         if rows[0] == "None" or rows[4] == "None" or rows[6] != "PASS":
             continue
