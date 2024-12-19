@@ -166,10 +166,10 @@ rule align_contig:
     shell:
         """
         minimap2 -t {resources.threads} -ax sr \
-            -R '@RG\\tID:{params.sname}\\tSM:{params.sname}' \
+            -R '@RG\\tID:{params.samp}\\tSM:{params.samp}' \
             {input.ref} \
             {output.catunmap} \
-            | samtools sort -T {params.sname}.utemp -o {output.contigalign} - 2> {log}
+            | samtools sort -T {params.samp}.utemp -o {output.contigalign} - 2> {log}
         echo "Done with alignment" > {log}
         bedtools bamtobed -i {output.contigalign} > {output.contiglinks} 2> {log}
         """
