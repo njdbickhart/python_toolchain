@@ -11,6 +11,9 @@ dependencies:
     - matplotlib
     - samtools
     - bwa
+    - pysam
     - minimap2
     - bioconda::spades
     - bioconda::bedtools
+    - snakemake-executor-plugin-slurm
+    - snakemake-executor-plugin-cluster-generic

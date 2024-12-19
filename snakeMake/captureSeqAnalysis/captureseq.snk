@@ -3,7 +3,7 @@ import subprocess as sp
 
 shell.executable("/usr/bin/bash")
 
-configfile : "config.json"
+configfile : "config.yaml"
 WKDIR = os.getcwd()
 
 os.makedirs("logs", exist_ok=True)

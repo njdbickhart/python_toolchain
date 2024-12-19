@@ -1,5 +1,6 @@
 vector: data/vec.fasta
 reference: data/ref.fasta
+logdir: logs
 
 samples:
   SampleA : fastqs/leaderstr
