@@ -167,7 +167,7 @@ rule align_contig:
         """
         minimap2 -t {resources.threads} -ax sr \
             -R '@RG\\tID:{params.samp}\\tSM:{params.samp}' \
-            {input.ref} \
+            {input} \
             {output.catunmap} \
             | samtools sort -T {params.samp}.utemp -o {output.contigalign} - 2> {log}
         echo "Done with alignment" > {log}
