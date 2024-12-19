@@ -142,10 +142,10 @@ rule remap_unmapped:
         """
         cat {input.mUnmap1} {input.mUnmap2} > {output.catunmap}
         minimap2 -t {resources.threads} -ax sr \
-            -R '@RG\\tID:{params.sname}\\tSM:{params.sname}' \
+            -R '@RG\\tID:{params.samp}\\tSM:{params.samp}' \
             {input.ref} \
             {output.catunmap} \
-            | samtools sort -T {params.sname}.utemp -o {output.readalign} - 2> {log}
+            | samtools sort -T {params.samp}.utemp -o {output.readalign} - 2> {log}
         echo "Done with alignment" > {log}
         bedtools bamtobed -i {output.readalign} > {output.unmaplinks} 2> {log}
         """
