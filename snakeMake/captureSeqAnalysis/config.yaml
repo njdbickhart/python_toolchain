@@ -1,0 +1,5 @@
+vector: data/vec.fasta
+reference: data/ref.fasta
+
+samples:
+  SampleA : fastqs/leaderstr

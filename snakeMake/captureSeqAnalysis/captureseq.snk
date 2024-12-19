@@ -1,0 +1,197 @@
+import os
+import subprocess as sp
+
+shell.executable("/usr/bin/bash")
+
+configfile : "config.json"
+WKDIR = os.getcwd()
+
+os.makedirs("logs", exist_ok=True)
+os.makedirs("TEMP", exist_ok=True)
+os.makedirs("final", exist_ok=True)
+
+def getAssemblyName(v):
+    return os.path.basename(v).replace('.fa', '')
+
+SAMPLES = config["samples"]
+
+wildcard_constraints:
+    sample = "|".join(SAMPLES)
+
+localrules: modify_and_index, tabulate_spades
+
+onerror:
+    print("Error! Mailing log...")
+    shell("tail -n 100 {log} | mail -s 'CaptureSeq' derek.bickhart@hendrix-genetics.com")
+    print("Done")
+
+rule all:
+    input:
+        expand("linkage/{sample}/{sample}.contiglinks.bed", sample=SAMPLES),
+        expand("linkage/{sample}/{sample}.readlinks.bed", sample=SAMPLES)
+
+rule align_vector:
+    input:
+        fq1 = lambda wildcards: f"{config['samples'][wildcards.sample]}_1.fastq",
+        fq2 = lambda wildcards: f"{config['samples'][wildcards.sample]}_2.fastq",
+        ref = config["vector"]
+    output:
+        bam = "mapped/{sample}.vectormap.bam",
+        bai = "mapped/{sample}.vectormap.bam.bai"
+    threads: 10
+    params:
+        sname = "{sample}"
+    log:
+        "logs/{sample}/vectormap.log"
+    resources:
+        mem_mb=25000,
+        runtime="1d",
+        threads=10,
+        outstr=lambda wildcards: f'logs/vectormap/{wildcards.sample}'
+    shell:
+        """
+        minimap2 -t {resources.threads} -ax sr \
+            -R '@RG\\tID:{params.sname}\\tSM:{params.sname}' \
+            {input.ref} \
+            {input.fq1} \
+            {input.fq2} \
+            | samtools sort -T {params.sname}.temp -o {output.bam} - 2> {log}
+        samtools index {output.bam}
+        """
+
+rule extract_reads:
+    input:
+        "mapped/{sample}.vectormap.bam"
+    output:
+        mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
+        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R2.fq",
+        mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
+        mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq",
+        links = "rawreads/{sample}/{sample}_links.sam"
+    log: config['logdir'] + "/{sample}/extract.log"
+    shell:
+        """
+        samtools fastq -f 12 {input} -1 {output.mUnmap1} -2 {output.mUnmap2}
+        samtools fastq -f 68 -F 8 {input} > {output.mMap1}
+        samtools fastq -f 132 -F 8 {input} > {output.mMap2}
+        samtools view -f 8 -F 4 {input} > {output.links}
+        """
+
+rule run_spades:
+    input:
+        mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
+        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R2.fq",
+        mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
+        mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
+    threads: 16
+    log: config['logdir'] + "/{sample}/spades.log"
+    params:
+        memlimit = 50,
+        outdir = "assembly/{sample}"
+    resources:
+        mem_mb=50000,
+        runtime="1d",
+        threads=16,
+        outstr=lambda wildcards: f'logs/runspades/{wildcards.sample}'
+    output:
+        "assembly/{sample}/scaffolds.fasta"
+    shell:
+        """
+        spades.py --pe1-1 {input.mUnmap1} --pe1-2 {input.mUnmap2} \
+        --s1 {input.mMap1} --s2 {input.mMap2} -t {threads} -m {params.memlimit} \
+         -o {params.outdir}
+        """
+
+rule modify_and_index:
+    input:
+        asm = "assembly/{sample}/scaffolds.fasta"
+    log: config['logdir'] + "/{sample}/modify.log"
+    params:
+        samp = "{sample}"
+    output:
+        rasm = "assembly/{sample}/{sample}.renamed.fasta",
+        rfai = "assembly/{sample}/{sample}.renamed.fasta.fai"
+    script:
+        "scripts/modifySeqName.py"
+
+rule tabulate_spades:
+    input:
+        expand("assembly/{sample}/{sample}.renamed.fasta.fai", sample=config["samples"])
+    output:
+        "assembly/summaryStatsOfSamples.tab"
+    script:
+        "scripts/calcFastaSumStats.py"
+
+rule remap_unmapped:
+    input:
+        ref = config['reference'],
+        mUnmap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
+        mUnmap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
+    log: config['logdir'] + "/{sample}/remap_unmap.log"
+    params: samp = "{sample}"
+    output:
+        catunmap = "filtered/{sample}/{sample}.cat.unmapped.fq",
+        readalign = "filtered/{sample}/{sample}.readcontig.bam",
+        unmaplinks = "linkage/{sample}/{sample}.readlinks.bed"
+    resources:
+        mem_mb=25000,
+        runtime="1d",
+        threads=10,
+        outstr=lambda wildcards: f'logs/remap/{wildcards.sample}'
+    shell:
+        """
+        cat {input.mUnmap1} {input.mUnmap2} > {output.catunmap}
+        minimap2 -t {resources.threads} -ax sr \
+            -R '@RG\\tID:{params.sname}\\tSM:{params.sname}' \
+            {input.ref} \
+            {output.catunmap} \
+            | samtools sort -T {params.sname}.utemp -o {output.readalign} - 2> {log}
+        echo "Done with alignment" > {log}
+        bedtools bamtobed -i {output.readalign} > {output.unmaplinks} 2> {log}
+        """
+
+rule align_contig:
+    input:
+        "assembly/{sample}/{sample}.renamed.fasta"
+    log: config['logdir'] + "/{sample}/align_contig.log"
+    params: samp = "{sample}"
+    output:
+        contigalign = "filtered/{sample}/{sample}.contigalign.bam",
+        contiglinks = "linkage/{sample}/{sample}.contiglinks.bed"
+    resources:
+        mem_mb=25000,
+        runtime="1d",
+        threads=10,
+        outstr=lambda wildcards: f'logs/remap/{wildcards.sample}'
+    shell:
+        """
+        minimap2 -t {resources.threads} -ax sr \
+            -R '@RG\\tID:{params.sname}\\tSM:{params.sname}' \
+            {input.ref} \
+            {output.catunmap} \
+            | samtools sort -T {params.sname}.utemp -o {output.contigalign} - 2> {log}
+        echo "Done with alignment" > {log}
+        bedtools bamtobed -i {output.contigalign} > {output.contiglinks} 2> {log}
+        """
+
+# TODO: Refactor this rule to consolidate read and contig link files per sample
+rule match_mates:
+    input:
+        unmaplinks = "linkage/{sample}/{sample}.readlinks.bed",
+        links = "rawreads/{sample}/{sample}_links.sam",
+        rfai = "assembly/{sample}/{sample}.renamed.fasta.fai",
+        fasm = "filtered/{sample}/{sample}.scaffolds.filtered.fasta"
+    log: config['logdir'] + "/{sample}/mate_match.log"
+    params:
+        samp = "{sample}",
+        edge = 1000
+    output:
+        filtreads = "linkage/{sample}/{sample}.filt.readlinks.bed",
+        mcontigs = "linkage/{sample}/{sample}.scaffolds.linked.fasta",
+        raw = "linkage/{sample}/{sample}.observances.bed",
+        flanks = "linkage/{sample}/{sample}.scaffolds.flanks.bed"
+    script:
+        "scripts/matchMates.py"
+
+# TODO: Create a rule that checks for alignment outside of the main construct sequence
+# TODO: Generate

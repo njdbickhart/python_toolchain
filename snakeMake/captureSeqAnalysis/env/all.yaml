@@ -1,0 +1,16 @@
+channels:
+    - anaconda
+    - bioconda
+    - anaconda
+dependencies:
+    - numpy
+    - scipy
+    - pandas
+    - seaborn
+    - snakemake
+    - matplotlib
+    - samtools
+    - bwa
+    - minimap2
+    - bioconda::spades
+    - bioconda::bedtools
