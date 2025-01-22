@@ -77,60 +77,31 @@ rule extract_reads:
         samtools view -f 8 -F 4 {input} > {output.links}
         """
 
-rule run_spades:
+rule cat_unmap:
     input:
-        mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
-        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R2.fq",
-        mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
-        mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
-    threads: 16
-    log: config['logdir'] + "/{sample}/spades.log"
-    params:
-        memlimit = 50,
-        outdir = "assembly/{sample}"
-    resources:
-        mem_mb=50000,
-        runtime="1d",
-        threads=16,
-        outstr=lambda wildcards: f'logs/runspades/{wildcards.sample}'
+        mUnmap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
+        mUnmap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
     output:
-        "assembly/{sample}/scaffolds.fasta"
+        catunmap = "filtered/{sample}/{sample}.cat.unmapped.fq"
+    resources:
+        mem_mb = 1000
+        runtime = "1h"
+        threads = 1
+        outstr=lambda wildcards: f'logs/cat/{wildcards.sample}'
     shell:
         """
-        spades.py --pe1-1 {input.mUnmap1} --pe1-2 {input.mUnmap2} \
-        --s1 {input.mMap1} --s2 {input.mMap2} -t {threads} -m {params.memlimit} \
-         -o {params.outdir}
+        cat {input.mUnmap1} {input.mUnmap2} > {output.catunmap}
         """
-
-rule modify_and_index:
-    input:
-        asm = "assembly/{sample}/scaffolds.fasta"
-    log: config['logdir'] + "/{sample}/modify.log"
-    params:
-        samp = "{sample}"
-    output:
-        rasm = "assembly/{sample}/{sample}.renamed.fasta",
-        rfai = "assembly/{sample}/{sample}.renamed.fasta.fai"
-    script:
-        "scripts/modifySeqName.py"
-
-rule tabulate_spades:
-    input:
-        expand("assembly/{sample}/{sample}.renamed.fasta.fai", sample=config["samples"])
-    output:
-        "assembly/summaryStatsOfSamples.tab"
-    script:
-        "scripts/calcFastaSumStats.py"
 
 rule remap_unmapped:
     input:
         ref = config['reference'],
         mUnmap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
-        mUnmap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
+        mUnmap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq",
+        catunmap = "filtered/{sample}/{sample}.cat.unmapped.fq"
     log: config['logdir'] + "/{sample}/remap_unmap.log"
     params: samp = "{sample}"
     output:
-        catunmap = "filtered/{sample}/{sample}.cat.unmapped.fq",
         readalign = "filtered/{sample}/{sample}.readcontig.bam",
         unmaplinks = "linkage/{sample}/{sample}.readlinks.bed"
     resources:
@@ -140,47 +111,22 @@ rule remap_unmapped:
         outstr=lambda wildcards: f'logs/remap/{wildcards.sample}'
     shell:
         """
-        cat {input.mUnmap1} {input.mUnmap2} > {output.catunmap}
         minimap2 -t {resources.threads} -ax sr \
             -R '@RG\\tID:{params.samp}\\tSM:{params.samp}' \
             {input.ref} \
-            {output.catunmap} \
+            {input.catunmap} \
             | samtools sort -T {params.samp}.utemp -o {output.readalign} - 2> {log}
         echo "Done with alignment" > {log}
         bedtools bamtobed -i {output.readalign} > {output.unmaplinks} 2> {log}
         """
 
-rule align_contig:
-    input:
-        "assembly/{sample}/{sample}.renamed.fasta"
-    log: config['logdir'] + "/{sample}/align_contig.log"
-    params: samp = "{sample}"
-    output:
-        contigalign = "filtered/{sample}/{sample}.contigalign.bam",
-        contiglinks = "linkage/{sample}/{sample}.contiglinks.bed"
-    resources:
-        mem_mb=25000,
-        runtime="1d",
-        threads=10,
-        outstr=lambda wildcards: f'logs/remap/{wildcards.sample}'
-    shell:
-        """
-        minimap2 -t {resources.threads} -ax sr \
-            -R '@RG\\tID:{params.samp}\\tSM:{params.samp}' \
-            {input} \
-            {output.catunmap} \
-            | samtools sort -T {params.samp}.utemp -o {output.contigalign} - 2> {log}
-        echo "Done with alignment" > {log}
-        bedtools bamtobed -i {output.contigalign} > {output.contiglinks} 2> {log}
-        """
 
 # TODO: Refactor this rule to consolidate read and contig link files per sample
 rule match_mates:
     input:
-        unmaplinks = "linkage/{sample}/{sample}.readlinks.bed",
-        links = "rawreads/{sample}/{sample}_links.sam",
-        rfai = "assembly/{sample}/{sample}.renamed.fasta.fai",
-        fasm = "filtered/{sample}/{sample}.scaffolds.filtered.fasta"
+        ref = config['reference'],
+        readalign = "filtered/{sample}/{sample}.readcontig.bam",
+        unmaplinks = "linkage/{sample}/{sample}.readlinks.bed"
     log: config['logdir'] + "/{sample}/mate_match.log"
     params:
         samp = "{sample}",
