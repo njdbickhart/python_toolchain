@@ -68,6 +68,11 @@ rule extract_reads:
         mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq",
         links = "rawreads/{sample}/{sample}_links.sam"
     log: config['logdir'] + "/{sample}/extract.log"
+    resources:
+        mem_mb=5000,
+        runtime="1d",
+        threads=1,
+        outstr=lambda wildcards: f'logs/extract_reads/{wildcards.sample}'
     shell:
         """
         samtools fastq -f 12 {input} -1 {output.mUnmap1} -2 {output.mUnmap2}
