@@ -27,7 +27,6 @@ onerror:
 
 rule all:
     input:
-        expand("linkage/{sample}/{sample}.contiglinks.bed", sample=SAMPLES),
         expand("linkage/{sample}/{sample}.readlinks.bed", sample=SAMPLES)
 
 rule align_vector:
