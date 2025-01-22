@@ -84,9 +84,9 @@ rule cat_unmap:
     output:
         catunmap = "filtered/{sample}/{sample}.cat.unmapped.fq"
     resources:
-        mem_mb = 1000
-        runtime = "1h"
-        threads = 1
+        mem_mb = 1000,
+        runtime = "1h",
+        threads = 1,
         outstr=lambda wildcards: f'logs/cat/{wildcards.sample}'
     shell:
         """
