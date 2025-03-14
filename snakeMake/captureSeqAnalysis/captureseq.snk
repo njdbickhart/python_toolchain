@@ -125,11 +125,12 @@ rule remap_unmapped:
         """
 
 
-# TODO: Refactor this rule to consolidate read and contig link files per sample
+# TODO: Refactor this rule to consolidate read and contig link files per sample to count actual pairs that map to the reads
+# OUTPUT: breakpoint assignments and read evidence for each
 rule match_mates:
     input:
         ref = config['reference'],
-        readalign = "filtered/{sample}/{sample}.readcontig.bam",
+        links = "rawreads/{sample}/{sample}_links.sam",
         unmaplinks = "linkage/{sample}/{sample}.readlinks.bed"
     log: config['logdir'] + "/{sample}/mate_match.log"
     params:
@@ -143,5 +144,7 @@ rule match_mates:
     script:
         "scripts/matchMates.py"
 
-# TODO: Create a rule that checks for alignment outside of the main construct sequence
-# TODO: Generate
+# TODO: Create a rule that merges alignment coordinates from paired groupings into breakpoints
+# TODO: Create a routine that screens against the vector sequence to find evidence of non-construct DNA in the sample
+# TODO: Create a rule that checks for alignment outside of the main construct sequence as a measure of contamination
+# TODO: Generate an HTML report per sample with graphics to show linkage information and sample feasibility
