@@ -224,8 +224,13 @@ class read_pair:
         # Name\t(read 1 str)\t(read 2 str)\tstart?\tend?\torient\tpaired\tside
         data = list()
         data.append(self.name)
+
         for i in range(2):
-            data.append(self.pairs[i + 1].getStr())
+            try:
+                data.append(self.pairs[i + 1].getStr())
+            except Exception:
+                data.append('None')
+
         data.extend([str(x) for x in [self.start, self.end, self.orient, self.side] ])
         return "\t".join(data)
 
