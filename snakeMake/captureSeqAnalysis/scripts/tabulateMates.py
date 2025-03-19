@@ -256,7 +256,7 @@ class read:
         self.orient = segs[5]
 
     def getStr(self):
-        return "\t".join([self.num, self.chr, self.pos, self.orient, self.issam])
+        return "\t".join([str(x) for x in [self.num, self.chr, self.pos, self.orient, self.issam]])
 
 if __name__ == "__main__":
     main(sys.argv)
