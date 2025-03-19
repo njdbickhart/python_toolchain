@@ -87,7 +87,7 @@ class evidence:
         # very well
         for k, v in self.pairs.items():
             v.determine_orientation()
-            if not v.paired():
+            if not v.paired:
                 self.unpaired += 1
                 continue
             (chr, pos) = v.getRefPos()
@@ -115,7 +115,7 @@ class evidence:
 
         # Next we loop through the clusters and generate the nodes and edge weights
         for k, v in self.pairs.items():
-            if not v.paired():
+            if not v.paired:
                 continue
             (chr, pos) = v.getRefPos()
 
