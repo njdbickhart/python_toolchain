@@ -37,7 +37,7 @@ def main(args):
             worker.addEvidence(s, False)
 
     # Cluster and organize the reads
-    unpaired = worker.clusterReads()
+    unpaired = worker.clusterReads(True)
     print(f'Identified {unpaired} unpaired reads.')
 
     # Print out the table
@@ -85,7 +85,7 @@ class evidence:
             self.pairs[r.name] = read_pair(r.name, self.veclength)
         self.pairs[r.name].loadread(r)
 
-    def clusterReads(self):
+    def clusterReads(self, debug):
         # First we need to generate position coordinates for merger because I did not plan the data structures
         # very well
         for k, v in self.pairs.items():
@@ -105,11 +105,18 @@ class evidence:
                     elif pos > d[1] and pos <= d[1] + 300:
                         self.clusters[chr][i][1] = pos
                         found = True
+                    elif pos <= d[1] and pos >= d[0]:
+                        found = True 
                 if not found:
                     # Not found, so we create a new cluster
                     self.clusters[chr].append([pos, pos])
             else:
                 self.clusters[chr].append([pos, pos])
+
+        if debug:
+            for chr, v in self.clusters.items():
+                for d in self.clusters[chr]:
+                    print(f'Debug Cluster: {d}')
 
         # Creating node_edge lists from clusters
         for chr, v in self.clusters.items():
