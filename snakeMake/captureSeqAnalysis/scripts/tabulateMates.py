@@ -141,8 +141,9 @@ class evidence:
         with open(out, 'w') as output:
             output.write("chr\tpos\trefside\tvec_orient\tweight\n")
             for k, v in sorted(self.chrpos.items()):
-                for i in v:
-                    output.write(i.getOutStr() + "\n")
+                for i in v.keys():
+                    for d in self.chrpos[k][i]:
+                        output.write(d.getOutStr() + "\n")
             
     def dumpAllPairs(self):
         for k, v in self.pairs.items():
