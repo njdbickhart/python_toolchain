@@ -116,7 +116,7 @@ class evidence:
         if debug:
             for chr, v in self.clusters.items():
                 for d in self.clusters[chr]:
-                    print(f'Debug Cluster: {d}')
+                    print(f'Debug Cluster: {chr} {d}')
 
         # Creating node_edge lists from clusters
         for chr, v in self.clusters.items():
@@ -136,11 +136,15 @@ class evidence:
                     # Create new node_edge
                     self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
                 else:
+                    found = False
                     for ne in self.chrpos[chr][i]:
                         added = ne.comp_and_increment(v.side, v.orient)
-                        if not added:
-                            # Create new node_edge
-                            self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
+                        if added:
+                            found = True
+                            break
+                    if not found:
+                        # Create new node_edge
+                        self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
         return self.unpaired
 
 
