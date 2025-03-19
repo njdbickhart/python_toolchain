@@ -146,7 +146,7 @@ class evidence:
             
     def dumpAllPairs(self):
         for k, v in self.pairs.items():
-            print(v.printPairStats() + "\n")
+            print(v.printPairStats() )
 
 
 class read_pair:
@@ -255,7 +255,8 @@ class read:
 
     def loadBed(self, segs):
         self.num = 1 if segs[3].endswith('/1') else 2
-        self.name = segs[3].replace(r'\/\d{1}', '')
+        # NOTE: this assumes that the read pair information in the bed file is always with a "/1" or a "/2"
+        self.name = segs[3][:-2]
         self.chr = segs[0]
         self.pos = int(segs[1])
         self.orient = segs[5]
