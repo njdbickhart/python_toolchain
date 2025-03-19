@@ -43,6 +43,9 @@ def main(args):
     # Print out the table
     worker.dumpAllObs(args[4])
 
+    # Debugging tool
+    worker.dumpAllPairs()
+
 # Class to store node data and edge weights
 class node_edge:
     def __init__(self, chr, pos, side, orient):
@@ -141,7 +144,9 @@ class evidence:
                 for i in v:
                     output.write(i.getOutStr() + "\n")
             
-
+    def dumpAllPairs(self):
+        for k, v in self.pairs.items():
+            print(v.printPairStats() + "\n")
 
 
 class read_pair:
@@ -222,6 +227,7 @@ class read_pair:
         for i in range(2):
             data.append(self.pairs[i + 1].getStr())
         data.extend([self.start, self.end, self.orient, self.side])
+        return "\t".join(data)
 
 
 
