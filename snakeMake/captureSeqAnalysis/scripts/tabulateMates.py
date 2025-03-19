@@ -226,7 +226,7 @@ class read_pair:
         data.append(self.name)
         for i in range(2):
             data.append(self.pairs[i + 1].getStr())
-        data.extend([self.start, self.end, self.orient, self.side])
+        data.extend([str(x) for x in [self.start, self.end, self.orient, self.side] ])
         return "\t".join(data)
 
 
