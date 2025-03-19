@@ -16,7 +16,7 @@ if len(sys.argv) != 5:
 def main(args):
     # get vector length
     vecsize = 0
-    with open(args[1], 'r') as input:
+    with open(args[1] + '.fai', 'r') as input:
         for l in input:
             s = l.rstrip().split()
             vecsize = int(s[1])
