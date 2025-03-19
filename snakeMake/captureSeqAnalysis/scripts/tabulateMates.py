@@ -107,9 +107,9 @@ class evidence:
                         found = True
                 if not found:
                     # Not found, so we create a new cluster
-                    self.clusters[chr].append((pos, pos))
+                    self.clusters[chr].append([pos, pos])
             else:
-                self.clusters[chr].append((pos, pos))
+                self.clusters[chr].append([pos, pos])
 
         # Creating node_edge lists from clusters
         for chr, v in self.clusters.items():
