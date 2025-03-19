@@ -135,10 +135,11 @@ class evidence:
 
 
     def dumpAllObs(self, out):
-        out.write("chr\tpos\trefside\tvec_orient\tweight\n")
-        for k, v in sorted(self.chrpos.items()):
-            for i in v:
-                out.write(i.getOutStr() + "\n")
+        with open(out, 'w') as output:
+            output.write("chr\tpos\trefside\tvec_orient\tweight\n")
+            for k, v in sorted(self.chrpos.items()):
+                for i in v:
+                    output.write(i.getOutStr() + "\n")
             
 
 
