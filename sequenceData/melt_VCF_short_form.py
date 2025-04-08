@@ -32,6 +32,9 @@ with gzip.open(sys.argv[1], mode='rt') as data, open(sys.argv[2], 'w') as output
             gts = re.split(r'[|/]', gtlist[0])
             gtstr = list()
             for g in gts:
+                if g == '.':
+                    gtstr.append('?')
+                    break
                 gtstr.append(s[int(g) + 3])
             fgt = ":".join(gtstr)
             output.write(f'{coord}\t{fgt}\t{animallist[x]}\n')
