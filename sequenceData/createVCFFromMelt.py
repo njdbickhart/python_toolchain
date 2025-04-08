@@ -23,7 +23,7 @@ with open(sys.argv[2], 'r') as input:
         # ref allele, alt allele, qual, info
         coords[f'{s[0]}:{s[1]}'] = (s[3], s[4], s[5], s[7])
         
-vcfdata = defaultdict(lambda x : defaultdict(list))
+vcfdata = defaultdict(lambda : defaultdict(list))
 animals = set()
 with open(sys.argv[1], 'r') as input:
     for l in input:
