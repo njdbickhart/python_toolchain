@@ -41,10 +41,11 @@ def main(args):
     print(f'Identified {unpaired} unpaired reads.')
 
     # Print out the table
-    worker.dumpAllObs(args[4])
+    
 
     # Debugging tool
-    worker.dumpAllPairs()
+    #worker.dumpAllPairs()
+    #worker.dumpAllObs(args[4])
 
 # Class to store node data and edge weights
 class node_edge:
@@ -131,7 +132,7 @@ class evidence:
 
             for i, d in enumerate(self.clusters[chr]):
                 (start, end) = d
-                nedgepos = end if v.side == "left" else start
+                nedgepos = end if v.side == "right" else start
                 if len(self.chrpos[chr][i]) == 0:
                     # Create new node_edge
                     self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
@@ -147,6 +148,16 @@ class evidence:
                         self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
         return self.unpaired
 
+    def identifyAndPrintNodes(self, out):
+        validNodes = []
+        for chr, v in sorted(self.chrpos.items()):
+            for i in v.keys():
+                if len(self.chrpos[chr][i]) < 2:
+                    break
+                for j in range(1, len(self.chrpos[chr][i])):
+                    prev = self.chrpos[chr][i][j-1]
+                    curr = self.chrpos[chr][i][j]
+                    # TODO: Code the logic to find and generate node fields
 
     def dumpAllObs(self, out):
         with open(out, 'w') as output:

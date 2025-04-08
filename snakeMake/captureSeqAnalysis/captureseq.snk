@@ -135,16 +135,76 @@ rule match_mates:
     log: config['logdir'] + "/{sample}/mate_match.log"
     params:
         samp = "{sample}",
-        edge = 1000
+        edge = 1000,
+        script = workflow.basedir + "/scripts/tabulateMates.py"
     output:
-        filtreads = "linkage/{sample}/{sample}.filt.readlinks.bed",
-        mcontigs = "linkage/{sample}/{sample}.scaffolds.linked.fasta",
-        raw = "linkage/{sample}/{sample}.observances.bed",
-        flanks = "linkage/{sample}/{sample}.scaffolds.flanks.bed"
-    script:
-        "scripts/matchMates.py"
+        clusters = "linkage/{sample}/{sample}.clusters.tab"
+    resources:
+        mem_mb=10000,
+        runtime="1d",
+        threads=1,
+        outstr=lambda wildcards: f'logs/match_mates/{wildcards.sample}'
+    shell:
+        """
+        python {params.script} {input.ref} {input.links} {input.unmaplinks} {output.clusters}
+        """
+
+rule create_calibrator_depth:
+    input:
+        ref = config['reference'],
+        fq1 = lambda wildcards: f"{config['samples'][wildcards.sample]}_1.fastq",
+        fq2 = lambda wildcards: f"{config['samples'][wildcards.sample]}_2.fastq"
+    log: config['logdir'] + "/{sample}/calibrator_depth.log"
+    params:
+        samp = "{sample}",
+        script = workflow.basedir + "/scripts/depth_estimate.py",
+        calibrator = config['calibrator_region']
+    output:
+        bam = temp("mapped/{sample}.depthmap.bam"), 
+        bai = temp("mapped/{sample}.depthmap.bam.bai"),
+        depth = "mapped/{sample}.depth"
+    resources:
+        mem_mb=25000,
+        runtime="1d",
+        threads=10,
+        outstr=lambda wildcards: f'logs/calibrator_depth/{wildcards.sample}'
+    shell:
+        """
+        minimap2 -t {resources.threads} -ax sr \
+            -R '@RG\\tID:{params.sname}\\tSM:{params.sname}' \
+            {input.ref} \
+            {input.fq1} \
+            {input.fq2} \
+            | samtools sort -T {params.sname}.temp -o {output.bam} - 2> {log}
+        samtools index {output.bam}
+
+        python {params.script} {output.bam} {params.calibrator} {output.depth}
+        """
 
 # TODO: Create a rule that merges alignment coordinates from paired groupings into breakpoints
 # TODO: Create a routine that screens against the vector sequence to find evidence of non-construct DNA in the sample
+
+rule mash_screen:
+    input:
+        library = config['mash_db'],
+        fq1 = lambda wildcards: f"{config['samples'][wildcards.sample]}_1.fastq",
+        fq2 = lambda wildcards: f"{config['samples'][wildcards.sample]}_2.fastq"
+    log: config['logdir'] + "/{sample}/mash_screen.log"
+    params:
+        samp = "{sample}",
+        script = workflow.basedir + "/scripts/depth_estimate.py",
+        plasmid_names = config['contaminant_file']
+    output:
+        distances = "contaminant/{sample}/mash_screen.tab",
+        status = "contaminant/{sample}/plasmids.tab"
+    resources:
+        mem_mb=25000,
+        runtime="1d",
+        threads=10,
+        outstr=lambda wildcards: f'logs/calibrator_depth/{wildcards.sample}'
+    shell:
+        """
+
+        """
 # TODO: Create a rule that checks for alignment outside of the main construct sequence as a measure of contamination
 # TODO: Generate an HTML report per sample with graphics to show linkage information and sample feasibility

@@ -1,0 +1,6 @@
+channels:
+    - anaconda
+    - bioconda
+    - anaconda
+dependencies:
+    - bioconda::mash
