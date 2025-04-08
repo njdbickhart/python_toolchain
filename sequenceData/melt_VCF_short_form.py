@@ -7,6 +7,7 @@ Created on Tue Apr  8 11:48:58 2025
 
 import sys
 import gzip
+import re
 
 
 usage = f'python {sys.argv[0]} <Input gzipped vcf> <output file>'
@@ -28,7 +29,7 @@ with gzip.open(sys.argv[1], mode='rt') as data, open(sys.argv[2], 'w') as output
         coord = f'{s[0]}:{s[1]}'
         for x in range(9, len(s)):
             gtlist = s[x].split(':')
-            gts = gtlist[0].split('/')
+            gts = re.split(r'[|/]', gtlist[0])
             gtstr = list()
             for g in gts:
                 gtstr.append(s[int(g) + 3])
