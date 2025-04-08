@@ -44,6 +44,9 @@ with open(sys.argv[3], 'w') as output:
             gt = v[a].split(':')
             acgts = list()
             for g in gt:
+                if g.startswith('?'):
+                    acgts.extend(['.', '.'])
+                    break
                 if g == cdata[0]:
                     acgts.append('0')
                 else:
