@@ -23,6 +23,7 @@ with gzip.open(sys.argv[1], mode='rt') as data, open(sys.argv[2], 'w') as output
         if l.startswith('#CHROM'):
             for x in range(9, len(s)):
                 animallist[x] = s[x]
+                continue
                 
         coord = f'{s[0]}:{s[1]}'
         for x in range(9, len(s)):
