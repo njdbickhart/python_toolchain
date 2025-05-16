@@ -14,11 +14,11 @@ fq_R1_names = {}
 fq_R2_names = {}
 fq_names = glob('fastq-*/*.fastq.gz', recursive=True)
 for s in config['samples'].keys():
-    f = glob(f'{config["samples"][s]}*.fastq.gz')
-    if r1_regex in f:
-        fq_R1_names[s] = f
-    elif r2_regex in f:
-        fq_R2_names[s] = f
+    for f in glob(f'{config["samples"][s]}*.fastq.gz'):
+        if r1_regex in f:
+            fq_R1_names[s] = f
+        elif r2_regex in f:
+            fq_R2_names[s] = f
 
 
 os.makedirs("logs", exist_ok=True)
