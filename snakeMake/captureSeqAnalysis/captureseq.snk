@@ -5,6 +5,9 @@ import re
 
 shell.executable("/usr/bin/bash")
 
+configfile : "config.yaml"
+WKDIR = os.getcwd()
+
 r1_regex = '_R1_'
 r2_regex = '_R2_'
 fq_R1_names = {}
@@ -17,8 +20,6 @@ for s in config['samples'].keys():
     elif r2_regex in f:
         fq_R2_names[s] = f
 
-configfile : "config.yaml"
-WKDIR = os.getcwd()
 
 os.makedirs("logs", exist_ok=True)
 os.makedirs("TEMP", exist_ok=True)
