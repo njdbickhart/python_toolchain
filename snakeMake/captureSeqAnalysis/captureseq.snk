@@ -1,7 +1,21 @@
 import os
 import subprocess as sp
+from glob import glob
+import re
 
 shell.executable("/usr/bin/bash")
+
+r1_regex = '_R1_'
+r2_regex = '_R2_'
+fq_R1_names = {}
+fq_R2_names = {}
+fq_names = glob('fastq-*/*.fastq.gz', recursive=True)
+for s in config['samples'].keys():
+    f = glob(f'{config["samples"][s]}*.fastq.gz')
+    if r1_regex in f:
+        fq_R1_names[s] = f
+    elif r2_regex in f:
+        fq_R2_names[s] = f
 
 configfile : "config.yaml"
 WKDIR = os.getcwd()
@@ -27,12 +41,12 @@ onerror:
 
 rule all:
     input:
-        expand("linkage/{sample}/{sample}.readlinks.bed", sample=SAMPLES)
+        expand("linkage/{sample}/{sample}.clusters.tab", sample=SAMPLES)
 
 rule align_vector:
     input:
-        fq1 = lambda wildcards: f"{config['samples'][wildcards.sample]}_1.fastq",
-        fq2 = lambda wildcards: f"{config['samples'][wildcards.sample]}_2.fastq",
+        fq1 = lambda wildcards: fq_R1_names[wildcards.sample],
+        fq2 = lambda wildcards: fq_R2_names[wildcards.sample],
         ref = config["vector"]
     output:
         bam = "mapped/{sample}.vectormap.bam",
@@ -152,8 +166,8 @@ rule match_mates:
 rule create_calibrator_depth:
     input:
         ref = config['reference'],
-        fq1 = lambda wildcards: f"{config['samples'][wildcards.sample]}_1.fastq",
-        fq2 = lambda wildcards: f"{config['samples'][wildcards.sample]}_2.fastq"
+        fq1 = lambda wildcards: fq_R1_names[wildcards.sample],
+        fq2 = lambda wildcards: fq_R2_names[wildcards.sample]
     log: config['logdir'] + "/{sample}/calibrator_depth.log"
     params:
         samp = "{sample}",
@@ -187,8 +201,8 @@ rule create_calibrator_depth:
 rule mash_screen:
     input:
         library = config['mash_db'],
-        fq1 = lambda wildcards: f"{config['samples'][wildcards.sample]}_1.fastq",
-        fq2 = lambda wildcards: f"{config['samples'][wildcards.sample]}_2.fastq"
+        fq1 = lambda wildcards: fq_R1_names[wildcards.sample],
+        fq2 = lambda wildcards: fq_R2_names[wildcards.sample]
     log: config['logdir'] + "/{sample}/mash_screen.log"
     params:
         samp = "{sample}",
