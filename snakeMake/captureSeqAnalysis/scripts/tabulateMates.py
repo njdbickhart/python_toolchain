@@ -41,7 +41,7 @@ def main(args):
     print(f'Identified {unpaired} unpaired reads.')
 
     # Print out the table
-    
+    worker.identifyAndPrintNodes(args[4])
 
     # Debugging tool
     #worker.dumpAllPairs()
@@ -157,7 +157,16 @@ class evidence:
                 for j in range(1, len(self.chrpos[chr][i])):
                     prev = self.chrpos[chr][i][j-1]
                     curr = self.chrpos[chr][i][j]
-                    # TODO: Code the logic to find and generate node fields
+
+                    dist = abs(int(prev.pos) - int(curr.pos))
+                    if dist <=1000:
+                        validNodes.append([f'{chr}:{curr.pos}', 'mScarlet', str(curr.weight), curr.side])
+                        validNodes.append(['mScarlet', f'{chr}:{prev.pos}', str(prev.weight), prev.side])
+        with open(out, 'w') as output:
+            output.write("StartNode\tEndNode\tWeight\tSide\tSample\n")
+            for r in validNodes:
+                output.write("\t".join(r) + '\n')
+
 
     def dumpAllObs(self, out):
         with open(out, 'w') as output:
