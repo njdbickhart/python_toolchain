@@ -158,6 +158,8 @@ class evidence:
                     prev = self.chrpos[chr][i][j-1]
                     curr = self.chrpos[chr][i][j]
 
+                    print(prev)
+                    print(curr)
                     dist = abs(int(prev.pos) - int(curr.pos))
                     if dist <=1000:
                         validNodes.append([f'{chr}:{curr.pos}', 'mScarlet', str(curr.weight), curr.side])
