@@ -178,8 +178,8 @@ rule create_calibrator_depth:
         script = workflow.basedir + "/scripts/depth_estimate.py",
         calibrator = config['calibrator_region']
     output:
-        bam = temp("mapped/{sample}.depthmap.bam"), 
-        bai = temp("mapped/{sample}.depthmap.bam.bai"),
+        bam = "mapped/{sample}.depthmap.bam", 
+        bai = "mapped/{sample}.depthmap.bam.bai",
         depth = "mapped/{sample}.depth"
     resources:
         mem_mb=25000,
@@ -189,11 +189,11 @@ rule create_calibrator_depth:
     shell:
         """
         minimap2 -t {resources.threads} -ax sr \
-            -R '@RG\\tID:{params.sname}\\tSM:{params.sname}' \
+            -R '@RG\\tID:{params.samp}\\tSM:{params.samp}' \
             {input.ref} \
             {input.fq1} \
             {input.fq2} \
-            | samtools sort -T {params.sname}.temp -o {output.bam} - 2> {log}
+            | samtools sort -T {params.samp}.temp -o {output.bam} - 2> {log}
         samtools index {output.bam}
 
         python {params.script} {output.bam} {params.calibrator} {output.depth}
