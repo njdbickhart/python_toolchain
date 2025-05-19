@@ -220,7 +220,7 @@ rule mash_screen:
         mem_mb=15000,
         runtime="1d",
         threads=10,
-        outstr=lambda wildcards: f'logs/calibrator_depth/{wildcards.sample}'
+        outstr=lambda wildcards: f'logs/mash_screen/{wildcards.sample}'
     shell:
         """
         mash screen -p 10 -w {input.library} {input.fq1} {input.fq2} > {output.distances}

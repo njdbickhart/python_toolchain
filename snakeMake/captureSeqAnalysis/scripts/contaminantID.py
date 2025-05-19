@@ -3,7 +3,7 @@ import sys
 
 usage = f'python {sys.argv[0]} <input mash distances> <contaminant name file> <filtered output> <output binary detection>'
 
-if len(sys.argv) != 4:
+if len(sys.argv) != 5:
     print(usage)
     sys.exit(-1)
 
