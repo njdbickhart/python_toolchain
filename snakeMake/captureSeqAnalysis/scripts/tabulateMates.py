@@ -145,7 +145,7 @@ class evidence:
                         if added:
                             found = True
                             break
-                    if not found:
+                    if not found and v.orient != '?':
                         # Create new node_edge
                         self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
                         if debug:
@@ -171,7 +171,7 @@ class evidence:
                         print(f'Identify: curr: {curr.getOutStr()}')
                         print(f'Identify: dist: {dist}')
 
-                    if dist <=1000:
+                    if dist <= 1500:
                         if debug:
                             print('Identify: Above was valid and added')
                         validNodes.append([f'{chr}:{curr.pos}', 'mScarlet', str(curr.weight), curr.side])
@@ -233,7 +233,7 @@ class read_pair:
                 bedside = self.pairs[k]
 
         # If the read alignment is on the forward side of the vector (within the first 300 bp)
-        if samside.pos <= 300:
+        if samside.pos <= 500:
             self.start = True
         # Also check if the read alignment is on the end of the construct
         elif samside.pos >= self.veclength - 300:

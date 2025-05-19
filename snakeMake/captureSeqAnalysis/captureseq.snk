@@ -144,7 +144,7 @@ rule remap_unmapped:
 # OUTPUT: breakpoint assignments and read evidence for each
 rule match_mates:
     input:
-        ref = config['reference'],
+        ref = config['vector'],
         links = "rawreads/{sample}/{sample}_links.sam",
         unmaplinks = "linkage/{sample}/{sample}.readlinks.bed"
     log: config['logdir'] + "/{sample}/mate_match.log"
