@@ -41,7 +41,7 @@ def main(args):
     print(f'Identified {unpaired} unpaired reads.')
 
     # Print out the table
-    worker.identifyAndPrintNodes(args[4])
+    worker.identifyAndPrintNodes(args[4], True)
 
     # Debugging tool
     #worker.dumpAllPairs()
@@ -90,7 +90,7 @@ class evidence:
         # First we need to generate position coordinates for merger because I did not plan the data structures
         # very well
         for k, v in self.pairs.items():
-            v.determine_orientation()
+            v.determine_orientation(debug)
             if not v.paired:
                 self.unpaired += 1
                 continue
@@ -136,6 +136,8 @@ class evidence:
                 if len(self.chrpos[chr][i]) == 0:
                     # Create new node_edge
                     self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
+                    if debug: 
+                        print(f'Cluster: initial node add: {self.chrpos[chr][i].getOutStr()}')
                 else:
                     found = False
                     for ne in self.chrpos[chr][i]:
@@ -146,22 +148,32 @@ class evidence:
                     if not found:
                         # Create new node_edge
                         self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
+                        if debug:
+                            print(f'Cluster: new node added: {self.chrpos[chr][i].getOutStr()}')
         return self.unpaired
 
-    def identifyAndPrintNodes(self, out):
+    def identifyAndPrintNodes(self, out, debug = False):
         validNodes = []
         for chr, v in sorted(self.chrpos.items()):
             for i in v.keys():
+                if debug:
+                    print(f'Identify: Working on: {i}')
                 if len(self.chrpos[chr][i]) < 2:
+                    if debug:
+                        print(f'Identify: Skipping {self.chrpos[chr][i]} for improper length')
                     break
                 for j in range(1, len(self.chrpos[chr][i])):
                     prev = self.chrpos[chr][i][j-1]
                     curr = self.chrpos[chr][i][j]
-
-                    print(prev.getOutStr())
-                    print(curr.getOutStr())
                     dist = abs(int(prev.pos) - int(curr.pos))
+                    if debug:
+                        print(f'Identify: prev: {prev.getOutStr()}')
+                        print(f'Identify: curr: {curr.getOutStr()}')
+                        print(f'Identify: dist: {dist}')
+
                     if dist <=1000:
+                        if debug:
+                            print('Identify: Above was valid and added')
                         validNodes.append([f'{chr}:{curr.pos}', 'mScarlet', str(curr.weight), curr.side])
                         validNodes.append(['mScarlet', f'{chr}:{prev.pos}', str(prev.weight), prev.side])
         with open(out, 'w') as output:
@@ -206,7 +218,7 @@ class read_pair:
             else:
                 return (self.pairs[k].chr, self.pairs[k].pos)
 
-    def determine_orientation(self):
+    def determine_orientation(self, debug = False):
         if len(self.pairs.keys()) < 2:
             return
         else:
@@ -228,31 +240,42 @@ class read_pair:
             self.end = True
 
         # Determining insertion orientation
+        code = 0
         orientations = (bedside.orient, samside.orient)
         if orientations == ("-", "+") and self.start:
             # disconnected join, should not be possible
             self.orient = "?"
+            code = 1
         elif orientations == ("+", "-") and self.end:
             # disconnected join, should not be possible
             self.orient = "?"
+            code = 2
         elif orientations == ("+", "+") and self.end:
             # ref seq <-> reversed construct
             self.orient = "-"
             self.side = "left"
+            code = 3 
         elif orientations == ("-", "-") and self.start:
             # reversed construct <-> ref seq
             self.orient = "-"
             self.side = "right"
+            code = 4
         elif orientations == ("+", "-") and self.start:
             # ref seq <-> construct
             self.orient = "+"
             self.side = "left"
+            code = 5
         elif orientations == ("-", "+") and self.end:
             # construct <-> ref seq
             self.orient = "+"
             self.side = "right"
+            code = 6
         else:
             self.orient = "?"
+            code = 7
+
+        if debug:
+            print(f'Determine Orient: {orientations} {self.start} {self.end} {code}')
 
     def printPairStats(self):
         # Name\t(read 1 str)\t(read 2 str)\tstart?\tend?\torient\tpaired\tside
