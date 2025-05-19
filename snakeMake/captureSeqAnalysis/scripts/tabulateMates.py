@@ -137,7 +137,7 @@ class evidence:
                     # Create new node_edge
                     self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
                     if debug: 
-                        print(f'Cluster: initial node add: {self.chrpos[chr][i].getOutStr()}')
+                        print(f'Cluster: initial node add: {self.chrpos[chr][i][0].getOutStr()}')
                 else:
                     found = False
                     for ne in self.chrpos[chr][i]:
@@ -149,7 +149,7 @@ class evidence:
                         # Create new node_edge
                         self.chrpos[chr][i].append(node_edge(chr + '', nedgepos + 0, v.side + '', v.orient + ''))
                         if debug:
-                            print(f'Cluster: new node added: {self.chrpos[chr][i].getOutStr()}')
+                            print(f'Cluster: new node added: {self.chrpos[chr][i][-1].getOutStr()}')
         return self.unpaired
 
     def identifyAndPrintNodes(self, out, debug = False):
@@ -275,7 +275,7 @@ class read_pair:
             code = 7
 
         if debug:
-            print(f'Determine Orient: {orientations} {self.start} {self.end} {code}')
+            print(f'Determine Orient: {orientations} {self.start} {self.end} {samside.pos} {self.veclength} {code}')
 
     def printPairStats(self):
         # Name\t(read 1 str)\t(read 2 str)\tstart?\tend?\torient\tpaired\tside
