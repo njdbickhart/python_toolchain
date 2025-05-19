@@ -275,7 +275,7 @@ class read_pair:
             code = 7
 
         if debug:
-            print(f'Determine Orient: {orientations} {self.start} {self.end} {samside.pos} {self.veclength} {code}')
+            print(f'Determine Orient: {orientations} {self.start} {self.end} {bedside.chr} {samside.pos} {self.veclength} {code}')
 
     def printPairStats(self):
         # Name\t(read 1 str)\t(read 2 str)\tstart?\tend?\torient\tpaired\tside
