@@ -100,10 +100,10 @@ class evidence:
             if chr in self.clusters:
                 found = False
                 for i, d in enumerate(self.clusters[chr]):
-                    if pos < d[0] and pos >= d[0] - 300:
+                    if pos < d[0] and pos >= d[0] - 350:
                         self.clusters[chr][i][0] = pos
                         found = True
-                    elif pos > d[1] and pos <= d[1] + 300:
+                    elif pos > d[1] and pos <= d[1] + 350:
                         self.clusters[chr][i][1] = pos
                         found = True
                     elif pos <= d[1] and pos >= d[0]:
@@ -236,7 +236,7 @@ class read_pair:
         if samside.pos <= 500:
             self.start = True
         # Also check if the read alignment is on the end of the construct
-        elif samside.pos >= self.veclength - 300:
+        elif samside.pos >= self.veclength - 600:
             self.end = True
 
         # Determining insertion orientation

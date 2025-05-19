@@ -42,7 +42,10 @@ onerror:
 
 rule all:
     input:
-        expand("linkage/{sample}/{sample}.clusters.tab", sample=SAMPLES)
+        expand("linkage/{sample}/{sample}.clusters.tab", sample=SAMPLES),
+        expand("contaminant/{sample}/contaminants.tab", sample=SAMPLES),
+        expand("mapped/{sample}.depth", sample=SAMPLES)
+
 
 rule align_vector:
     input:
@@ -207,19 +210,22 @@ rule mash_screen:
     log: config['logdir'] + "/{sample}/mash_screen.log"
     params:
         samp = "{sample}",
-        script = workflow.basedir + "/scripts/depth_estimate.py",
+        script = workflow.basedir + "/scripts/contaminantID.py",
         plasmid_names = config['contaminant_file']
     output:
         distances = "contaminant/{sample}/mash_screen.tab",
-        status = "contaminant/{sample}/plasmids.tab"
+        filtered = "contaminant/{sample}/mash_filtered_screen.tab",
+        status = "contaminant/{sample}/contaminants.tab"
     resources:
-        mem_mb=25000,
+        mem_mb=15000,
         runtime="1d",
         threads=10,
         outstr=lambda wildcards: f'logs/calibrator_depth/{wildcards.sample}'
     shell:
         """
+        mash screen -p 10 -w {input.library} {input.fq1} {input.fq2} > {output.distances}
 
+        python {params.script} {output.distances} {params.plasmid_names} {output.filtered} {output.status}
         """
 # TODO: Create a rule that checks for alignment outside of the main construct sequence as a measure of contamination
 # TODO: Generate an HTML report per sample with graphics to show linkage information and sample feasibility
