@@ -63,7 +63,7 @@ def main(args, parser):
                 p = lines[i].rstrip().split()
                 c = lines[i+1].rstrip().split()
                 end = c[1].split(':')
-                clusters.append([f'{p[0]}-{end}', int(p[2]) + int(c[2]) / 2])
+                clusters.append([f'{p[0]}-{end[1]}', int(p[2]) + int(c[2]) / 2])
         clusters = sorted(clusters, key=lambda x: x[1], reverse=True)
 
         cstr = list()
