@@ -34,7 +34,26 @@ def arg_parse():
 def main(args, parser):
     data = defaultdict(list)
 
-    for samp, file, depth, contaminants in zip(args.samples, args.file, args.depth, args.contaminant):
+    dpfiles = list()
+    cpfiles = list()
+    contfiles = list()
+    with open(args.file, 'r') as input:
+        for l in input:
+            s = l.rstrip().split()
+            cpfiles.extend(s)
+
+    with open(args.depth, 'r') as input:
+        for l in input:
+            s = l.rstrip().split()
+            dpfiles.extend(s)
+
+    with open(args.contaminant, 'r') as input:
+        for l in input:
+            s = l.rstrip().split()
+            contfiles.extend(s)
+
+
+    for samp, file, depth, contaminants in zip(args.samples, cpfiles, dpfiles, contfiles):
         # Nodes
         clusters = list()
         with open(file, 'r') as input:

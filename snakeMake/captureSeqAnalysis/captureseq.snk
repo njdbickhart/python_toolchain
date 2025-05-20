@@ -229,7 +229,6 @@ rule mash_screen:
         python {params.script} {output.distances} {params.plasmid_names} {output.filtered} {output.status}
         """
 
-
 rule consolidate_table:
     input:
         depth = expand("mapped/{sample}.depth", sample = SAMPLES),
@@ -239,9 +238,12 @@ rule consolidate_table:
     params:
         script = workflow.basedir + "/scripts/consolidate.py", 
         samples = " -s ".join(SAMPLES),
-        depths = lambda wildcards, input: " -d ".join(input.depth),
-        states = lambda wildcards, input: " -c ".join(input.status),
-        nodes = lambda wildcards, input: " -f ".join(input.clusters)
+        depths = "final/depthfiles.list",
+        states = "final/statefiles.list",
+        nodes = "final/nodes.list"
+        #depths = lambda wildcards, input: " -d ".join(input.depth),
+        #states = lambda wildcards, input: " -c ".join(input.status),
+        #nodes = lambda wildcards, input: " -f ".join(input.clusters)
     output:
         "final/consolidated_table.tab"
     resources:
@@ -251,7 +253,11 @@ rule consolidate_table:
         outstr=lambda wildcards: f'logs/consolidate/consolidation'
     shell:
         """
-        python {params.script} {params.samples} {params.depths} {params.states} {params.nodes}
+        echo {input.depth} > {params.depths}
+        echo {input.status} > {params.states}
+        echo {input.clusters} > {params.nodes}
+
+        python {params.script} -s {params.samples} -d {params.depths} -c {params.states} -f {params.nodes} -o {output}
         """
 
 
