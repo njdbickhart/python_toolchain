@@ -10,7 +10,7 @@ def arg_parse():
             )
     parser.add_argument('-f', '--file', 
                         help="Input cluster file",
-                        required=True, action='append'
+                        required=True, type=str
                         )
     parser.add_argument('-o', '--output',
                         help="Output file name. Tab delimited",
@@ -18,11 +18,11 @@ def arg_parse():
                         )
     parser.add_argument('-d', '--depth',
                         help="Calibrator depth files",
-                        required=True, action='append'
+                        required=True, type=str
                         )
     parser.add_argument('-c', '--contaminant',
                         help="Contaminant files",
-                        required=True, action='append'
+                        required=True, type=str
                         )
     parser.add_argument('-s', '--samples', 
                          help="Sample names", 
