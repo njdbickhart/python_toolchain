@@ -44,7 +44,8 @@ rule all:
     input:
         expand("linkage/{sample}/{sample}.clusters.tab", sample=SAMPLES),
         expand("contaminant/{sample}/contaminants.tab", sample=SAMPLES),
-        expand("mapped/{sample}.depth", sample=SAMPLES)
+        expand("mapped/{sample}.depth", sample=SAMPLES), 
+        "final/consolidated_table.tab"
 
 
 rule align_vector:
@@ -227,5 +228,32 @@ rule mash_screen:
 
         python {params.script} {output.distances} {params.plasmid_names} {output.filtered} {output.status}
         """
+
+
+rule consolidate_table:
+    input:
+        depth = expand("mapped/{sample}.depth", sample = SAMPLES),
+        status = expand("contaminant/{sample}/contaminants.tab", sample = SAMPLES),
+        clusters = expand("linkage/{sample}/{sample}.clusters.tab", sample = SAMPLES)
+    log: config['logdir'] + "/consolidate_table.log"
+    params:
+        script = workflow.basedir + "/scripts/consolidate.py", 
+        samples = " -s ".join(SAMPLES),
+        depths = lambda wildcards, input: " -d ".join(input.depth),
+        states = lambda wildcards, input: " -c ".join(input.status),
+        nodes = lambda wildcards, input: " -f ".join(input.clusters)
+    output:
+        "final/consolidated_table.tab"
+    resources:
+        mem_mb=10000,
+        runtime="1d",
+        threads=1,
+        outstr=lambda wildcards: f'logs/consolidate/{wildcards.sample}'
+    shell:
+        """
+        python {params.script} {params.samples} {params.depths} {params.states} {params.nodes}
+        """
+
+
 # TODO: Create a rule that checks for alignment outside of the main construct sequence as a measure of contamination
 # TODO: Generate an HTML report per sample with graphics to show linkage information and sample feasibility

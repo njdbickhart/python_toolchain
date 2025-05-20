@@ -25,4 +25,10 @@ with open(sys.argv[1], 'r') as input, open(sys.argv[3], 'w') as filtered, open(s
             s = l.rstrip().split()
             if s[4] in names:
                 filtered.write(l)
-                binary.write(f'{s[4]}\n')
+
+                kvalues = s[1].split('/')
+                kratio = int(kvalues[0]) / int(kvalues[1])
+
+                # Create a binary state if the identification is very strong
+                if kratio > 0.8 or int(s[2]) > 20:
+                    binary.write(f'{s[4]}\n')
