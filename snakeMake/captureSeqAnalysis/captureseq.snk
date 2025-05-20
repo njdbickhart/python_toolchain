@@ -248,7 +248,7 @@ rule consolidate_table:
         mem_mb=10000,
         runtime="1d",
         threads=1,
-        outstr=lambda wildcards: f'logs/consolidate/{wildcards.sample}'
+        outstr=lambda wildcards: f'logs/consolidate/consolidation'
     shell:
         """
         python {params.script} {params.samples} {params.depths} {params.states} {params.nodes}
