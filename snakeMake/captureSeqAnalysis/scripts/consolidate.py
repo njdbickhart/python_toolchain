@@ -70,7 +70,7 @@ def main(args, parser):
                 end = c[1].split(':')
                 meandp = int(p[2]) + int(c[2]) / 2
                 # Filter to remove integration sites with weak evidence
-                if meandp < float(dpvalue) / 3:
+                if meandp < float(dpvalue) / 5:
                     continue
                 else:
                     clusters.append([f'{p[0]}-{end[1]}', meandp])
