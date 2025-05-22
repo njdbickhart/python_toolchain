@@ -54,6 +54,11 @@ def main(args, parser):
 
 
     for samp, file, depth, contaminants in zip(args.samples, cpfiles, dpfiles, contfiles):
+        # Depth value
+        dpvalue = ""
+        with open(depth, 'r') as input:
+            dpvalue = input.readline().rstrip()
+        
         # Nodes
         clusters = list()
         with open(file, 'r') as input:
@@ -63,7 +68,12 @@ def main(args, parser):
                 p = lines[i].rstrip().split()
                 c = lines[i+1].rstrip().split()
                 end = c[1].split(':')
-                clusters.append([f'{p[0]}-{end[1]}', int(p[2]) + int(c[2]) / 2])
+                meandp = int(p[2]) + int(c[2]) / 2
+                # Filter to remove integration sites with weak evidence
+                if meandp < int(dpvalue) / 3:
+                    continue
+                else:
+                    clusters.append([f'{p[0]}-{end[1]}', meandp])
         clusters = sorted(clusters, key=lambda x: x[1], reverse=True)
 
         cstr = list()
@@ -73,12 +83,7 @@ def main(args, parser):
             chrsegs = c[0].split(':')
             chrs.add(chrsegs[0])
             cstr.append(c[0])
-            dstr.append(str(c[1]))
-
-        # Depth value
-        dpvalue = ""
-        with open(depth, 'r') as input:
-            dpvalue = input.readline().rstrip()
+            dstr.append(str(c[1]))        
 
         # Contaminants
         cont = list()
