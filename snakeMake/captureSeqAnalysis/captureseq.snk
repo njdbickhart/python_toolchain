@@ -260,6 +260,52 @@ rule consolidate_table:
         python {params.script} -s {params.samples} -d {params.depths} -c {params.states} -f {params.nodes} -o {output}
         """
 
+rule wally_inputs:
+    input:
+        cluster = "linkage/{sample}/{sample}.clusters.tab",
+        depth = "mapped/{sample}.depth"
+    log: config['logdir'] + "/{sample}/wally_input.log"
+    params:
+        script = workflow.basedir + "/scripts/createWallyBed.py",
+        samp = "{sample}",
+        extension = 1000
+    output:
+        ifile = "linkage/{sample}.wallyregions.bed"
+    resources:
+        mem_mb=10000,
+        runtime="1d",
+        threads=1,
+        outstr=lambda wildcards: f'logs/wallyinput/{wildcards.sample}'
+    shell: 
+        """
+        python {params.script} -f {input.cluster} -d {input.depth} -s {params.samp} -e {params.extension} -o {output.ifile}
+        """
+
+
+
+rule wally_snapshots:
+    input:
+        bam = "mapped/{sample}.depthmap.bam",
+        ifile = "linkage/{sample}.wallyregions.bed",
+        ref = config['reference']
+    log: config['logdir'] + "/{sample}/wally_snapshot.log"
+    params:
+        x = 2048,
+        y = 4096,
+        genebed = config['wally_annotation']
+    output:
+        directory('snapshots/{sample}')
+    resources:
+        mem_mb=4000,
+        runtime="1h",
+        threads=1,
+        outstr=lambda wildcards: f'logs/wally/{wildcards.sample}'
+    shell:
+        """
+        mkdir -p {output}
+        wally region -R {input.ifile} -x {params.x} -y {params.y} -b {params.genebed} -cup -g {input.ref} {input.bam}
+        """
+
 
 # TODO: Create a rule that checks for alignment outside of the main construct sequence as a measure of contamination
 # TODO: Generate an HTML report per sample with graphics to show linkage information and sample feasibility

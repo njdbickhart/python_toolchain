@@ -17,3 +17,6 @@ dependencies:
     - bioconda::bedtools
     - snakemake-executor-plugin-slurm
     - snakemake-executor-plugin-cluster-generic
+    - graphviz
+    - bioconda::wally
+    - tabix
