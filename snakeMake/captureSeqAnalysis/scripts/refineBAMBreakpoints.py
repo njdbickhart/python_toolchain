@@ -116,10 +116,10 @@ def generate_clusters(depthfile, clusterfile):
             if meandp < float(dpvalue) / 5:
                 continue
             # Filter to remove cluster pairs that are too distant to be real
-            if abs(int(p[0]) - int(end[1])) > 100000:
-                continue
-            else:
-                clusters.append([f'{p[0]}-{end[1]}', meandp])
+            #if abs(int(p[0].split(':')[1]) - int(end[1])) > 100000:
+            #    continue
+            #else:
+            clusters.append([f'{p[0]}-{end[1]}', meandp])
     return sorted(clusters, key=lambda x: x[1], reverse=True)  # returns list of lists: ['chrstring', 'meandepth']
 
 if __name__ == "__main__":
