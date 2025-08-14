@@ -81,11 +81,11 @@ rule extract_reads:
     input:
         "mapped/{sample}.vectormap.bam"
     output:
-        mUnmap1 = "rawreads/{sample}/{sample}_mateUnmapped_R1.fq",
-        mUnmap2 = "rawreads/{sample}/{sample}_mateUnmapped_R2.fq",
-        mMap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
-        mMap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq",
-        links = "rawreads/{sample}/{sample}_links.sam"
+        mUnmap1 = temp("rawreads/{sample}/{sample}_mateUnmapped_R1.fq"),
+        mUnmap2 = temp("rawreads/{sample}/{sample}_mateUnmapped_R2.fq"),
+        mMap1 = temp("rawreads/{sample}/{sample}_R1_mateMapped.fq"),
+        mMap2 = temp("rawreads/{sample}/{sample}_R2_mateMapped.fq"),
+        links = temp("rawreads/{sample}/{sample}_links.sam")
     log: config['logdir'] + "/{sample}/extract.log"
     resources:
         mem_mb=5000,
@@ -105,7 +105,7 @@ rule cat_unmap:
         mUnmap1 = "rawreads/{sample}/{sample}_R1_mateMapped.fq",
         mUnmap2 = "rawreads/{sample}/{sample}_R2_mateMapped.fq"
     output:
-        catunmap = "filtered/{sample}/{sample}.cat.unmapped.fq"
+        catunmap = temp("filtered/{sample}/{sample}.cat.unmapped.fq")
     resources:
         mem_mb = 1000,
         runtime = "1h",
@@ -228,6 +228,15 @@ rule mash_screen:
 
         python {params.script} {output.distances} {params.plasmid_names} {output.filtered} {output.status}
         """
+
+rule refine_breaks:
+    input:
+    log: config['logdir'] + "/{sample}/refine_breaks.log"
+    params:
+    output:
+    resources:
+    shell:
+    
 
 rule consolidate_table:
     input:
