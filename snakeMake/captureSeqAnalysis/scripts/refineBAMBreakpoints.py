@@ -115,11 +115,14 @@ def generate_clusters(depthfile, clusterfile):
             # Filter to remove integration sites with weak evidence
             if meandp < float(dpvalue) / 5:
                 continue
+            chr = p[0].split(':')[0]
+            start = int(p[0].split(':')[1])
+            ncoords = getMinMax((start, int(end[1])))
             # Filter to remove cluster pairs that are too distant to be real
-            #if abs(int(p[0].split(':')[1]) - int(end[1])) > 100000:
-            #    continue
-            #else:
-            clusters.append([f'{p[0]}-{end[1]}', meandp])
+            if abs(ncoords[0] - ncoords[1]) > 100000:
+                continue
+            else:
+                clusters.append([f'{chr}:{ncoords[0]}-{ncoords[1]}', meandp])
     return sorted(clusters, key=lambda x: x[1], reverse=True)  # returns list of lists: ['chrstring', 'meandepth']
 
 if __name__ == "__main__":
