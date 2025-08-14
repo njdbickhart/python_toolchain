@@ -66,7 +66,10 @@ def getMinMax(numbers):
     return (min(numbers), max(numbers))
 
 
-def get_softclipped_bps(bamfile, region, depth, log = True):
+def get_softclipped_bps(bamfile, region, depthfile, log = True):
+    depth = 0
+    with open(depthfile, 'r') as input:
+        depth = float(input.readline().rstrip())
     chrsegs = region.split(':')
 
     positions = list()
