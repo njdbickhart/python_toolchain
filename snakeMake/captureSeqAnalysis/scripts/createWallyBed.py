@@ -1,4 +1,4 @@
-import sys
+import os
 import pandas as pd
 import numpy as np
 from collections import defaultdict
@@ -41,6 +41,8 @@ def main(args, parser):
         dpvalue = input.readline().rstrip()
 
     samp = args.samples
+
+    os.makedirs(f'snapshots/{samp}', exist_ok=True)
 
     # Nodes
     clusters = list()
