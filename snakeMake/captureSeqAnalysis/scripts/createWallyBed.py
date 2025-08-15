@@ -2,7 +2,10 @@ import sys
 import pandas as pd
 import numpy as np
 from collections import defaultdict
+import re
 import argparse
+
+ucsc = re.compile(r'(.+):(\d+)-(\d+)')
 
 def arg_parse():
     parser = argparse.ArgumentParser(
@@ -45,10 +48,12 @@ def main(args, parser):
         head = input.readline()
         for l in input:
             s = l.rstrip().split()
-            chr = s[1].split(':')[0]
-            interval = s[1].split(':')[1]
-            start = int(interval[0]) - args.extension
-            end = int(interval[1]) + args.extension
+            m = re.search(ucsc, s[1])
+            (chr, start, end) = m.group(1,2,3)
+            #chr = s[1].split(':')[0]
+            #interval = s[1].split(':')[1]
+            start = int(start) - args.extension
+            end = int(end) + args.extension
             clusters.append([f'{chr}\t{start}\t{end}', int(s[3])])
        
     clusters = sorted(clusters, key=lambda x: x[1], reverse=True)
