@@ -269,6 +269,7 @@ rule consolidate_table:
         python {params.script} -s {params.samples} -d {params.depths} -c {params.states} -f {params.nodes} -o {output}
         """
 
+# TODO: refactor inputs to take the refinement coordinates
 rule wally_inputs:
     input:
         cluster = "linkage/{sample}/{sample}.clusters.tab",

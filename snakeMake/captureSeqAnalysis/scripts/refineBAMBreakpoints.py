@@ -49,9 +49,9 @@ def main(args, parser):
             coords = getMinMax(numbers)
             refinement.append((c[0], f'{chrom}:{coords[0]}-{coords[1]}', str(np.mean(ratios)), str(np.mean(depths))))
         elif len(positions) == 1:
-            start = int(positions[0].split(':')[1])
+            start = int(positions[0][0].split(':')[1])
             end =  start + 1
-            refinement.append((c[0], f'{chrom}:{start}-{end}', str(positions[1]), str(positions[2])))
+            refinement.append((c[0], f'{chrom}:{start}-{end}', str(positions[0][1]), str(positions[0][2])))
         
     with open(args.output, 'w') as output:
         output.write('OldCluster\tRefined\tRatioClipped\tTotDepth\n')

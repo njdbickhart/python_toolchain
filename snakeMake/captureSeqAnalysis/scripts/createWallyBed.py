@@ -9,7 +9,7 @@ def arg_parse():
             description = "A script to generate bed files for wally screenshots"
             )
     parser.add_argument('-f', '--file', 
-                        help="Input cluster file",
+                        help="Input refinement file",
                         required=True, type=str
                         )
     parser.add_argument('-o', '--output',
@@ -43,23 +43,14 @@ def main(args, parser):
     clusters = list()
     with open(args.file, 'r') as input:
         head = input.readline()
-        lines = input.readlines()
-        for i in range(0, len(lines), 2):
-            p = lines[i].rstrip().split()
-            c = lines[i+1].rstrip().split()
-            end = c[1].split(':')
-            start = p[0].split(':')
-            chr = start[0]
-            truestart = min(int(start[1]), int(end[1])) - args.extension
-            trueend = max(int(start[1]), int(end[1])) + args.extension
-            meandp = int(p[2]) + int(c[2]) / 2
-            # Filter to remove integration sites with weak evidence
-            if meandp < float(dpvalue) / 5:
-                continue
-            if int(start[1]) == int(end[1]):
-                continue # skip areas that appear to be artifacts
-            else:
-                clusters.append([f'{chr}\t{truestart}\t{trueend}', meandp])
+        for l in input:
+            s = l.rstrip().split()
+            chr = s[1].split(':')[0]
+            interval = s[1].split(':')[1]
+            start = int(interval[0]) - args.extension
+            end = int(interval[1]) + args.extension
+            clusters.append([f'{chr}\t{start}\t{end}', int(s[3])])
+       
     clusters = sorted(clusters, key=lambda x: x[1], reverse=True)
 
     counter = len(clusters)
