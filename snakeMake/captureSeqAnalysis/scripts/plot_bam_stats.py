@@ -38,7 +38,7 @@ def cov_thresh(ax, df):
     ax.set_xticks(ax.get_xticks(), ax.get_xticklabels(), rotation=45, ha='right')
 
     #df[["SNAME", "Zbp"]].plot(kind='bar', x="SNAME", y="Zbp", ax=ax)
-    sns.barplot(data=df, x='SNAME', y='Zbp', ax=ax, palette='Spectral')
+    sns.barplot(data=df, x='SNAME', y='Zbp', hue='SNAME', legend=False, ax=ax, palette='Spectral')
     ax.set_xlabel("")
 
 def iq_values(ax, df):
@@ -50,7 +50,7 @@ def iq_values(ax, df):
     #df[["SNAME", "Q25", "Median", "Q75"]].plot(x= "SNAME", ax=ax)
     tdf = pd.melt(df[['SNAME', 'Q25', 'Median', 'Q75']], id_vars='SNAME', var_name='Cat', value_name= 'Value')
     #ax.set_xticks(ax.get_xticks(), ax.get_xticklabels())
-    sns.boxplot(data= tdf, x= 'SNAME', y= 'Value', ax = ax, palette='Spectral')
+    sns.boxplot(data= tdf, x= 'SNAME', y= 'Value', hue='SNAME', legend=False, ax = ax, palette='Spectral')
     ax.yaxis.set_major_formatter(FuncFormatter(number_formatter))
     #print(boxes)
     #print([x for x in range(len(ax.get_xticks()))])
@@ -67,7 +67,7 @@ def cov_plot(ax, df):
 
     ax.set_xticks(ax.get_xticks(), ax.get_xticklabels(), rotation=45, ha='right')
     ax.yaxis.set_major_formatter(FuncFormatter(number_formatter))
-    sns.barplot(data=df, x='SNAME', y='Mean', ax=ax, palette='Spectral')
+    sns.barplot(data=df, x='SNAME', y='Mean', hue='SNAME', legend=False, ax=ax, palette='Spectral')
     ax.set_xlabel("")
     ax.axhline(avg, linestyle='--')
     ax.annotate(f'Avg X Coverage: {avg:.2f}', (int(len(df.index) / 2), avg), xytext=(0.35, 0.55), textcoords='axes fraction', arrowprops=dict(facecolor='blue', arrowstyle='wedge'), fontsize=14, color='b')
