@@ -51,6 +51,7 @@ def iq_values(ax, df):
 
     ax.set_xticks(ax.get_xticks(), ax.get_xticklabels())
     ax.yaxis.set_major_formatter(FuncFormatter(number_formatter))
+    print(boxes)
     ax.bxp(boxes, positions=[x for x in range(len(ax.get_xticks()))], showfliers=False)
     ax.set_xlabel("")
 
@@ -106,6 +107,7 @@ for i in range(0, linecount, splits):
     end = i + splits
     if end >= linecount:
         end = linecount -1
+    print(f'Working on samples {i} to {end}')
     tdf = df.iloc[i:end, :].copy()
     (fig, axis) = plt.subplots(ncols=2, nrows=4, sharex='col', constrained_layout=True, gridspec_kw={'width_ratios' : [100, 1]})
 
