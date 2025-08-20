@@ -33,7 +33,7 @@ SAMPLES = config["samples"]
 wildcard_constraints:
     sample = "|".join(SAMPLES)
 
-localrules: modify_and_index, tabulate_spades
+localrules: consolidate_stats
 
 onerror:
     print("Error! Mailing log...")
@@ -202,20 +202,21 @@ rule create_calibrator_depth:
 
 rule get_bam_stats:
     input:
-        bam = ancient("mapped/{samples}.merged.bam"),
-        bai = ancient("mapped/{samples}.merged.bam.bai"),
-        reference = config["assembly"],
-        fai = "Indexed",
+        bam = "mapped/{samples}.depthmap.bam",
+        bai = "mapped/{samples}.depthmap.bam.bai",
+        reference = config["reference"]
     output:
         stats = temp("final/{samples}.stats.tab")
     log:
-        "logs/{samples}_stats.log"
-    threads: 2
+        config['logdir'] + "/{sample}/get_bam_stats.log"
+    resources:
+        mem_mb=9000,
+        runtime="2h",
+        threads=2,
+        outstr=lambda wildcards: f'logs/get_bam_stats/{wildcards.sample}'
     params:
-        mem = "9000",
         sname = "{samples}",
-        threshold = 4,
-        time="2:00:00"
+        threshold = 4
     shell:
         """
         python3 {workflow.basedir}/scripts/calc_bam_stats.py {input.bam} {params.threshold} {params.sname} {output.stats}
@@ -239,9 +240,16 @@ rule plot_stats:
         "final/combined_bam_stats.tab"
     output:
         "final/combined_bam_stats.pdf"
+    params:
+        samples = 50
+    resources:
+        mem_mb=15000,
+        runtime="2h",
+        threads=2,
+        outstr=lambda wildcards: f'logs/get_bam_stats/{wildcards.sample}'
     shell:
         """
-        python3 {workflow.basedir}/scripts/plot_bam_stats.py {input} {output}
+        python3 {workflow.basedir}/scripts/plot_bam_stats.py {input} {params.samples} {output}
         """
 # TODO: Create a rule that merges alignment coordinates from paired groupings into breakpoints
 # TODO: Create a routine that screens against the vector sequence to find evidence of non-construct DNA in the sample
