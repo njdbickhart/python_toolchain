@@ -103,6 +103,8 @@ def addToDFList(data, pos, clip, tot, sel):
 
 
 def get_softclipped_bps(bamfile, region, depthfile, log = True):
+    if log:
+        print(f'Working on {region} of {bamfile}')
     depth = 0
     with open(depthfile, 'r') as input:
         depth = float(input.readline().rstrip())
@@ -123,6 +125,8 @@ def get_softclipped_bps(bamfile, region, depthfile, log = True):
                 tot += 1
             depths.append(tot)
             positions.append((pos, clip, tot))
+    if len(depths) == 0:
+        return ([], None)
     q99 = np.quantile(depths, 0.99) # This is the threshold of depth to determine if a breakpoint is valid
     final = list()
     for (pos, clip, tot) in positions:
