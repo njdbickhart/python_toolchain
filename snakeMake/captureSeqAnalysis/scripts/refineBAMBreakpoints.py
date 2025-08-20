@@ -68,6 +68,7 @@ def main(args, parser):
 
 def createDiagnosticPlot(df, ucsc, outbase):
     (fig, axis) = plt.subplots(nrows=2, sharex=True, sharey=False)
+    ucsc = ucsc.replace(':', '_').replace('-', '_')
     #plt.ticklabel_format(style = 'plain')
     plt.xticks(rotation=15)
     plt.suptitle(f'Insertion evidence for {ucsc}')

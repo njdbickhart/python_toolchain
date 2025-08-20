@@ -45,7 +45,8 @@ rule all:
         expand("linkage/{sample}/{sample}.clusters.tab", sample=SAMPLES),
         expand("contaminant/{sample}/contaminants.tab", sample=SAMPLES),
         expand("mapped/{sample}.depth", sample=SAMPLES), 
-        "final/consolidated_table.tab"
+        "final/consolidated_table.tab", 
+        "final/combined_bam_stats.pdf"
 
 
 rule align_vector:
@@ -144,7 +145,6 @@ rule remap_unmapped:
         """
 
 
-# TODO: Refactor this rule to consolidate read and contig link files per sample to count actual pairs that map to the reads
 # OUTPUT: breakpoint assignments and read evidence for each
 rule match_mates:
     input:
@@ -258,7 +258,8 @@ rule mash_screen:
     input:
         library = config['mash_db'],
         fq1 = lambda wildcards: fq_R1_names[wildcards.sample],
-        fq2 = lambda wildcards: fq_R2_names[wildcards.sample]
+        fq2 = lambda wildcards: fq_R2_names[wildcards.sample], 
+        depth = "mapped/{sample}.depth"
     log: config['logdir'] + "/{sample}/mash_screen.log"
     params:
         samp = "{sample}",
@@ -277,7 +278,7 @@ rule mash_screen:
         """
         mash screen -p 10 -w {input.library} {input.fq1} {input.fq2} > {output.distances}
 
-        python {params.script} {output.distances} {params.plasmid_names} {output.filtered} {output.status}
+        python {params.script} {output.distances} {params.plasmid_names} {output.filtered} {output.status} {input.depth}
         """
 
 rule refine_breaks:
@@ -301,13 +302,32 @@ rule refine_breaks:
         """
         python {params.script} -f {input.cluster} -b {input.bam} -o {params.basename} -d {input.depth}
         """
-    
 
+rule bedtools_intersect:
+    input:
+        refinement = "linkage/{sample}/{sample}.refinement.tab"
+    log: config['logdir'] + "bedtools_intersect.log"
+    params:
+        script = workflow.basedir + "/scripts/bedtools_intersect.py",
+        genebed = config['wally_annotation']
+    output:
+        bedfile = temp("linkage/{sample}/{sample}.temp.bed"),
+        overlaps = "linkage/{sample}/{sample}.geneoverlaps.tab"
+    resources:
+        mem_mb=5000,
+        runtime="1h",
+        threads=1,
+        outstr=lambda wildcards: f'logs/bedtools/{wildcards.sample}'
+    shell:
+        """
+        python {params.script} -f {input.refinement} -o {output.overlaps} -b {output.bedfile} -g {params.genebed}
+        """
+    
 rule consolidate_table:
     input:
         depth = expand("mapped/{sample}.depth", sample = SAMPLES),
         status = expand("contaminant/{sample}/contaminants.tab", sample = SAMPLES),
-        clusters = expand("linkage/{sample}/{sample}.clusters.tab", sample = SAMPLES)
+        clusters = expand("linkage/{sample}/{sample}.refinement.tab", sample = SAMPLES)
     log: config['logdir'] + "/consolidate_table.log"
     params:
         script = workflow.basedir + "/scripts/consolidate.py", 
@@ -368,7 +388,7 @@ rule wally_snapshots:
         y = 4096,
         genebed = config['wally_annotation']
     output:
-        directory('snapshots/{sample}')
+        directory('final/plots/{sample}')
     resources:
         mem_mb=4000,
         runtime="1h",

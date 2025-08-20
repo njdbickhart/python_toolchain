@@ -9,7 +9,7 @@ def arg_parse():
             description = "A script to consolidate capture seq information for gene editing"
             )
     parser.add_argument('-f', '--file', 
-                        help="Input cluster file",
+                        help="Input refinement file",
                         required=True, type=str
                         )
     parser.add_argument('-o', '--output',
@@ -63,17 +63,20 @@ def main(args, parser):
         clusters = list()
         with open(file, 'r') as input:
             head = input.readline()
-            lines = input.readlines()
-            for i in range(0, len(lines), 2):
-                p = lines[i].rstrip().split()
-                c = lines[i+1].rstrip().split()
-                end = c[1].split(':')
-                meandp = int(p[2]) + int(c[2]) / 2
-                # Filter to remove integration sites with weak evidence
-                if meandp < float(dpvalue) / 5:
-                    continue
-                else:
-                    clusters.append([f'{p[0]}-{end[1]}', meandp])
+            for l in input:
+                s = l.rstrip().split()
+                clusters.append([s[1], float(s[3])])
+            # lines = input.readlines()
+            # for i in range(0, len(lines), 2):
+            #     p = lines[i].rstrip().split()
+            #     c = lines[i+1].rstrip().split()
+            #     end = c[1].split(':')
+            #     meandp = int(p[2]) + int(c[2]) / 2
+            #     # Filter to remove integration sites with weak evidence
+            #     if meandp < float(dpvalue) / 5:
+            #         continue
+            #     else:
+            #         clusters.append([f'{p[0]}-{end[1]}', meandp])
         clusters = sorted(clusters, key=lambda x: x[1], reverse=True)
 
         cstr = list()
