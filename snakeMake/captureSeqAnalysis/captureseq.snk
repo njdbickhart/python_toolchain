@@ -231,11 +231,25 @@ rule mash_screen:
 
 rule refine_breaks:
     input:
+        cluster = "linkage/{sample}/{sample}.clusters.tab",
+        depth = "mapped/{sample}.depth", 
+        bam = "mapped/{sample}.depthmap.bam"
     log: config['logdir'] + "/{sample}/refine_breaks.log"
     params:
+        samp = "{sample}",
+        script = workflow.basedir + "/scripts/refineBAMBreakpoints.py",
+        basename = "linkage/{sample}/{sample}.refinement"
     output:
+        "linkage/{sample}/{sample}.refinement.tab"
     resources:
+        mem_mb=10000,
+        runtime="1d",
+        threads=1,
+        outstr=lambda wildcards: f'logs/refinement/{wildcards.sample}'
     shell:
+        """
+        python {params.script} -f {input.cluster} -b {input.bam} -o {params.basename} -d {input.depth}
+        """
     
 
 rule consolidate_table:
@@ -269,10 +283,9 @@ rule consolidate_table:
         python {params.script} -s {params.samples} -d {params.depths} -c {params.states} -f {params.nodes} -o {output}
         """
 
-# TODO: refactor inputs to take the refinement coordinates
 rule wally_inputs:
     input:
-        cluster = "linkage/{sample}/{sample}.clusters.tab",
+        refined = "linkage/{sample}/{sample}.refinement.tab",
         depth = "mapped/{sample}.depth"
     log: config['logdir'] + "/{sample}/wally_input.log"
     params:
@@ -288,7 +301,7 @@ rule wally_inputs:
         outstr=lambda wildcards: f'logs/wallyinput/{wildcards.sample}'
     shell: 
         """
-        python {params.script} -f {input.cluster} -d {input.depth} -s {params.samp} -e {params.extension} -o {output.ifile}
+        python {params.script} -f {input.refined} -d {input.depth} -s {params.samp} -e {params.extension} -o {output.ifile}
         """
 
 
@@ -313,7 +326,12 @@ rule wally_snapshots:
     shell:
         """
         mkdir -p {output}
-        wally region -R {input.ifile} -x {params.x} -y {params.y} -b {params.genebed} -cup -g {input.ref} {input.bam}
+        if [[ -s {input.ifile}]]
+        then
+            echo "{input.ifile} is empty"
+        else
+            wally region -R {input.ifile} -x {params.x} -y {params.y} -b {params.genebed} -cup -g {input.ref} {input.bam}
+        fi
         """
 
 

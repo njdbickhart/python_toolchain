@@ -1,6 +1,8 @@
-import os
-import sys
 import pysam
+import matplotlib as mlp
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 import numpy as np
 from collections import defaultdict
 
@@ -19,7 +21,7 @@ def arg_parse():
                         required=True, type=str,
                         )
     parser.add_argument('-o', '--output',
-                        help="Output tab file",
+                        help="Output base file name",
                         required=True, type=str,
                         )
     parser.add_argument('-d', '--depth',
@@ -36,10 +38,11 @@ def main(args, parser):
 
     # Next, loop through clusters to get insertion regions
     refinement = list()
+    plotDFs = list()
     for c in clusters:
         chrom = c[0].split(':')[0]
-        positions = get_softclipped_bps(args.bam, c[0], args.depth)
-        
+        (positions, plotDF) = get_softclipped_bps(args.bam, c[0], args.depth)
+        plotDFs.append(plotDF)
         # Finally, merge bases into coordinate range if there are more than one in a row
         # Note: zero regions will print an empty list
         if len(positions) > 1:
@@ -52,18 +55,51 @@ def main(args, parser):
             start = int(positions[0][0].split(':')[1])
             end =  start + 1
             refinement.append((c[0], f'{chrom}:{start}-{end}', str(positions[0][1]), str(positions[0][2])))
-        
-    with open(args.output, 'w') as output:
+    
+    # THis should eliminate most of the duplicate records
+    refinement = set(refinement)    
+    with open(args.output + ".tab", 'w') as output:
         output.write('OldCluster\tRefined\tRatioClipped\tTotDepth\n')
-        for r in refinement:
+        for i, r in enumerate(refinement):
+            createDiagnosticPlot(plotDFs[i], r[1], args.output)
             output.write("\t".join(r) + "\n")
 
     print("Fini")
 
+def createDiagnosticPlot(df, ucsc, outbase):
+    (fig, axis) = plt.subplots(nrows=2, sharex=True, sharey=False)
+    #plt.ticklabel_format(style = 'plain')
+    plt.xticks(rotation=15)
+    plt.suptitle(f'Insertion evidence for {ucsc}')
+
+    caxis = axis[0]
+    sns.scatterplot(data=df, x='Pos', y='Tot', hue='Selected', ax = caxis)
+    caxis.get_xaxis().set_major_formatter(mlp.ticker.StrMethodFormatter('{x:,.0f}'))
+    caxis.get_yaxis().set_major_formatter(mlp.ticker.StrMethodFormatter('{x:,.0f}'))
+    caxis.set_ylabel('Read Depth')
+
+    caxis = axis[1]
+    sns.scatterplot(data=df, x='Pos', y='Ratio', hue='Selected', ax = caxis)
+    caxis.get_xaxis().set_major_formatter(mlp.ticker.StrMethodFormatter('{x:,.0f}'))
+    caxis.get_yaxis().set_major_formatter(mlp.ticker.StrMethodFormatter('{x:,.0f}'))
+    caxis.set_ylabel('Read ends / Read Depth')
+    ylabels = ['{:,.1f}'.format(x) for x in caxis.get_yticks()]
+    caxis.set_yticklabels(ylabels)
+    caxis.set_xlabel('Basepair Position')
+
+    fig.tight_layout()
+    plt.savefig(f'{outbase}.{ucsc}.png')
 
 
 def getMinMax(numbers):
     return (min(numbers), max(numbers))
+
+def addToDFList(data, pos, clip, tot, sel):
+    data['Pos'].append(pos)
+    data['Ratio'].append(clip/tot)
+    data['Tot'].append(tot)
+    data['Selected'].append(sel)
+    return data
 
 
 def get_softclipped_bps(bamfile, region, depthfile, log = True):
@@ -73,6 +109,8 @@ def get_softclipped_bps(bamfile, region, depthfile, log = True):
     chrsegs = region.split(':')
 
     positions = list()
+    plotData = defaultdict(list)
+    depths = list()
     bamreader = pysam.AlignmentFile(bamfile, 'rb')
     for pileup in bamreader.pileup(region=region, stepper="nofilter"):
         pos = pileup.reference_pos
@@ -83,17 +121,27 @@ def get_softclipped_bps(bamfile, region, depthfile, log = True):
                 if '^' in bp or '$' in bp:
                     clip += 1
                 tot += 1
+            depths.append(tot)
+            positions.append((pos, clip, tot))
+    q99 = np.quantile(depths, '0.99') # This is the threshold of depth to determine if a breakpoint is valid
+    final = list()
+    for (pos, clip, tot) in positions:
         if tot == 0:
             if log:
                 print(f'{pos}\t{clip}\t{tot}\tZero')
+                plotData = addToDFList(plotData, pos, clip, tot, 'Zero')
             continue
         if clip/tot > 0:
             if log:
                 print(f'{pos}\t{clip}\t{tot}\t{clip/tot}')
-            if clip/tot > 0.25 and tot > depth / 2:
+            if clip/tot > 0.20 and tot >= q99:
+                # We only accept breakpoint coordinates that have > 20% clipped start/end reads and depth of coverage above 99%
                 print(f'{pos}\t{clip}\t{tot}\t{clip/tot}\tSelected')
-                positions.append((f'{chrsegs[0]}:{pos}', clip/tot, tot))
-    return positions # list of tuples (singlebase coordinate, ratio of clipped bases, total bases)
+                final.append((f'{chrsegs[0]}:{pos}', clip/tot, tot))
+                plotData = addToDFList(plotData, pos, clip, tot, 'Selected')
+            else:
+                plotData = addToDFList(plotData, pos, clip, tot, 'NotSelected')
+    return (final, pd.DataFrame(plotData)) # first is list of tuples (singlebase coordinate, ratio of clipped bases, total bases), second is a diagnostic dataframe for plotting
 
 
 def generate_clusters(depthfile, clusterfile):
