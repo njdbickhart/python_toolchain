@@ -135,6 +135,6 @@ for i in range(0, linecount, splits):
 
 with PdfPages(sys.argv[3]) as pdf:
     for f in figures:
-        pdf.savefig(sys.argv[3], bbox_inches='tight')
+        pdf.savefig(f, bbox_inches='tight')
 
 print('Fini')
