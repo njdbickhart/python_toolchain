@@ -130,7 +130,7 @@ for i in range(0, linecount, splits):
     heatmap_plot(ax, tdf, axis[3,1])
 
     fig.set_size_inches(21,12)
-    fig.tight_layout()
+    #fig.tight_layout()
     figures.append(fig)
 
 with PdfPages(sys.argv[3]) as pdf:
