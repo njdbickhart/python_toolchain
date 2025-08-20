@@ -200,6 +200,49 @@ rule create_calibrator_depth:
         python {params.script} {output.bam} {params.calibrator} {output.depth}
         """
 
+rule get_bam_stats:
+    input:
+        bam = ancient("mapped/{samples}.merged.bam"),
+        bai = ancient("mapped/{samples}.merged.bam.bai"),
+        reference = config["assembly"],
+        fai = "Indexed",
+    output:
+        stats = temp("final/{samples}.stats.tab")
+    log:
+        "logs/{samples}_stats.log"
+    threads: 2
+    params:
+        mem = "9000",
+        sname = "{samples}",
+        threshold = 4,
+        time="2:00:00"
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/calc_bam_stats.py {input.bam} {params.threshold} {params.sname} {output.stats}
+        """
+
+rule consolidate_stats:
+    input:
+        expand("final/{samples}.stats.tab", samples=SAMPLES)
+    output:
+        "final/combined_bam_stats.tab"
+    run:
+        with open(output[0], 'w') as outfile:
+            outfile.write("SNAME\tThreshBp\tZbp\tMean\tQ25\tMedian\tQ75\tMax\tStdev\tsub15\tsub30\tgt30\n")
+            for i in input:
+                with open(i, 'r') as infile:
+                    for l in infile:
+                        outfile.write(l)
+
+rule plot_stats:
+    input:
+        "final/combined_bam_stats.tab"
+    output:
+        "final/combined_bam_stats.pdf"
+    shell:
+        """
+        python3 {workflow.basedir}/scripts/plot_bam_stats.py {input} {output}
+        """
 # TODO: Create a rule that merges alignment coordinates from paired groupings into breakpoints
 # TODO: Create a routine that screens against the vector sequence to find evidence of non-construct DNA in the sample
 

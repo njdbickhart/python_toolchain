@@ -123,7 +123,7 @@ def get_softclipped_bps(bamfile, region, depthfile, log = True):
                 tot += 1
             depths.append(tot)
             positions.append((pos, clip, tot))
-    q99 = np.quantile(depths, '0.99') # This is the threshold of depth to determine if a breakpoint is valid
+    q99 = np.quantile(depths, 0.99) # This is the threshold of depth to determine if a breakpoint is valid
     final = list()
     for (pos, clip, tot) in positions:
         if tot == 0:
