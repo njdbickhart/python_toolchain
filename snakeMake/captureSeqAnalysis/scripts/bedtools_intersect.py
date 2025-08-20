@@ -40,7 +40,7 @@ def main(args, parser):
             bed.write("\t".join(oseg) + "\n")
 
     # Generate the intersection
-    cmd = ['bedtools', '-a', args.bed, '-b', args.genes, '-wb']
+    cmd = ['bedtools', 'intersect', '-a', args.bed, '-b', args.genes, '-wb']
     sp.run(' '.join(cmd), shell=True, stdout=open(f"{args.bed}.out", "w"))
 
     # Read the intersection and print out intersecting genes
