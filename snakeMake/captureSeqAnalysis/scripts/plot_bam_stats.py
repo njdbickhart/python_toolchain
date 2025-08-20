@@ -45,13 +45,14 @@ def iq_values(ax, df):
     ax.set_title("Interquartile coverage values", loc="left")
 
     ax.set_ylabel("Coverage")
-    boxes = [{'label' : r['SNAME'], 'whislo' : 3.0, 'q1' : r['Q25'], 'med' : r['Median'],
-    'q3' : r['Q75'], 'whishi' : r['Q75'] * 1.5, 'fliers' : []} for i, r in df.iterrows()]
+    boxes = [{'label' : r['SNAME'], 'whislo' : 3.0, 'q1' : float(r['Q25']), 'med' : float(r['Median']),
+    'q3' : float(r['Q75']), 'whishi' : float(r['Q75']) * 1.5, 'fliers' : []} for i, r in df.iterrows()]
     #df[["SNAME", "Q25", "Median", "Q75"]].plot(x= "SNAME", ax=ax)
 
     ax.set_xticks(ax.get_xticks(), ax.get_xticklabels())
     ax.yaxis.set_major_formatter(FuncFormatter(number_formatter))
     print(boxes)
+    print([x for x in range(len(ax.get_xticks()))])
     ax.bxp(boxes, positions=[x for x in range(len(ax.get_xticks()))], showfliers=False)
     ax.set_xlabel("")
 
