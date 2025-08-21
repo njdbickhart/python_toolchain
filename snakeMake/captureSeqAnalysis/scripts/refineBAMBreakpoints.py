@@ -182,7 +182,10 @@ def generate_clusters(depthfile, clusterfile):
             start = int(p[0].split(':')[1])
             ncoords = getMinMax((start, int(end[1])))
             # Filter to remove cluster pairs that are too distant to be real
+            # Or are too small to be real
             if abs(ncoords[0] - ncoords[1]) > 100000:
+                continue
+            elif abs(ncoords[0] - ncoords[1]) < 20:
                 continue
             else:
                 clusters.append([f'{chr}:{ncoords[0]}-{ncoords[1]}', meandp])
