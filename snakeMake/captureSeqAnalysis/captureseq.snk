@@ -33,7 +33,7 @@ SAMPLES = config["samples"]
 wildcard_constraints:
     sample = "|".join(SAMPLES)
 
-localrules: consolidate_stats
+localrules: consolidate_stats, plots_final
 
 onerror:
     print("Error! Mailing log...")
@@ -46,8 +46,12 @@ rule all:
         expand("contaminant/{sample}/contaminants.tab", sample=SAMPLES),
         expand("mapped/{sample}.depth", sample=SAMPLES), 
         "final/consolidated_table.tab", 
-        "final/combined_bam_stats.pdf"
+        "final/combined_bam_stats.pdf", 
+        'final/PLOTSCOPIED'
 
+rule bam_stats:
+    input:
+        "final/combined_bam_stats.pdf"
 
 rule align_vector:
     input:
@@ -145,7 +149,7 @@ rule remap_unmapped:
         """
 
 
-# OUTPUT: breakpoint assignments and read evidence for each
+# OUTPUT: read cluster assignments and read evidence for each
 rule match_mates:
     input:
         ref = config['vector'],
@@ -251,8 +255,6 @@ rule plot_stats:
         """
         python3 {workflow.basedir}/scripts/plot_bam_stats.py {input} {params.samples} {output}
         """
-# TODO: Create a rule that merges alignment coordinates from paired groupings into breakpoints
-# TODO: Create a routine that screens against the vector sequence to find evidence of non-construct DNA in the sample
 
 rule mash_screen:
     input:
@@ -405,6 +407,31 @@ rule wally_snapshots:
         fi
         """
 
+rule copy_plots:
+    input:
+        snapshots = 'final/plots/{sample}',
+        refinement = "linkage/{sample}/{sample}.refinement.tab"
+    log: config['logdir'] + "/{sample}/copy_plots.log"
+    params:
+        prefix = "linkage/{sample}/{sample}",
+        destination = "final/plots/{sample}"
+    output:
+        temp(touch('final/{sample}.plotscopied'))
+    resources:
+        mem_mb=500,
+        runtime="1h",
+        threads=1, 
+        outstr=lambda wildcards: f'logs/copy_plots/{wildcards.sample}'
+    shell:
+        """
+        mv {params.prefix}*.png {params.destination}/
+        """
+
+rule plots_final:
+    input:
+        plots = expand("final/{sample}.plotscopied", sample = SAMPLES)
+    output:
+        touch('final/PLOTSCOPIED')
 
 # TODO: Create a rule that checks for alignment outside of the main construct sequence as a measure of contamination
 # TODO: Generate an HTML report per sample with graphics to show linkage information and sample feasibility
