@@ -67,8 +67,10 @@ def main(args, parser):
     print("Fini")
 
 def createDiagnosticPlot(df, ucsc, outbase):
-    if len(df.index) == 0:
-        # Failsafe to avoid errors printing empty databases
+    # Failsafes to avoid errors printing empty databases
+    if df == None:
+        return
+    if len(df.index) == 0:        
         return
     (fig, axis) = plt.subplots(nrows=2, sharex=True, sharey=False)
     ucsc = ucsc.replace(':', '_').replace('-', '_')
