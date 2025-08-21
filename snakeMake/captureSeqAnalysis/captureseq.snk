@@ -308,7 +308,7 @@ rule refine_breaks:
 rule bedtools_intersect:
     input:
         refinement = "linkage/{sample}/{sample}.refinement.tab"
-    log: config['logdir'] + "bedtools_intersect.log"
+    log: config['logdir'] + "/{sample}/bedtools_intersect.log"
     params:
         script = workflow.basedir + "/scripts/bedtools_intersect.py",
         genebed = config['wally_annotation']
