@@ -97,7 +97,10 @@ def getMinMax(numbers):
 
 def addToDFList(data, pos, clip, tot, sel):
     data['Pos'].append(pos)
-    data['Ratio'].append(clip/tot)
+    if tot == 0:
+        data['Ratio'].append(0.0)
+    else:
+        data['Ratio'].append(clip/tot)
     data['Tot'].append(tot)
     data['Selected'].append(sel)
     return data
