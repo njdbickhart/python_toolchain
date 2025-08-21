@@ -67,6 +67,9 @@ def main(args, parser):
     print("Fini")
 
 def createDiagnosticPlot(df, ucsc, outbase):
+    if len(df.index) == 0:
+        # Failsafe to avoid errors printing empty databases
+        return
     (fig, axis) = plt.subplots(nrows=2, sharex=True, sharey=False)
     ucsc = ucsc.replace(':', '_').replace('-', '_')
     #plt.ticklabel_format(style = 'plain')
@@ -127,8 +130,8 @@ def get_softclipped_bps(bamfile, region, depthfile, log = True):
                 if '^' in bp or '$' in bp:
                     clip += 1
                 tot += 1
-            depths.append(tot)
-            positions.append((pos, clip, tot))
+        depths.append(tot)
+        positions.append((pos, clip, tot))
     if len(depths) == 0:
         return ([], None)
     q99 = np.quantile(depths, 0.99) # This is the threshold of depth to determine if a breakpoint is valid

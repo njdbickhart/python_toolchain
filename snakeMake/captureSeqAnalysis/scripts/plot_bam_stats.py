@@ -48,7 +48,7 @@ def iq_values(ax, df):
     #boxes = [{'label' : r['SNAME'], 'whislo' : 3.0, 'q1' : float(r['Q25']), 'med' : float(r['Median']),
     #'q3' : float(r['Q75']), 'whishi' : float(r['Q75']) * 1.5, 'fliers' : []} for i, r in df.iterrows()]
     #df[["SNAME", "Q25", "Median", "Q75"]].plot(x= "SNAME", ax=ax)
-    tdf = pd.melt(df[['SNAME', 'Q25', 'Median', 'Q75']], id_vars='SNAME', var_name='Cat', value_name= 'Value')
+    tdf = pd.melt(df[['SNAME', 'Q25', 'Median', 'Q75', 'Max']], id_vars='SNAME', var_name='Cat', value_name= 'Value')
     #ax.set_xticks(ax.get_xticks(), ax.get_xticklabels())
     sns.boxplot(data= tdf, x= 'SNAME', y= 'Value', hue='SNAME', legend=False, ax = ax, palette='Spectral')
     ax.yaxis.set_major_formatter(FuncFormatter(number_formatter))

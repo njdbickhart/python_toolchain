@@ -250,7 +250,7 @@ rule plot_stats:
         mem_mb=15000,
         runtime="2h",
         threads=2,
-        outstr=lambda wildcards: f'logs/get_bam_stats/get_bam_stats'
+        outstr=lambda wildcards: f'logs/plot_stats/plot_stats'
     shell:
         """
         python3 {workflow.basedir}/scripts/plot_bam_stats.py {input} {params.samples} {output}
