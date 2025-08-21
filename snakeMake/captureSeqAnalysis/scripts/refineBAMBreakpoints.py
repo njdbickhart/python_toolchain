@@ -68,7 +68,7 @@ def main(args, parser):
 
 def createDiagnosticPlot(df, ucsc, outbase):
     # Failsafes to avoid errors printing empty databases
-    if df == None:
+    if df.empty:
         return
     if len(df.index) == 0:        
         return
