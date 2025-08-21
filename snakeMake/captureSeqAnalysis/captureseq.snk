@@ -206,11 +206,11 @@ rule create_calibrator_depth:
 
 rule get_bam_stats:
     input:
-        bam = "mapped/{samples}.depthmap.bam",
-        bai = "mapped/{samples}.depthmap.bam.bai",
+        bam = "mapped/{sample}.depthmap.bam",
+        bai = "mapped/{sample}.depthmap.bam.bai",
         reference = config["reference"]
     output:
-        stats = temp("final/{samples}.stats.tab")
+        stats = temp("final/{sample}.stats.tab")
     log:
         config['logdir'] + "/{sample}/get_bam_stats.log"
     resources:
@@ -219,7 +219,7 @@ rule get_bam_stats:
         threads=2,
         outstr=lambda wildcards: f'logs/get_bam_stats/{wildcards.sample}'
     params:
-        sname = "{samples}",
+        sname = "{sample}",
         threshold = 4
     shell:
         """
@@ -329,14 +329,16 @@ rule consolidate_table:
     input:
         depth = expand("mapped/{sample}.depth", sample = SAMPLES),
         status = expand("contaminant/{sample}/contaminants.tab", sample = SAMPLES),
-        clusters = expand("linkage/{sample}/{sample}.refinement.tab", sample = SAMPLES)
+        clusters = expand("linkage/{sample}/{sample}.refinement.tab", sample = SAMPLES),
+        genes = expand("linkage/{sample}/{sample}.geneoverlaps.tab", sample=SAMPLES)
     log: config['logdir'] + "/consolidate_table.log"
     params:
         script = workflow.basedir + "/scripts/consolidate.py", 
         samples = " -s ".join(SAMPLES),
         depths = "final/depthfiles.list",
         states = "final/statefiles.list",
-        nodes = "final/nodes.list"
+        nodes = "final/nodes.list",
+        overlaps = "final/genes.list"
         #depths = lambda wildcards, input: " -d ".join(input.depth),
         #states = lambda wildcards, input: " -c ".join(input.status),
         #nodes = lambda wildcards, input: " -f ".join(input.clusters)
@@ -352,8 +354,9 @@ rule consolidate_table:
         echo {input.depth} > {params.depths}
         echo {input.status} > {params.states}
         echo {input.clusters} > {params.nodes}
+        echo {input.genes} > {params.overlaps}
 
-        python {params.script} -s {params.samples} -d {params.depths} -c {params.states} -f {params.nodes} -o {output}
+        python {params.script} -s {params.samples} -d {params.depths} -c {params.states} -f {params.nodes} -o {output} -g {params.overlaps}
         """
 
 rule wally_inputs:

@@ -28,6 +28,10 @@ def arg_parse():
                          help="Sample names", 
                          required=True, action='append'
                          )
+    parser.add_argument('-g', '--genes', 
+                         help="Gene intersections", 
+                         required=True, action='append'
+                         )
     return parser.parse_args(), parser
 
 
@@ -37,6 +41,7 @@ def main(args, parser):
     dpfiles = list()
     cpfiles = list()
     contfiles = list()
+    genefiles = list()
     with open(args.file, 'r') as input:
         for l in input:
             s = l.rstrip().split()
@@ -52,8 +57,14 @@ def main(args, parser):
             s = l.rstrip().split()
             contfiles.extend(s)
 
+    with open(args.genes, 'r') as input:
+        for l in input:
+            s = l.rstrip().split()
+            genefiles.extend(s)
 
-    for samp, file, depth, contaminants in zip(args.samples, cpfiles, dpfiles, contfiles):
+
+    for samp, file, depth, contaminants, genes in zip(args.samples, cpfiles, 
+                                                      dpfiles, contfiles, genefiles):
         # Depth value
         dpvalue = ""
         with open(depth, 'r') as input:
@@ -93,7 +104,24 @@ def main(args, parser):
         with open(contaminants, 'r') as input:
             for l in input:
                 cont.append(l.rstrip())
-            
+
+        # Gene intersections
+        totcount = 0
+        foundcount = 0
+        overlaps = dict()
+        sortedOverlaps = list()
+        with open(genes, 'r') as input:
+            for l in input:
+                s = l.rstrip().split()
+                overlaps[s[0]] = s[1]
+                totcount += 1
+            for c in clusters:
+                if c[0] in overlaps:
+                    foundcount += 1
+                sortedOverlaps.append(overlaps.get(c[0], ""))
+
+        # Logging print statement to check dictionary lookup of cluster
+        print(f'{samp} gene overlaps {totcount} and found: {foundcount}')
 
         data['SAMPLE'].append(samp)
         data['CHROMOSOME'].append(";".join(list(chrs)))
@@ -101,6 +129,7 @@ def main(args, parser):
         data['DEPTHS'].append(";".join(dstr))
         data['CAL_DEPTH'].append(dpvalue)
         data['CONTAMINANTS'].append(";".join(cont))
+        data['GENE_OVERLAPS'].append(";".join(sortedOverlaps))
 
     # Creating the dataframe and printing the consolidated table
     df = pd.DataFrame(data)
