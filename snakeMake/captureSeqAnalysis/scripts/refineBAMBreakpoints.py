@@ -154,7 +154,7 @@ def get_softclipped_bps(bamfile, region, depthfile, log = True):
     if log:
         print(df)
 
-    for row in df[df['Selected'] == 'Selected'].iterrows():
+    for i, row in df[df['Selected'] == 'Selected'].iterrows():
         final.append((f'{chrsegs[0]}:{row['Pos']}', row['Ratio'], row['Tot'], row['Selected']))
     # for (pos, clip, tot) in positions:
     #     if tot == 0:
