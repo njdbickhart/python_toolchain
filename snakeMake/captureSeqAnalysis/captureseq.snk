@@ -427,7 +427,11 @@ rule copy_plots:
         outstr=lambda wildcards: f'logs/copy_plots/{wildcards.sample}'
     shell:
         """
-        mv {params.prefix}*.png {params.destination}/
+        for i in {params.prefix}*.png;
+        do
+            echo $i;
+            mv $i {params.destination}/
+        done
         """
 
 rule plots_final:
