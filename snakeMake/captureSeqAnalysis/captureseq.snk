@@ -402,11 +402,11 @@ rule wally_snapshots:
     shell:
         """
         mkdir -p {output}
-        if [[ -s {input.ifile}]]
+        if [ -s {input.ifile} ]
         then
-            echo "{input.ifile} is empty"
-        else
             wally region -R {input.ifile} -x {params.x} -y {params.y} -b {params.genebed} -cup -g {input.ref} {input.bam}
+        else
+            echo "{input.ifile} is empty"
         fi
         """
 
