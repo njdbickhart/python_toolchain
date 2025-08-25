@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import numpy as np
+from scipy.signal import find_peaks
 from collections import defaultdict
 
 import argparse
@@ -65,6 +66,8 @@ def main(args, parser):
             output.write("\t".join(r) + "\n")
 
     print("Fini")
+
+
 
 def createDiagnosticPlot(df, ucsc, outbase):
     # Failsafes to avoid errors printing empty databases
@@ -135,29 +138,60 @@ def get_softclipped_bps(bamfile, region, depthfile, log = True):
                     clip += 1
                 tot += 1
         depths.append(tot)
-        positions.append((pos, clip, tot))
+        #positions.append((pos, clip, tot))
+        if tot == 0:
+            plotData = addToDFList(plotData, pos, clip, tot, 'Zero')
+        else:
+            plotData = addToDFList(plotData, pos, clip, tot, 'NotSelected')
     if len(depths) == 0:
         return ([], None)
-    q99 = np.quantile(depths, 0.99) # This is the threshold of depth to determine if a breakpoint is valid
+    q99 = getQ99Depth(depths) # This is the threshold of depth to determine if a breakpoint is valid
     final = list()
-    for (pos, clip, tot) in positions:
-        if tot == 0:
-            if log:
-                print(f'{pos}\t{clip}\t{tot}\tZero')
-                plotData = addToDFList(plotData, pos, clip, tot, 'Zero')
-            continue
-        if clip/tot > 0:
-            if log:
-                print(f'{pos}\t{clip}\t{tot}\t{clip/tot}')
-            if clip/tot > 0.20 and tot >= q99:
-                # We only accept breakpoint coordinates that have > 20% clipped start/end reads and depth of coverage above 99%
-                print(f'{pos}\t{clip}\t{tot}\t{clip/tot}\tSelected')
-                final.append((f'{chrsegs[0]}:{pos}', clip/tot, tot))
-                plotData = addToDFList(plotData, pos, clip, tot, 'Selected')
-            else:
-                plotData = addToDFList(plotData, pos, clip, tot, 'NotSelected')
-    return (final, pd.DataFrame(plotData)) # first is list of tuples (singlebase coordinate, ratio of clipped bases, total bases), second is a diagnostic dataframe for plotting
+    df = pd.DataFrame(plotData)
+    peaks = getPeaks(df, 0.10)
 
+    df.loc[(df['Tot'] >= q99) & (df.index.isin(peaks)), 'Selected'] = 'Selected'
+    if log:
+        print(df)
+
+    for row in df[df['Selected'] == 'Selected'].iterrows():
+        final.append((f'{chrsegs[0]}:{row['Pos']}', row['Ratio'], row['Tot'], row['Selected']))
+    # for (pos, clip, tot) in positions:
+    #     if tot == 0:
+    #         if log:
+    #             print(f'{pos}\t{clip}\t{tot}\tZero')
+    #             plotData = addToDFList(plotData, pos, clip, tot, 'Zero')
+    #         continue
+    #     if clip/tot > 0:
+    #         if log:
+    #             print(f'{pos}\t{clip}\t{tot}\t{clip/tot}')
+    #         if clip/tot > 0.20 and tot >= q99:
+    #             # We only accept breakpoint coordinates that have > 20% clipped start/end reads and depth of coverage above 99%
+    #             print(f'{pos}\t{clip}\t{tot}\t{clip/tot}\tSelected')
+    #             final.append((f'{chrsegs[0]}:{pos}', clip/tot, tot))
+    #             plotData = addToDFList(plotData, pos, clip, tot, 'Selected')
+    #         else:
+    #             plotData = addToDFList(plotData, pos, clip, tot, 'NotSelected')
+    return (final, df) # first is list of tuples (singlebase coordinate, ratio of clipped bases, total bases), second is a diagnostic dataframe for plotting
+
+def getPeaks(df, prominence):
+    nrows = len(df.index)
+    minBurn = int(nrows * 0.10)
+    maxBurn = int(nrows * 0.90)
+
+    peaks, _ = find_peaks(df['Ratio'], prominence=prominence)
+
+    filtpeaks = set()
+    for i in peaks:
+        if i > minBurn and i < maxBurn:
+            filtpeaks.add(i)
+    return filtpeaks
+
+def getQ99Depth(depths):
+    nrows = len(depths)
+    minBurn = int(nrows * 0.10)
+    maxBurn = int(nrows * 0.90)
+    return np.quantile(depths[minBurn:maxBurn], 0.99)
 
 def generate_clusters(depthfile, clusterfile):
      # Depth value

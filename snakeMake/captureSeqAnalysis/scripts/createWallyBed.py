@@ -56,7 +56,7 @@ def main(args, parser):
             #interval = s[1].split(':')[1]
             start = int(start) - args.extension
             end = int(end) + args.extension
-            clusters.append([f'{chr}\t{start}\t{end}', int(s[3])])
+            clusters.append([f'{chr}\t{start}\t{end}', int(float(s[3]))])
        
     clusters = sorted(clusters, key=lambda x: x[1], reverse=True)
 
