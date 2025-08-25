@@ -30,7 +30,7 @@ def arg_parse():
                          )
     parser.add_argument('-g', '--genes', 
                          help="Gene intersections", 
-                         required=True, action='append'
+                         required=True, type=str
                          )
     return parser.parse_args(), parser
 
