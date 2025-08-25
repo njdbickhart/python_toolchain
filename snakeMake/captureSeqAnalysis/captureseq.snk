@@ -427,7 +427,7 @@ rule copy_plots:
         outstr=lambda wildcards: f'logs/copy_plots/{wildcards.sample}'
     shell:
         """
-        for i in {params.prefix}*.png;
+        for i in `ls {params.prefix}*.png`;
         do
             echo $i;
             mv $i {params.destination}/
