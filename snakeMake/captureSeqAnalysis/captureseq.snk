@@ -430,7 +430,12 @@ rule copy_plots:
         for i in `ls {params.prefix}*.png`;
         do
             echo $i;
-            mv $i {params.destination}/
+            if [ -s $i ]
+            then
+                mv $i {params.destination}/
+            else
+                echo "{params.prefix} was empty"
+            fi
         done
         """
 
