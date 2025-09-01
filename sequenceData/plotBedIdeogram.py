@@ -97,15 +97,16 @@ def main(args, parser):
 
     # Now all we have to do is call our function for the ideogram data...
     print("adding ideograms...")
-    for collection in chromosome_collections(ideo, chrom_ybase, chrom_height):
-        ax.add_collection(collection)
+    for (xranges, yranges, colors) in chromosome_collections(ideo, chrom_ybase, chrom_height):
+        ax.broken_barh(xranges, yranges, facecolors=colors)
+        #ax.add_collection(collection)
 
     # ...and the gene data
     print("adding genes...")
-    for collection in chromosome_collections(
-        genes, gene_ybase, gene_height, alpha=0.5, linewidths=0
-    ):
-        ax.add_collection(collection)
+    for (xranges, yranges, colors) in chromosome_collections(
+        genes, gene_ybase, gene_height):
+        ax.broken_barh(xranges, yranges, color='black', alpha=0.5, linewidths=0)
+        #ax.add_collection(collection)
 
     # Axes tweaking
     ax.set_yticks([chrom_centers[i] for i in chromosome_list])
@@ -157,12 +158,12 @@ def chromosome_collections(df, y_positions, height,  **kwargs):
     if 'width' not in df.columns:
         del_width = True
         df['width'] = df['end'] - df['start']
+    df.loc[df['width'] < min_width, 'width'] = min_width
     for chrom, group in df.groupby('chrom'):
         print(chrom)
         yrange = (y_positions[chrom], height)
         xranges = group[['start', 'width']].values
-        yield BrokenBarHCollection(
-            xranges, yrange, facecolors=group['colors'], **kwargs)
+        yield (xranges, yrange, group['colors'])
     if del_width:
         del df['width']
 
