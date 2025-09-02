@@ -174,6 +174,7 @@ def main(args, parser):
         evidence = '<h4>There are too many locations to show plots. Please check the plots folder for this sample</h4>'
         if loc_count ==1:
             files = glob.glob(f'plots/{sample_id}/*.png')
+            print(files)
             evidence = f'<img src="{files[0]}" alt="{sample} read based evidence">'
         html_content += f"""
         <div class="sample-section">
