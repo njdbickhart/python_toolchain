@@ -175,6 +175,8 @@ def main(args, parser):
         if loc_count ==1:
             files = glob.glob(f'{args.output}/plots/{sample_id}/*.png')
             print(files)
+            if not files:
+                next
             evidence = f'<img src="{files[0]}" alt="{sample} read based evidence">'
         html_content += f"""
         <div class="sample-section">
