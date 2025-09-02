@@ -75,7 +75,7 @@ def main(args, parser):
 
     # Distribution plot of CAL_DEPTH
     plt.figure(figsize=(10, 6))
-    sns.kdeplot(data=fdf, x="LocCount", y= 'CHRCount', hue="CONTAMINANTS", fill=True, alpha=.5)
+    sns.kdeplot(data=df, x="LocCount", y= 'CHRCount', hue="CONTAMINANTS", fill=True, alpha=.5)
     plt.title('Comparison of insertion sites vs different chromosome insertions')
     plt.xlabel('Insertion Location Counts')
     plt.ylabel('Chromosome Insertion Count')
