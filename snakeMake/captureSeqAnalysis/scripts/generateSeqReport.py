@@ -8,6 +8,7 @@ from weasyprint import HTML
 import argparse
 import glob
 import re
+from collections import defaultdict
 from itertools import cycle
 
 ucsc = re.compile(r'(.+):(\d+)-(\d+)')
