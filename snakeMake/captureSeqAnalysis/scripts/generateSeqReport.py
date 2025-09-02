@@ -177,7 +177,8 @@ def main(args, parser):
             print(files)
             if not files:
                 next
-            evidence = f'<img src="{files[0]}" alt="{sample} read based evidence">'
+            else:
+                evidence = f'<img src="{files[0]}" alt="{sample} read based evidence">'
         html_content += f"""
         <div class="sample-section">
             <div class="{divclass}" onclick="toggleContent('{sample_id}')">
