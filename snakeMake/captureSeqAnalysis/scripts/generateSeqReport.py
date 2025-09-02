@@ -173,7 +173,7 @@ def main(args, parser):
         row_html = row.to_frame().to_html(classes='table table-striped', border=0)
         evidence = '<h4>There are too many locations to show plots. Please check the plots folder for this sample</h4>'
         if loc_count ==1:
-            files = glob.glob(f'plots/{sample_id}/*.png')
+            files = glob.glob(f'{args.output}/plots/{sample_id}/*.png')
             print(files)
             evidence = f'<img src="{files[0]}" alt="{sample} read based evidence">'
         html_content += f"""
