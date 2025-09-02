@@ -48,7 +48,7 @@ def main(args, parser):
     df['GENE_OVERLAPS'] = df['GENE_OVERLAPS'].fillna(value="None")
 
     # Create temp bed file for plotting
-    with open(args.file, 'r') as input, with open(f'{args.output}/temp.bed', 'w') as output:
+    with open(args.file, 'r') as input, open(f'{args.output}/temp.bed', 'w') as output:
         head = input.readline()
         for l in input:
             s = l.rstrip().split(",")
