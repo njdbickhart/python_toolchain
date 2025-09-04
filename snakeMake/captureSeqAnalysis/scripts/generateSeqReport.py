@@ -75,6 +75,7 @@ def main(args, parser):
                 data['GENE'].append(s[6])
                 data['LOCS'].append(len(locs))
     mDF = pd.DataFrame(data)
+    mDF = mDF.sort_values(by=['CHR', 'BP'])
 
     # Create temp bed file for plotting
     with open(args.file, 'r') as input, open(f'{args.output}/temp.bed', 'w') as output:
@@ -302,7 +303,7 @@ def plotSimpleChrGraph(fai, gene_bed, output):
     # Padding between the top of a gene track and its corresponding ideogram
     gene_padding = 0.1
     # Width, height (in inches)
-    figsize = (6, 8)
+    figsize = (10, 8)
     # Decide which chromosomes to use
     list_chromosomes, list_length = get_chromosomes_names(fai)
     chr_assoc = {k : v for k, v in zip(list_chromosomes, list_length)}
