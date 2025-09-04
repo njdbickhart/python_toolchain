@@ -11,6 +11,9 @@ import re
 from collections import defaultdict
 from itertools import cycle
 
+import plotly.offline as pyo
+import marker_loc_manhattan
+
 ucsc = re.compile(r'(.+):(\d+)-(\d+)')
 
 def arg_parse():
@@ -33,6 +36,10 @@ def arg_parse():
                         help="Priority chromosome for sorting", 
                         required=True, type=str,
                         )
+    parser.add_argument('-c', '--contaminant',
+                        help='Contaminants to avoid (may be entered multiple times)',
+                        action='append', default=[]
+                        )
 
     return parser.parse_args(), parser
 
@@ -48,6 +55,7 @@ def main(args, parser):
     df['CHRCount'] = df['CHROMOSOME'].astype(str).apply(lambda x: len(x.split(';')))
     df['LocCount'] = df['SITES'].astype(str).apply(lambda x: len(x.split(';')))
     df['GENE_OVERLAPS'] = df['GENE_OVERLAPS'].fillna(value="None")
+    df['CONTAMINANTS'] = df['CONTAMINANTS'].fillna('None')
 
     # Create temp bed file for plotting
     with open(args.file, 'r') as input, open(f'{args.output}/temp.bed', 'w') as output:
@@ -71,11 +79,14 @@ def main(args, parser):
 
 
     # Priority Individuals
-    priority_table = df[(df['CHROMOSOME'].astype(str).isin([args.priority])) & (df['LocCount'] == 1) & (df['GENE_OVERLAPS'] == 'None')].to_html(classes='table table-striped', border=0)
+    priority_table = df[(df['CHROMOSOME'].astype(str).isin([args.priority])) & \
+                        (df['LocCount'] == 1) & \
+                            (df['GENE_OVERLAPS'] == 'None') & \
+                                (~df['CONTAMINANTS'].isin(args.contaminants))].to_html(classes='table table-striped', border=0)
 
 
 
-    # Distribution plot of CAL_DEPTH
+    # Distribution plot of chromosome insertion sites
     plt.figure(figsize=(10, 6))
     sns.kdeplot(data=df, x="LocCount", y= 'CHRCount', hue="CONTAMINANTS", fill=True, alpha=.5)
     plt.title('Comparison of insertion sites vs different chromosome insertions')
@@ -97,6 +108,10 @@ def main(args, parser):
 
     # Chromosome plot 
     plotSimpleChrGraph(args.index, f'{args.output}/temp.bed', f'{args.output}/plots/chromosome_layout.png')
+
+    # Interactive Chromosome plot
+    mobj = marker_loc_manhattan.ManhattanPlot(mDF)
+    fig = mobj.figure(title="Genome-wide Plot of Insertion Frequency per Sample (top values have only one insertion)")
 
 
     # Start building the HTML content
@@ -140,27 +155,38 @@ def main(args, parser):
         <div class="sticky">
         <h1>Capture-seq Summary Report</h1>
         </div>
-        <h2>Priority Individuals for Breeding Program</h2>
-        {{ priority_table | safe}}
+        <h2>Priority Individuals for Breeding Program</h2>        
+        {{ priority_table | safe}}        
 
-        <h2>Count of Individuals with Priority Chromosome Insertions</h2>
-        {{ summary_stats | safe}}
+        <h2>Count of Individuals with Priority Chromosome Insertions</h2>        
+        {{ summary_stats | safe}}        
         
         <h2>Distribution of Chromosome insertions vs multiple insertion sites</h2>
+        <center>
         <img src="plots/loc_count_vs_chrs.png" alt="Location Count Distribution">
+        </center>
 
         <h2>Genome-wide distribution of insertions</h2>
+        <center>
         <img src="plots/chromosome_layout.png" alt="Chromosome distributions">
+        </center>
+
+        <h2>Interactive Genome-wide plot</h2>
+        <center>
+        {{ manhattan }}
+        </center>
 
         <h2>Distribution of CONTAMINANTS</h2>
+        <center>
         <img src="plots/contaminants_pie_chart.png" alt="Contaminants Pie Chart">
+        </center>
 
         <h2>Full Sample Table</h2>
         <div class = "full-samples">
-            <div class="fulltable" onclick="toggleContent("full-table")">
+            <div class="table" onclick="toggleContent('full-table')">
                 <h4>Click to open full sample table</h4>
             </div>
-            <div class="fullTable" id="full-table">
+            <div class="table" id="full-table">
     """
 
     # Add collapsible sections for each sample
@@ -173,7 +199,8 @@ def main(args, parser):
         row_html = row.to_frame().to_html(classes='table table-striped', border=0)
         evidence = '<h4>There are too many locations to show plots. Please check the plots folder for this sample</h4>'
         if loc_count ==1:
-            files = glob.glob(f'{args.output}/plots/{sample_id}/*.png')
+            files = glob.glob(f'{args.output}/plots/{sample_name}/*.png')
+            print(f'{args.output}/plots/{sample_name}/*.png')
             print(files)
             if not files:
                 next
@@ -208,6 +235,7 @@ def main(args, parser):
     # TODO: add value_counts of chromosome additions
     template = Template(html_content)
     html_report = template.render(
+        manhattan=fig.to_html(full_html=False),
         priority_table=priority_table,
         summary_stats=summary_stats
     )
