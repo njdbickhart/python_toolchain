@@ -247,6 +247,7 @@ def main(args, parser):
         if loc_count ==1:
             files = glob.glob(f'{args.output}/plots/{sample_name}/*.png')
             print(f'{args.output}/plots/{sample_name}/*.png')
+            files[0] = re.sub(args.output + '/', '')
             print(files)
             if not files:
                 next
