@@ -82,7 +82,7 @@ def main(args, parser):
     priority_table = df[(df['CHROMOSOME'].astype(str).isin([args.priority])) & \
                         (df['LocCount'] == 1) & \
                             (df['GENE_OVERLAPS'] == 'None') & \
-                                (~df['CONTAMINANTS'].isin(args.contaminants))].to_html(classes='table table-striped', border=0)
+                                (~df['CONTAMINANTS'].isin(args.contaminant))].to_html(classes='table table-striped', border=0)
 
 
 
