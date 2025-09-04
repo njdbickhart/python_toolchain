@@ -246,12 +246,12 @@ def main(args, parser):
         evidence = '<h4>There are too many locations to show plots. Please check the plots folder for this sample</h4>'
         if loc_count ==1:
             files = glob.glob(f'{args.output}/plots/{sample_name}/*.png')
-            print(f'{args.output}/plots/{sample_name}/*.png')
-            files[0] = re.sub(args.output + '/', '', files[0])
-            print(files)
+            #print(f'{args.output}/plots/{sample_name}/*.png')            
             if not files:
                 next
             else:
+                files[0] = re.sub(args.output + '/', '', files[0])
+                print(files)
                 evidence = f'<img src="{files[0]}" alt="{sample_name} read based evidence">'
         html_content += f"""
         <div class="sample-section">
