@@ -59,7 +59,7 @@ def main(args, parser):
 
     # Need to make another DF for the manhattan plot
     data = defaultdict(list)
-    with open('capseq_second_batch/final/consolidated_table.tab', 'r') as input:
+    with open(args.file, 'r') as input:
         head = input.readline()
         for l in input:
             s = l.rstrip().split(",")
