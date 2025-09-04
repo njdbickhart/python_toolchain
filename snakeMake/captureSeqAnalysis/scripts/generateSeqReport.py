@@ -127,8 +127,34 @@ def main(args, parser):
             .sample-header { background-color: #f2f2f2; cursor: pointer; font-weight: bold; }
             .sample-highlight { background-color: #facfc6; cursor: pointer; font-weight: bold; }
             .sample-content { display: none; padding: 10px; }
-            table {border: 2 px solid black; width: 100%; border-collapse: collapse; text-align: left}
-            th, td {padding: 20 px;}
+            table {
+                width: 100%;
+                border: 1px solid #000000;
+                border-collapse: collapse;
+            }
+            table td, th {
+                border: 1px solid #000000;
+            }
+            table td:first-child {
+                font-weight: bold;
+            }
+            table tbody td {
+                font-size: 13 px;
+            }
+            table tr:nth-child(even){
+                background: #D0E4F5;
+            }
+            table thead {
+                background: #0B6FA4;
+                border-bottom: 5 px solid #053047;
+            }
+            table thead th {
+                font-size: 17px;
+                font-weight: bold;
+                color: #FFFFFF;
+                text-align: center;
+                border-left: 2px solid #053047;
+            }
             div.sticky {
                 position: -webkit-sticky;
                 position: sticky;
