@@ -57,6 +57,25 @@ def main(args, parser):
     df['GENE_OVERLAPS'] = df['GENE_OVERLAPS'].fillna(value="None")
     df['CONTAMINANTS'] = df['CONTAMINANTS'].fillna('None')
 
+    # Need to make another DF for the manhattan plot
+    data = defaultdict(list)
+    with open('capseq_second_batch/final/consolidated_table.tab', 'r') as input:
+        head = input.readline()
+        for l in input:
+            s = l.rstrip().split(",")
+            locs = s[2].split(';')
+            for j in locs:
+                psegs = re.split(r'[:-]', j)
+                if len(psegs) < 3:
+                    continue
+                
+                data['CHR'].append(psegs[0])
+                data['BP'].append(int(psegs[1]))
+                data['SNP'].append(s[0])
+                data['GENE'].append(s[6])
+                data['LOCS'].append(len(locs))
+    mDF = pd.DataFrame(data)
+
     # Create temp bed file for plotting
     with open(args.file, 'r') as input, open(f'{args.output}/temp.bed', 'w') as output:
         head = input.readline()
