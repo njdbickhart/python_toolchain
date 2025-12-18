@@ -7,6 +7,7 @@ Created on Wed Jan 15 10:04:41 2025
 
 import argparse
 import string
+import re
 
 def arg_parse():
     parser = argparse.ArgumentParser(
@@ -35,6 +36,10 @@ def arg_parse():
     parser.add_argument('-e', '--empty',
                         help="Empty well string",
                         default="NTC", type=str,
+                        )
+    parser.add_argument('-s', '--separator',
+                        help="Separator string [,]",
+                        default=",", type=str,
                         )
     return parser.parse_args(), parser
 
@@ -97,7 +102,7 @@ def main(args, parser):
         # clear header
         input.readline()
         for l in input:
-            s = l.rstrip().split()
+            s = re.split(args.separator,l.rstrip())
             if len(s) < 4:
                 continue
             worker.loadRow(s[0], transform_well(s[args.row] + s[args.col]), s[args.an])
