@@ -20,6 +20,18 @@ def arg_parse():
                         help="Output file name. Tab delimited",
                         required=True, type=str,
                         )
+    parser.add_argument('-r', '--row',
+                        help="Row column number 0-based [3]",
+                        default=3, type=int,
+                        )
+    parser.add_argument('-c', '--col',
+                        help="Plate column number 0-based [4]",
+                        default=4, type=int,
+                        )
+    parser.add_argument('-a', '--an',
+                        help="Animal ID column number 0-based [5]",
+                        default=5, type=int,
+                        )
     parser.add_argument('-e', '--empty',
                         help="Empty well string",
                         default="NTC", type=str,
@@ -86,9 +98,9 @@ def main(args, parser):
         input.readline()
         for l in input:
             s = l.rstrip().split()
-            if len(s) < 6:
+            if len(s) < 4:
                 continue
-            worker.loadRow(s[0], transform_well(s[3] + s[4]), s[5])
+            worker.loadRow(s[0], transform_well(s[args.row] + s[args.col]), s[args.an])
 
     print("Finished loading plates")
     
