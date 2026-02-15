@@ -51,16 +51,16 @@ def main(args, parser):
             ratios = [float(p[1]) for p in positions]
             depths = [int(p[2]) for p in positions]
             coords = getMinMax(numbers)
-            refinement.append((c[0], f'{chrom}:{coords[0]}-{coords[1]}', str(np.mean(ratios)), str(np.mean(depths))))
+            refinement.append((c[0], f'{chrom}:{coords[0]}-{coords[1]}', str(np.mean(ratios)), str(np.mean(depths)), c[2]))
         elif len(positions) == 1:
             start = int(positions[0][0].split(':')[1])
             end =  start + 1
-            refinement.append((c[0], f'{chrom}:{start}-{end}', str(positions[0][1]), str(positions[0][2])))
+            refinement.append((c[0], f'{chrom}:{start}-{end}', str(positions[0][1]), str(positions[0][2]), c[2]))
     
     # THis should eliminate most of the duplicate records
     refinement = set(refinement)    
     with open(args.output + ".tab", 'w') as output:
-        output.write('OldCluster\tRefined\tRatioClipped\tTotDepth\n')
+        output.write('OldCluster\tRefined\tRatioClipped\tTotDepth\tOrient\n')
         for i, r in enumerate(refinement):
             createDiagnosticPlot(plotDFs[i], r[1], args.output)
             output.write("\t".join(r) + "\n")
@@ -207,6 +207,11 @@ def generate_clusters(depthfile, clusterfile):
         for i in range(0, len(lines), 2):
             p = lines[i].rstrip().split()
             c = lines[i+1].rstrip().split()
+            orient = "?"
+            if p[3] == "right" and c[3] == "left":
+                orient = "-"
+            elif p[3] == "left" and c[3] == "left":
+                orient = "+"
             end = c[1].split(':')
             meandp = int(p[2]) + int(c[2]) / 2
             # Filter to remove integration sites with weak evidence
@@ -222,7 +227,7 @@ def generate_clusters(depthfile, clusterfile):
             elif abs(ncoords[0] - ncoords[1]) < 20:
                 continue
             else:
-                clusters.append([f'{chr}:{ncoords[0]}-{ncoords[1]}', meandp])
+                clusters.append([f'{chr}:{ncoords[0]}-{ncoords[1]}', meandp, orient])
     return sorted(clusters, key=lambda x: x[1], reverse=True)  # returns list of lists: ['chrstring', 'meandepth']
 
 if __name__ == "__main__":

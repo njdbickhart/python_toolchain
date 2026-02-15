@@ -40,6 +40,10 @@ onerror:
     shell("tail -n 100 {log} | mail -s 'CaptureSeq' derek.bickhart@hendrix-genetics.com")
     print("Done")
 
+rule breaks_only:
+    input:
+        expand("linkage/{sample}/{sample}.refinement.tab", sample=SAMPLES)
+
 rule all:
     input:
         expand("linkage/{sample}/{sample}.clusters.tab", sample=SAMPLES),
