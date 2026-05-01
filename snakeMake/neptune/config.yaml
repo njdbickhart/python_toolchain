@@ -1,0 +1,41 @@
+
+# --- required ---
+sample: "sample1"
+input_fasta: "data/sample1.fna"   # .fna/.fa/.fasta etc
+input_type: "nucleotide"         # "nucleotide" or "protein"
+
+# --- PSORTb (a.k.a. what you called "pbsort") ---
+# PSORTb docker workflow commonly uses a wrapper script that accepts:
+#   psortb -i <fasta> -r <results_dir> [--positive|--negative|--archaea]  [1](https://hub.docker.com/r/brinkmanlab/psortb_commandline/)
+psortb:
+  cmd: "apptainer exec docker://brinkmanlab/psortb_commandline:1.0.2 psortb"                  # could be a wrapper script in PATH
+  organism_flag: "--negative"    # --negative / --positive / --archaea
+
+# --- LipoP via EMBOSS elipop ---
+lipop:
+  cmd: "elipop"
+  extra: "-auto -short"          # elipop supports -outfile and standard EMBOSS flags [2](https://emboss.sourceforge.net/apps/release/6.0/embassy/cbstools/elipop.html)
+
+# --- DeepTMHMM ---
+# The docker image documentation demonstrates running predict.py with bind mounts [3](https://hub.docker.com/r/biswasaneel/deeptmhmm)
+deeptmhmm:
+  mode: "docker"                 # "docker" (default) or "command"
+  image: "biswasaneel/deeptmhmm:latest"
+  cmd: "deeptmhmm"               # used only if mode=="command" (your own local wrapper)
+
+# --- SPAAN ---
+# SPAAN expects input named query.dat and produces query.out after running ./askquery [4](https://github.com/kitamura-felipe/adhesin_finder)
+spaan:
+  askquery_path: "tools/spaan/askquery"  # path to SPAAN askquery binary
+
+# --- IslandPath-DIMOB ---
+# IslandPath-DIMOB expects annotated complete genome in .gbk or .embl and runs Dimob.pl [5](https://github.com/brinkmanlab/islandpath)
+islandpath:
+  enabled: true
+
+# --- Mash ---
+mash:
+  k: 21
+  s: 1000
+  # optional reference sketch/db (if set, mash dist will be run)
+  reference_sketch: ""           # e.g. "db/refseq.genomes.k21.s1000.msh"

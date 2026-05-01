@@ -1,0 +1,336 @@
+
+from pathlib import Path
+from snakemake.io import directory
+
+configfile: "config.yaml"
+
+SAMPLE = config.get("sample", Path(config["input_fasta"]).stem)
+INPUT_FASTA = config["input_fasta"]
+INPUT_TYPE = config.get("input_type", "nucleotide").lower()
+
+PRODIGAL_DIR = f"results/prodigal/{SAMPLE}"
+PROKKA_DIR   = f"results/prokka/{SAMPLE}"
+
+PROTEINS = (
+    f"{PRODIGAL_DIR}/{SAMPLE}.faa"
+    if INPUT_TYPE == "nucleotide"
+    else INPUT_FASTA
+)
+
+GBK = f"{PROKKA_DIR}/{SAMPLE}.gbk"
+
+def log_path(tool, suffix="log"):
+    Path(f"logs/{tool}").mkdir(parents=True, exist_ok=True)
+    return f"logs/{tool}/{SAMPLE}.{suffix}"
+
+rule all:
+    input:
+        directory(f"results/psortb/{SAMPLE}"),
+        f"results/lipop/{SAMPLE}.elipop",
+        f"results/deeptmhmm/{SAMPLE}/predicted_topologies.3line",
+        f"results/deeptmhmm/{SAMPLE}/TMRs.gff3",
+        f"results/deeptmhmm/{SAMPLE}/deeptmhmm_results.md",
+        f"results/spaan/{SAMPLE}/query.out",
+        *( [f"results/islandpath/{SAMPLE}/GIs.txt"]
+           if (config.get("islandpath", {}).get("enabled", True) and INPUT_TYPE == "nucleotide")
+           else [] ),
+        f"results/mash/{SAMPLE}/{SAMPLE}.msh",
+        *( [f"results/mash/{SAMPLE}/distances.tsv"]
+           if config.get("mash", {}).get("reference_sketch")
+           else [] )
+
+# ---------------------------
+# Preprocessing (nucleotide → proteins + gbk)
+# ---------------------------
+
+rule prodigal:
+    conda: "envs/prodigal.yaml"
+    input:
+        fasta=INPUT_FASTA
+    output:
+        faa=f"{PRODIGAL_DIR}/{SAMPLE}.faa",
+        gff=f"{PRODIGAL_DIR}/{SAMPLE}.gff"
+    log:
+        log_path("prodigal")
+    threads: 2
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p {PRODIGAL_DIR}
+        echo "[{SAMPLE}] rule=prodigal start=$(date -Is) host=$(hostname)" > {log}
+        echo "CMD: prodigal -i {input.fasta} -a {output.faa} -f gff -o {output.gff} -p single" >> {log}
+        prodigal -i {input.fasta} -a {output.faa} -f gff -o {output.gff} -p single >> {log} 2>&1
+        echo "[{SAMPLE}] rule=prodigal done=$(date -Is)" >> {log}
+        """
+
+rule prokka:
+    conda: "envs/prokka.yaml"
+    input:
+        fasta=INPUT_FASTA
+    output:
+        gbk=GBK
+    log:
+        log_path("prokka")
+    threads: 4
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p {PROKKA_DIR}
+        echo "[{SAMPLE}] rule=prokka start=$(date -Is) host=$(hostname)" > {log}
+        echo "CMD: prokka --outdir {PROKKA_DIR} --prefix {SAMPLE} --force {input.fasta}" >> {log}
+        prokka --outdir {PROKKA_DIR} --prefix {SAMPLE} --force {input.fasta} >> {log} 2>&1
+        echo "[{SAMPLE}] rule=prokka done=$(date -Is)" >> {log}
+        """
+
+# Markers
+if INPUT_TYPE == "nucleotide":
+    rule ensure_proteins:
+        input:
+            prodigal_output=f"{PRODIGAL_DIR}/{SAMPLE}.faa"
+        output:
+            touch(f"results/.ok/{SAMPLE}.proteins.ok")
+        log:
+            log_path("ensure_proteins")
+        run:
+            Path("results/.ok").mkdir(parents=True, exist_ok=True)
+            with open(log[0], "w") as fh:
+                fh.write(f"[{SAMPLE}] rule=ensure_proteins ok start\n")
+                fh.write(f"Input: {input.prodigal_output}\n")
+                fh.write(f"Output: {output[0]}\n")
+                fh.write(f"[{SAMPLE}] rule=ensure_proteins ok done\n")
+            Path(output[0]).touch()
+
+    rule ensure_gbk:
+        input:
+            prokka_output=GBK
+        output:
+            touch(f"results/.ok/{SAMPLE}.gbk.ok")
+        log:
+            log_path("ensure_gbk")
+        run:
+            Path("results/.ok").mkdir(parents=True, exist_ok=True)
+            with open(log[0], "w") as fh:
+                fh.write(f"[{SAMPLE}] rule=ensure_gbk ok start\n")
+                fh.write(f"Input: {input.prokka_output}\n")
+                fh.write(f"Output: {output[0]}\n")
+                fh.write(f"[{SAMPLE}] rule=ensure_gbk ok done\n")
+            Path(output[0]).touch()
+else:
+    rule ensure_proteins:
+        input:
+            PROTEINS
+        output:
+            touch(f"results/.ok/{SAMPLE}.proteins.ok")
+        log:
+            log_path("ensure_proteins")
+        run:
+            Path("results/.ok").mkdir(parents=True, exist_ok=True)
+            with open(log[0], "w") as fh:
+                fh.write(f"[{SAMPLE}] rule=ensure_proteins ok start\n")
+                fh.write(f"Input: {input[0]}\n")
+                fh.write(f"Output: {output[0]}\n")
+                fh.write(f"[{SAMPLE}] rule=ensure_proteins ok done\n")
+            Path(output[0]).touch()
+
+# ---------------------------
+# PSORTb (your "pbsort")
+# ---------------------------
+
+rule psortb:
+    input:
+        ok=f"results/.ok/{SAMPLE}.proteins.ok",
+        proteins=PROTEINS
+    output:
+        outdir=directory(f"results/psortb/{SAMPLE}")
+    params:
+        cmd=lambda wc: config["psortb"]["cmd"],
+        org=lambda wc: config["psortb"].get("organism_flag", "--negative")
+    log:
+        log_path("psortb")
+    threads: 2
+    shell:
+        r"""
+        module load 2023 Apptainer/1.3.2
+        set -euo pipefail
+        mkdir -p {output.outdir}
+        echo "[{SAMPLE}] rule=psortb start=$(date -Is) host=$(hostname)" > {log}
+        echo "CMD: {params.cmd} -i {input.proteins} -r {output.outdir} {params.org}" >> {log}
+        {params.cmd} -i {input.proteins} -r {output.outdir} {params.org} >> {log} 2>&1
+        echo "[{SAMPLE}] rule=psortb done=$(date -Is)" >> {log}
+        """
+
+# ---------------------------
+# LipoP via elipop
+# ---------------------------
+
+rule lipop:
+    conda: "envs/emboss.yaml"
+    input:
+        ok=f"results/.ok/{SAMPLE}.proteins.ok",
+        proteins=PROTEINS
+    output:
+        out=f"results/lipop/{SAMPLE}.elipop"
+    params:
+        cmd=lambda wc: config["lipop"]["cmd"],
+        extra=lambda wc: config["lipop"].get("extra", "-auto -short")
+    log:
+        log_path("lipop")
+    threads: 1
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p results/lipop
+        echo "[{SAMPLE}] rule=lipop start=$(date -Is) host=$(hostname)" > {log}
+        echo "CMD: {params.cmd} -sequence {input.proteins} -outfile {output.out} {params.extra}" >> {log}
+        {params.cmd} -sequence {input.proteins} -outfile {output.out} {params.extra} >> {log} 2>&1
+        echo "[{SAMPLE}] rule=lipop done=$(date -Is)" >> {log}
+        """
+
+# ---------------------------
+# DeepTMHMM
+# ---------------------------
+
+rule deeptmhmm:
+    input:
+        ok=f"results/.ok/{SAMPLE}.proteins.ok",
+        proteins=PROTEINS
+    output:
+        topo=f"results/deeptmhmm/{SAMPLE}/predicted_topologies.3line",
+        gff=f"results/deeptmhmm/{SAMPLE}/TMRs.gff3",
+        md=f"results/deeptmhmm/{SAMPLE}/deeptmhmm_results.md",
+        png=f"results/deeptmhmm/{SAMPLE}/plot.png"
+    params:
+        mode=lambda wc: config["deeptmhmm"].get("mode", "docker"),
+        image=lambda wc: config["deeptmhmm"].get("image", "biswasaneel/deeptmhmm:latest"),
+        cmd=lambda wc: config["deeptmhmm"].get("cmd", "deeptmhmm")
+    log:
+        log_path("deeptmhmm")
+    threads: 4
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p results/deeptmhmm/{SAMPLE}
+        echo "[{SAMPLE}] rule=deeptmhmm start=$(date -Is) host=$(hostname)" > {log}
+
+        if [ "{params.mode}" = "docker" ]; then
+          module load 2023 Apptainer/1.3.2
+          TMPDIR="results/deeptmhmm/{SAMPLE}/_tmp"
+          mkdir -p "$TMPDIR/embeddings" "$TMPDIR/probabilities"
+          echo "CMD: apptainer exec ... {params.image} python3 predict.py --fasta /openprotein/prot_seqs.fasta" >> {log}
+
+          apptainer exec --rm \
+            -v $(realpath {input.proteins}):/openprotein/prot_seqs.fasta \
+            -v $(realpath $TMPDIR/embeddings):/openprotein/embeddings \
+            -v $(realpath $TMPDIR/probabilities):/openprotein/probabilities \
+            -v $(realpath {output.topo}):/openprotein/predicted_topologies.3line \
+            -v $(realpath {output.gff}):/openprotein/TMRs.gff3 \
+            -v $(realpath {output.md}):/deeptmhmm_results.md \
+            -v $(realpath {output.png}):/openprotein/plot.png \
+            docker://{params.image} \
+            python3 predict.py --fasta /openprotein/prot_seqs.fasta >> {log} 2>&1
+        else
+          echo "CMD: {params.cmd} --fasta {input.proteins} --outdir results/deeptmhmm/{SAMPLE}" >> {log}
+          {params.cmd} --fasta {input.proteins} --outdir results/deeptmhmm/{SAMPLE} >> {log} 2>&1
+        fi
+
+        echo "[{SAMPLE}] rule=deeptmhmm done=$(date -Is)" >> {log}
+        """
+
+# ---------------------------
+# SPAAN
+# ---------------------------
+
+rule spaan:
+    input:
+        ok=f"results/.ok/{SAMPLE}.proteins.ok",
+        proteins=PROTEINS
+    output:
+        out=f"results/spaan/{SAMPLE}/query.out"
+    params:
+        askquery=lambda wc: config["spaan"]["askquery_path"]
+    log:
+        log_path("spaan")
+    threads: 1
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p results/spaan/{SAMPLE}
+        echo "[{SAMPLE}] rule=spaan start=$(date -Is) host=$(hostname)" > {log}
+        echo "Stage proteins to results/spaan/{SAMPLE}/query.dat" >> {log}
+        cp {input.proteins} results/spaan/{SAMPLE}/query.dat >> {log} 2>&1
+        echo "CMD: (cd results/spaan/{SAMPLE} && {params.askquery})" >> {log}
+        (cd results/spaan/{SAMPLE} && {params.askquery}) >> {log} 2>&1
+        test -s {output.out} >> {log} 2>&1
+        echo "[{SAMPLE}] rule=spaan done=$(date -Is)" >> {log}
+        """
+
+# ---------------------------
+# IslandPath-DIMOB
+# ---------------------------
+
+rule islandpath:
+    conda: "envs/islandpath.yaml"
+    input:
+        ok=f"results/.ok/{SAMPLE}.gbk.ok",
+        gbk=GBK
+    output:
+        txt=f"results/islandpath/{SAMPLE}/GIs.txt"
+    log:
+        log_path("islandpath")
+    threads: 2
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p results/islandpath/{SAMPLE}
+        echo "[{SAMPLE}] rule=islandpath start=$(date -Is) host=$(hostname)" > {log}
+        echo "CMD: Dimob.pl {input.gbk} {output.txt}" >> {log}
+        Dimob.pl {input.gbk} {output.txt} >> {log} 2>&1
+        echo "[{SAMPLE}] rule=islandpath done=$(date -Is)" >> {log}
+        """
+
+# ---------------------------
+# Mash
+# ---------------------------
+
+rule mash_sketch:
+    conda: "envs/mash.yaml"
+    input:
+        fasta=INPUT_FASTA
+    output:
+        msh=f"results/mash/{SAMPLE}/{SAMPLE}.msh"
+    params:
+        k=lambda wc: str(config["mash"].get("k", 21)),
+        s=lambda wc: str(config["mash"].get("s", 1000))
+    log:
+        log_path("mash_sketch")
+    threads: 2
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p results/mash/{SAMPLE}
+        echo "[{SAMPLE}] rule=mash_sketch start=$(date -Is) host=$(hostname)" > {log}
+        echo "CMD: mash sketch -k {params.k} -s {params.s} -o results/mash/{SAMPLE}/{SAMPLE} {input.fasta}" >> {log}
+        mash sketch -k {params.k} -s {params.s} -o results/mash/{SAMPLE}/{SAMPLE} {input.fasta} >> {log} 2>&1
+        echo "[{SAMPLE}] rule=mash_sketch done=$(date -Is)" >> {log}
+        """
+
+rule mash_dist:
+    conda: "envs/mash.yaml"
+    input:
+        qry=f"results/mash/{SAMPLE}/{SAMPLE}.msh"
+    output:
+        tsv=f"results/mash/{SAMPLE}/distances.tsv"
+    params:
+        ref=lambda wc: config.get("mash", {}).get("reference_sketch")
+    log:
+        log_path("mash_dist")
+    threads: 2
+    shell:
+        r"""
+        set -euo pipefail
+        mkdir -p results/mash/{SAMPLE}
+        echo "[{SAMPLE}] rule=mash_dist start=$(date -Is) host=$(hostname)" > {log}
+        echo "CMD: mash dist {params.ref} {input.qry} > {output.tsv}" >> {log}
+        mash dist {params.ref} {input.qry} > {output.tsv} 2>> {log}
+        echo "[{SAMPLE}] rule=mash_dist done=$(date -Is)" >> {log}
+        """
