@@ -34,7 +34,7 @@ onerror:
 
 rule all:
     input:
-        expand("calls/{callers}/{samples}.gvcf.gz",
+        expand("calls/{callers}/{samples}.vcf.gz",
             callers=CALLERS, samples = SAMPLES),
         "final/combined_bam_stats.tab",
         "final/combined_bam_stats.pdf",
@@ -43,7 +43,7 @@ rule all:
 
 rule freebayes_only:
     input:
-        expand("calls/freebayes/{samples}.gvcf.gz", samples = SAMPLES),
+        expand("calls/freebayes/{samples}.vcf.gz", samples = SAMPLES),
         "final/combined_bam_stats.tab",
         "final/combined_bam_stats.pdf",
         'FinishedAggregate',
@@ -241,13 +241,13 @@ rule freebayes:
         samples= ["mapped/{samples}.merged.bam"],
         bai = "mapped/{samples}.merged.bam.bai"
     output:
-        "calls/freebayes/{samples}.gvcf"
+        "calls/freebayes/{samples}.vcf"
     log:
         "logs/freebayes.{samples}.log"
     conda:
         "envs/freebayes.yaml"
     params:
-        extra="--min-repeat-entropy 1 --gvcf",
+        extra="--min-repeat-entropy 1",
         chunksize=1000000,
         mem="15000",
         time="2-0"
@@ -262,7 +262,7 @@ rule haplotype_caller:
         bai = "mapped/{samples}.merged.bam.bai",
         ref=config["assembly"]
     output:
-        gvcf = "calls/gatk/{samples}.gvcf"
+        gvcf = "calls/gatk/{samples}.vcf"
     log:
         "logs/gatk/{samples}.log",
     params:
@@ -279,11 +279,11 @@ rule haplotype_caller:
         python3 {workflow.basedir}/scripts/haplotypecaller.py -b {input.bam} -F {input.ref} -e {params.extra} {params.java_opts} -o {params.outputbase} -v {output.gvcf} -t {threads} 2> {log}
         """
 
-rule gzip_gvcfs:
+rule gzip_vcfs:
     input:
-        "calls/{callers}/{samples}.gvcf"
+        "calls/{callers}/{samples}.vcf"
     output:
-        protected("calls/{callers}/{samples}.gvcf.gz")
+        protected("calls/{callers}/{samples}.vcf.gz")
     threads: 1
     params:
         mem="1000",
