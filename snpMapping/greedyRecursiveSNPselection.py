@@ -9,7 +9,7 @@ import argparse
 from collections import defaultdict
 import matplotlib
 matplotlib.use('Agg')
-from matplotlib.collections import BrokenBarHCollection
+#from matplotlib.collections import BrokenBarHCollection
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from itertools import cycle
@@ -100,7 +100,7 @@ def main(args, parser):
 
     ideoworker = chrIdeogramPlot(args.fai, 18)
 
-    snptable = ideoworker.straight_segment_df(bedstyle)
+    snptable = ideoworker.straight_plot_df(bedstyle)
     ideoworker.plot_it(snptable, args.output + '.ideogram.pdf')
 
     print("Fini!")
@@ -303,10 +303,10 @@ class chrIdeogramPlot:
 
         # Height of the gene track. Should be smaller than `chrom_spacing` in order to
         # fit correctly
-        track_height = 0.4
+        gene_height = 0.4
 
         # Padding between the top of a gene track and its corresponding ideogram
-        track_padding = 0.1
+        gene_padding = 0.1
 
         # Width, height (in inches)
         figsize = (6, 8)
@@ -316,23 +316,26 @@ class chrIdeogramPlot:
         # and the center of each ideogram (which is where we'll put the ytick labels)
         ybase = 0
         chrom_ybase = {}
-        track_ybase = {}
+        gene_ybase = {}
         chrom_centers = {}
 
         # Iterate in reverse so that items in the beginning of `chromosome_list` will
         # appear at the top of the plot
-        for chrom in self.chromosome_list[::-1]:
+        for chrom in chromosome_list[::-1]:
             chrom_ybase[chrom] = ybase
             chrom_centers[chrom] = ybase + chrom_height / 2.
-            track_ybase[chrom] = ybase - track_height - track_padding
+            gene_ybase[chrom] = ybase - gene_height - gene_padding
             ybase += chrom_height + chrom_spacing
 
         # Read in ideogram.txt, downloaded from UCSC Table Browser
 
-        ideo = pd.DataFrame({'chrom' : self.chromosome_list,
-                                'start' : [0 for x in range(len(self.chromosome_list))],
-                                'width' : self.chromosome_size,
-                                'colors': ['#bd2309' for x in range(len(self.chromosome_list))]})
+        colcycle = cycle([ '#bd2309', '#bbb12d', '#1480fa', '#14fa2f', '#000000',
+          '#faf214', '#2edfea', '#ea2ec4', '#ea2e40', '#cdcdcd',
+          '#577a4d', '#2e46c0', '#f59422', '#219774', '#8086d9' ])
+        ideo = pd.DataFrame({'chrom' : chromosome_list,
+                                'start' : [0 for x in range(len(chromosome_list))],
+                                'width' : chromosome_size,
+                                'colors': [next(colcycle) for x in range(len(chromosome_list))]})
 
         # Note, I am plotting exact intervals here instead of windows
         # If the plots are too washed out, I may have to return to window-based clustering
@@ -343,20 +346,22 @@ class chrIdeogramPlot:
 
         # Now all we have to do is call our function for the ideogram data...
         print("adding ideograms...")
-        for collection in self.chromosome_collections(ideo, chrom_ybase, chrom_height):
-            ax.add_collection(collection)
+        for (xranges, yranges, colors) in chromosome_collections(ideo, chrom_ybase, chrom_height):
+            ax.broken_barh(xranges, yranges, facecolors=colors)
+            #ax.add_collection(collection)
 
         # ...and the gene data
-        print("adding tracks...")
-        for collection in self.chromosome_collections(
-            track, track_ybase, track_height, alpha=0.5, linewidths=0
-        ):
-            ax.add_collection(collection)
+        print("adding genes...")
+        for (xranges, yranges, colors) in chromosome_collections(
+            track, gene_ybase, gene_height):
+            ax.broken_barh(xranges, yranges, color='black', alpha=0.5, linewidths=0)
+            #ax.add_collection(collection)
 
         # Axes tweaking
-        ax.set_yticks([chrom_centers[i] for i in self.chromosome_list])
-        ax.set_yticklabels(self.chromosome_list)
+        ax.set_yticks([chrom_centers[i] for i in chromosome_list])
+        ax.set_yticklabels(chromosome_list)
         ax.axis('tight')
+        
         plt.savefig(output)
         plt.close()
 
@@ -400,32 +405,28 @@ class chrIdeogramPlot:
                 gtable['colors'].append(color)
         return pd.DataFrame(gtable)
 
-    def straight_segment_df(self, bedsegs, colors = None):
+    def straight_plot_df(chromosome_list, chromosome_size, bed, colors):
         gtable = defaultdict(list)
-        if colors == None:
-            colors = self.colcycle
-        else:
-            colors = cycle(colors)
+        cycler = cycle(colors)
         names = set()
-
-        for s in bedsegs:
-            if s[0] not in self.chromosome_list:
+        for s in bed:
+            if s[0] not in chromosome_list:
                 continue
             gtable['chrom'].append(s[0])
             gtable['start'].append(int(s[1]))
             gtable['end'].append(int(s[2]))
             gtable['name'].append(s[3])
             names.add(s[3])
-
+                
         ctranslate = dict()
         for i in names:
-            ctranslate[i] = next(colors)
-
+            ctranslate[i] = next(cycler)
+            
         genes = pd.DataFrame(gtable)
         genes['colors'] = genes['name'].map(ctranslate)
         return genes
-
-    def chromosome_collections(self, df, y_positions, height,  **kwargs):
+        
+    def chromosome_collections(df, y_positions, height, min_width=20000):
         """
         Yields BrokenBarHCollection of features that can be added to an Axes
         object.
@@ -445,16 +446,16 @@ class chrIdeogramPlot:
         if 'width' not in df.columns:
             del_width = True
             df['width'] = df['end'] - df['start']
+        df.loc[df['width'] < min_width, 'width'] = min_width
         for chrom, group in df.groupby('chrom'):
             print(chrom)
             yrange = (y_positions[chrom], height)
             xranges = group[['start', 'width']].values
-            yield BrokenBarHCollection(
-                xranges, yrange, facecolors=group['colors'], **kwargs)
+            yield (xranges, yrange, group['colors'])
         if del_width:
             del df['width']
 
-    def get_chromosomes_names(self, input):
+    def get_chromosomes_names(input):
         list_chromosomes = []
         list_length = []
         with open(input, 'r') as fai:

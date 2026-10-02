@@ -199,7 +199,7 @@ def writeOutTempBIM(tdf, colname, filt, mapfile, outfilename):
     tDf.sort_values(['CHR', 'SNP', 'Pos']).to_csv(outfilename, sep="\t", index=False)
     print(f'Wrote to: {outfilename}')
 
-def selectedCountsChrs(selsnplist, selsnpcats):
+def selectedCountsChrs(selsnplist, selsnpcats, minRange=1, maxRange=34):
     counters = defaultdict(list)
     for cat, l in zip(selsnpcats, selsnplist):
         for chrom, snpl in l.items():
@@ -209,7 +209,7 @@ def selectedCountsChrs(selsnplist, selsnpcats):
 
     tdf = pd.DataFrame(counters)
     sns.barplot(data=tdf, x="Chr", y="Value", hue="Type",
-                palette=sns.color_palette("Set2"), order=[str(x) for x in range(1, 34)])
+                palette=sns.color_palette("Set2"), order=[str(x) for x in range(minRange, maxRange)])
     plt.ylabel('Count of markers selected per chromosome')
     plt.xlabel("Chromosome")
     plt.xticks(rotation=45, ha='right')
